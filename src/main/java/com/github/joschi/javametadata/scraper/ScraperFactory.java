@@ -58,12 +58,14 @@ public class ScraperFactory {
                         checksumDir.resolve("microsoft"),
                         ProgressReporterLogger.forScraper("microsoft", reporter)));
 
-        // OpenJDK and project variants
+        // OpenJDK mainline
         scrapers.add(
                 new OpenJdkScraper(
                         metadataVendorDir.resolve("openjdk"),
                         checksumDir.resolve("openjdk"),
                         ProgressReporterLogger.forScraper("openjdk", reporter)));
+        
+        // OpenJDK project variants
         scrapers.add(
                 new OpenJdkLeydenScraper(
                         metadataVendorDir.resolve("openjdk"),
@@ -80,49 +82,36 @@ public class ScraperFactory {
                         checksumDir.resolve("openjdk"),
                         ProgressReporterLogger.forScraper("openjdk-valhalla", reporter)));
 
-        // Dragonwell (Alibaba)
+        // Dragonwell (Alibaba) - unified scraper for all versions
         scrapers.add(
-                new Dragonwell8Scraper(
+                new DragonwellScraper(
                         metadataVendorDir.resolve("dragonwell"),
                         checksumDir.resolve("dragonwell"),
-                        ProgressReporterLogger.forScraper("dragonwell-8", reporter)));
-        scrapers.add(
-                new Dragonwell11Scraper(
-                        metadataVendorDir.resolve("dragonwell"),
-                        checksumDir.resolve("dragonwell"),
-                        ProgressReporterLogger.forScraper("dragonwell-11", reporter)));
-        scrapers.add(
-                new Dragonwell17Scraper(
-                        metadataVendorDir.resolve("dragonwell"),
-                        checksumDir.resolve("dragonwell"),
-                        ProgressReporterLogger.forScraper("dragonwell-17", reporter)));
-        scrapers.add(
-                new Dragonwell21Scraper(
-                        metadataVendorDir.resolve("dragonwell"),
-                        checksumDir.resolve("dragonwell"),
-                        ProgressReporterLogger.forScraper("dragonwell-21", reporter)));
+                        ProgressReporterLogger.forScraper("dragonwell", reporter)));
 
-        // Kona (Tencent)
+        // Kona (Tencent) - unified scraper for all versions
         scrapers.add(
-                new Kona8Scraper(
+                new KonaScraper(
                         metadataVendorDir.resolve("kona"),
                         checksumDir.resolve("kona"),
-                        ProgressReporterLogger.forScraper("kona-8", reporter)));
+                        ProgressReporterLogger.forScraper("kona", reporter)));
+
+        // GraalVM variants
         scrapers.add(
-                new Kona11Scraper(
-                        metadataVendorDir.resolve("kona"),
-                        checksumDir.resolve("kona"),
-                        ProgressReporterLogger.forScraper("kona-11", reporter)));
+                new GraalVmLegacyScraper(
+                        metadataVendorDir.resolve("graalvm"),
+                        checksumDir.resolve("graalvm"),
+                        ProgressReporterLogger.forScraper("graalvm-legacy", reporter)));
         scrapers.add(
-                new Kona17Scraper(
-                        metadataVendorDir.resolve("kona"),
-                        checksumDir.resolve("kona"),
-                        ProgressReporterLogger.forScraper("kona-17", reporter)));
+                new GraalVmCeScraper(
+                        metadataVendorDir.resolve("graalvm"),
+                        checksumDir.resolve("graalvm"),
+                        ProgressReporterLogger.forScraper("graalvm-ce", reporter)));
         scrapers.add(
-                new Kona21Scraper(
-                        metadataVendorDir.resolve("kona"),
-                        checksumDir.resolve("kona"),
-                        ProgressReporterLogger.forScraper("kona-21", reporter)));
+                new GraalVmCommunityScraper(
+                        metadataVendorDir.resolve("graalvm"),
+                        checksumDir.resolve("graalvm"),
+                        ProgressReporterLogger.forScraper("graalvm-community", reporter)));
 
         // Oracle
         scrapers.add(
@@ -141,87 +130,19 @@ public class ScraperFactory {
                         checksumDir.resolve("oracle-graalvm"),
                         ProgressReporterLogger.forScraper("oracle-graalvm-ea", reporter)));
 
-        // Semeru versions
+        // Semeru - unified scraper for all versions
         scrapers.add(
-                new Semeru8Scraper(
+                new SemeruScraper(
                         metadataVendorDir.resolve("semeru"),
                         checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-8", reporter)));
+                        ProgressReporterLogger.forScraper("semeru", reporter)));
+
+        // Trava - unified scraper for all versions
         scrapers.add(
-                new Semeru11Scraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-11", reporter)));
-        scrapers.add(
-                new Semeru11CertifiedScraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-11-certified", reporter)));
-        scrapers.add(
-                new Semeru16Scraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-16", reporter)));
-        scrapers.add(
-                new Semeru17Scraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-17", reporter)));
-        scrapers.add(
-                new Semeru17CertifiedScraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-17-certified", reporter)));
-        scrapers.add(
-                new Semeru18Scraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-18", reporter)));
-        scrapers.add(
-                new Semeru19Scraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-19", reporter)));
-        scrapers.add(
-                new Semeru20Scraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-20", reporter)));
-        scrapers.add(
-                new Semeru21Scraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-21", reporter)));
-        scrapers.add(
-                new Semeru21CertifiedScraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-21-certified", reporter)));
-        scrapers.add(
-                new Semeru22Scraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-22", reporter)));
-        scrapers.add(
-                new Semeru23Scraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-23", reporter)));
-        scrapers.add(
-                new Semeru24Scraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-24", reporter)));
-        scrapers.add(
-                new Semeru25Scraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-25", reporter)));
-        scrapers.add(
-                new Semeru25CertifiedScraper(
-                        metadataVendorDir.resolve("semeru"),
-                        checksumDir.resolve("semeru"),
-                        ProgressReporterLogger.forScraper("semeru-25-certified", reporter)));
+                new TravaScraper(
+                        metadataVendorDir.resolve("trava"),
+                        checksumDir.resolve("trava"),
+                        ProgressReporterLogger.forScraper("trava", reporter)));
 
         // Add more scrapers here as they are implemented
 

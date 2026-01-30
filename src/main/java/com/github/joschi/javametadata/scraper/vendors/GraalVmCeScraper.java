@@ -1,21 +1,17 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
-import com.github.joschi.javametadata.scraper.BaseScraper;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** Scraper for GraalVM CE (legacy) releases */
-public class GraalVmCeScraper extends BaseScraper {
+public class GraalVmCeScraper extends GraalVmBaseScraper {
     private static final String VENDOR = "graalvm";
     private static final String GITHUB_ORG = "graalvm";
     private static final String GITHUB_REPO = "graalvm-ce-builds";
-    private static final String GITHUB_API_BASE = "https://api.github.com/repos";
     
     // Prior graalvm 23: graalvm-ce-java17-darwin-amd64-22.3.2.tar.gz
     private static final Pattern FILENAME_PATTERN = Pattern.compile(
@@ -36,48 +32,29 @@ public class GraalVmCeScraper extends BaseScraper {
     }
 
     @Override
-    protected List<JdkMetadata> scrape() throws Exception {
-        List<JdkMetadata> allMetadata = new ArrayList<>();
-
-        log("Fetching releases from GitHub");
-        String releasesUrl =
-                String.format(
-                        "%s/%s/%s/releases?per_page=100",
-                        GITHUB_API_BASE, GITHUB_ORG, GITHUB_REPO);
-        String json = httpUtils.downloadString(releasesUrl);
-        JsonNode releases = objectMapper.readTree(json);
-
-        if (!releases.isArray()) {
-            log("No releases found");
-            return allMetadata;
-        }
-
-        for (JsonNode release : releases) {
-            String tagName = release.get("tag_name").asText();
-            log("Processing release: " + tagName);
-
-            JsonNode assets = release.get("assets");
-            if (assets != null && assets.isArray()) {
-                for (JsonNode asset : assets) {
-                    String assetName = asset.get("name").asText();
-                    
-                    // Only process graalvm-ce files with tar.gz or zip extension
-                    if (assetName.startsWith("graalvm-ce") && 
-                        (assetName.endsWith("tar.gz") || assetName.endsWith("zip"))) {
-                        try {
-                            processAsset(tagName, assetName, allMetadata);
-                        } catch (Exception e) {
-                            log("Failed to process " + assetName + ": " + e.getMessage());
-                        }
-                    }
-                }
-            }
-        }
-
-        return allMetadata;
+    protected String getGithubOrg() {
+        return GITHUB_ORG;
     }
 
-    private void processAsset(String tagName, String assetName, List<JdkMetadata> allMetadata)
+    @Override
+    protected String getGithubRepo() {
+        return GITHUB_REPO;
+    }
+
+    @Override
+    protected boolean shouldProcessTag(String tagName) {
+        // Exclude Community releases (which start with "jdk")
+        return !tagName.startsWith("jdk");
+    }
+
+    @Override
+    protected boolean shouldProcessAsset(String assetName) {
+        return assetName.startsWith("graalvm-ce") && 
+               (assetName.endsWith("tar.gz") || assetName.endsWith("zip"));
+    }
+
+    @Override
+    protected void processAsset(String tagName, String assetName, List<JdkMetadata> allMetadata)
             throws Exception {
         
         if (metadataExists(assetName)) {
@@ -106,28 +83,17 @@ public class GraalVmCeScraper extends BaseScraper {
         DownloadResult download = downloadFile(url, assetName);
 
         // Create metadata
-        JdkMetadata metadata = new JdkMetadata();
-        metadata.setVendor(VENDOR);
-        metadata.setFilename(assetName);
-        metadata.setReleaseType("ga");
-        metadata.setVersion(version + "+java" + javaVersion);
-        metadata.setJavaVersion(javaVersion);
-        metadata.setJvmImpl("graalvm");
-        metadata.setOs(normalizeOs(os));
-        metadata.setArchitecture(normalizeArch(arch));
-        metadata.setFileType(ext);
-        metadata.setImageType("jdk");
-        metadata.setFeatures(new ArrayList<>());
-        metadata.setUrl(url);
-        metadata.setMd5(download.md5());
-        metadata.setMd5File(assetName + ".md5");
-        metadata.setSha1(download.sha1());
-        metadata.setSha1File(assetName + ".sha1");
-        metadata.setSha256(download.sha256());
-        metadata.setSha256File(assetName + ".sha256");
-        metadata.setSha512(download.sha512());
-        metadata.setSha512File(assetName + ".sha512");
-        metadata.setSize(download.size());
+        JdkMetadata metadata = createMetadata(
+                VENDOR,
+                assetName,
+                "ga",
+                version + "+java" + javaVersion,
+                javaVersion,
+                os,
+                arch,
+                ext,
+                url,
+                download);
 
         saveMetadataFile(metadata);
         allMetadata.add(metadata);

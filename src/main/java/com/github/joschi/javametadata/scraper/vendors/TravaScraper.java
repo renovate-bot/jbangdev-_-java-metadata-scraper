@@ -6,35 +6,52 @@ import com.github.joschi.javametadata.scraper.BaseScraper;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Base class for Trava OpenJDK scrapers with DCEVM */
-public abstract class TravaBaseScraper extends BaseScraper {
+/** Scraper for Trava OpenJDK releases with DCEVM across multiple Java versions */
+public class TravaScraper extends BaseScraper {
     private static final String VENDOR = "trava";
     private static final String GITHUB_ORG = "TravaOpenJDK";
     private static final String GITHUB_API_BASE = "https://api.github.com/repos";
 
-    public TravaBaseScraper(Path metadataDir, Path checksumDir, Logger logger) {
+    /** Configuration for each Trava Java version variant */
+    private record ProjectConfig(
+            String javaVersion,
+            String repo,
+            Pattern tagPattern,
+            Pattern filenamePattern,
+            Function<Matcher, String> versionExtractor) {}
+
+    private static final List<ProjectConfig> PROJECTS =
+            List.of(
+                    new ProjectConfig(
+                            "8",
+                            "trava-jdk-8-dcevm",
+                            Pattern.compile("^dcevm8u(\\d+)b(\\d+)$"),
+                            Pattern.compile("^java8-openjdk-dcevm-(linux|osx|windows)\\.(.*)$"),
+                            matcher -> {
+                                String update = matcher.group(1);
+                                String build = matcher.group(2);
+                                return "8.0." + update + "+" + build;
+                            }),
+                    new ProjectConfig(
+                            "11",
+                            "trava-jdk-11-dcevm",
+                            Pattern.compile("^dcevm-(11\\.[\\d.+]+)$"),
+                            Pattern.compile(
+                                    "^java11-openjdk-dcevm-(linux|osx|windows)-(amd64|arm64|x64)\\.(.*)$"),
+                            matcher -> matcher.group(1)));
+
+    public TravaScraper(Path metadataDir, Path checksumDir, Logger logger) {
         super(metadataDir, checksumDir, logger);
     }
 
-    /** Get the GitHub repository name */
-    protected abstract String getGithubRepo();
-
-    /** Get the tag pattern for parsing version from release tags */
-    protected abstract Pattern getTagPattern();
-
-    /** Get the filename pattern for parsing asset names */
-    protected abstract Pattern getFilenamePattern();
-
-    /** Extract version from tag matcher */
-    protected abstract String extractVersionFromTag(Matcher tagMatcher);
-
-    /** Get the default architecture when not specified in filename */
-    protected String getDefaultArchitecture() {
-        return "x86_64";
+    @Override
+    public String getScraperId() {
+        return "trava";
     }
 
     @Override
@@ -46,31 +63,42 @@ public abstract class TravaBaseScraper extends BaseScraper {
     protected List<JdkMetadata> scrape() throws Exception {
         List<JdkMetadata> allMetadata = new ArrayList<>();
 
-        log("Fetching releases from GitHub");
+        for (ProjectConfig project : PROJECTS) {
+            log("Processing Trava " + project.javaVersion());
+            allMetadata.addAll(scrapeProject(project));
+        }
+
+        return allMetadata;
+    }
+
+    private List<JdkMetadata> scrapeProject(ProjectConfig project) throws Exception {
+        List<JdkMetadata> metadata = new ArrayList<>();
+
+        log("Fetching releases from GitHub for " + project.repo());
         String releasesUrl =
                 String.format(
                         "%s/%s/%s/releases?per_page=100",
-                        GITHUB_API_BASE, GITHUB_ORG, getGithubRepo());
+                        GITHUB_API_BASE, GITHUB_ORG, project.repo());
         String json = httpUtils.downloadString(releasesUrl);
         JsonNode releases = objectMapper.readTree(json);
 
         if (!releases.isArray()) {
-            log("No releases found");
-            return allMetadata;
+            log("No releases found for " + project.repo());
+            return metadata;
         }
 
         for (JsonNode release : releases) {
             String tagName = release.get("tag_name").asText();
             log("Processing release: " + tagName);
 
-            // Parse version from tag
-            Matcher tagMatcher = getTagPattern().matcher(tagName);
+            // Parse version from tag using configured pattern and extractor
+            Matcher tagMatcher = project.tagPattern().matcher(tagName);
             if (!tagMatcher.matches()) {
                 log("Skipping tag " + tagName + " (does not match pattern)");
                 continue;
             }
 
-            String version = extractVersionFromTag(tagMatcher);
+            String version = project.versionExtractor().apply(tagMatcher);
 
             JsonNode assets = release.get("assets");
             if (assets != null && assets.isArray()) {
@@ -86,7 +114,7 @@ public abstract class TravaBaseScraper extends BaseScraper {
                     // Only process application files
                     if (contentType.startsWith("application")) {
                         try {
-                            processAsset(tagName, assetName, version, allMetadata);
+                            processAsset(project, tagName, assetName, version, metadata);
                         } catch (Exception e) {
                             log("Failed to process " + assetName + ": " + e.getMessage());
                         }
@@ -95,26 +123,34 @@ public abstract class TravaBaseScraper extends BaseScraper {
             }
         }
 
-        return allMetadata;
+        return metadata;
     }
 
-    protected void processAsset(
-            String tagName, String assetName, String version, List<JdkMetadata> allMetadata)
+    private void processAsset(
+            ProjectConfig project,
+            String tagName,
+            String assetName,
+            String version,
+            List<JdkMetadata> allMetadata)
             throws Exception {
 
-        Matcher filenameMatcher = getFilenamePattern().matcher(assetName);
+        Matcher filenameMatcher = project.filenamePattern().matcher(assetName);
         if (!filenameMatcher.matches()) {
             log("Skipping " + assetName + " (does not match pattern)");
             return;
         }
 
         String os = filenameMatcher.group(1);
-        String arch = filenameMatcher.groupCount() >= 2 ? filenameMatcher.group(2) : null;
-        String ext = filenameMatcher.group(filenameMatcher.groupCount());
-
-        // Default to configured default architecture if arch is not specified
-        if (arch == null || arch.isEmpty()) {
-            arch = getDefaultArchitecture();
+        // For Java 8, architecture is not in filename, default to x86_64
+        // For Java 11, architecture is in the filename
+        String arch;
+        String ext;
+        if (project.javaVersion().equals("8")) {
+            arch = "x86_64";
+            ext = filenameMatcher.group(2);
+        } else {
+            arch = filenameMatcher.group(2);
+            ext = filenameMatcher.group(3);
         }
 
         String metadataFilename = VENDOR + "-" + version + "-" + os + "-" + arch + "." + ext;
@@ -127,7 +163,7 @@ public abstract class TravaBaseScraper extends BaseScraper {
         String url =
                 String.format(
                         "https://github.com/%s/%s/releases/download/%s/%s",
-                        GITHUB_ORG, getGithubRepo(), tagName, assetName);
+                        GITHUB_ORG, project.repo(), tagName, assetName);
 
         // Download and compute hashes
         DownloadResult download = downloadFile(url, metadataFilename);
@@ -154,10 +190,8 @@ public abstract class TravaBaseScraper extends BaseScraper {
         metadata.setSha256File(assetName + ".sha256");
         metadata.setSha512(download.sha512());
         metadata.setSha512File(assetName + ".sha512");
-        metadata.setSize(download.size());
 
-        saveMetadataFile(metadata);
         allMetadata.add(metadata);
-        log("Processed " + assetName);
+        saveMetadataFile(metadata);
     }
 }

@@ -2,7 +2,7 @@ package com.github.joschi.javametadata.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
-import com.github.joschi.javametadata.scraper.GitHubReleaseScraper;
+import com.github.joschi.javametadata.scraper.BaseScraper;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,10 +10,14 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Base scraper for Tencent Kona releases */
-public abstract class KonaBaseScraper extends GitHubReleaseScraper {
+/** Unified scraper for all Tencent Kona releases across multiple Java versions */
+public class KonaScraper extends BaseScraper {
     private static final String VENDOR = "kona";
     private static final String ORG = "Tencent";
+    private static final String GITHUB_API_BASE = "https://api.github.com/repos";
+
+    // List of all Java versions to scrape
+    private static final List<String> JAVA_VERSIONS = List.of("8", "11", "17", "21");
 
     // Pattern for Kona 8
     private static final Pattern KONA8_SIMPLE_PATTERN =
@@ -34,13 +38,13 @@ public abstract class KonaBaseScraper extends GitHubReleaseScraper {
             Pattern.compile(
                     "^TencentKona-([0-9b.]{1,})(?:[_-](ea))?[-_]jdk_(linux|macosx|windows)-(aarch64|x86_64)(?:_(notarized|signed))?\\.(?:tar\\.gz|zip)$");
 
-    public KonaBaseScraper(Path metadataDir, Path checksumDir, Logger logger) {
+    public KonaScraper(Path metadataDir, Path checksumDir, Logger logger) {
         super(metadataDir, checksumDir, logger);
     }
 
     @Override
-    protected String getGitHubOrg() {
-        return ORG;
+    public String getScraperId() {
+        return "kona";
     }
 
     @Override
@@ -48,24 +52,47 @@ public abstract class KonaBaseScraper extends GitHubReleaseScraper {
         return VENDOR;
     }
 
-    /** Get the Java version this scraper handles */
-    protected abstract String getJavaVersion();
-
     @Override
-    protected String getGitHubRepo() {
-        return "TencentKona-" + getJavaVersion();
+    protected List<JdkMetadata> scrape() throws Exception {
+        List<JdkMetadata> allMetadata = new ArrayList<>();
+
+        // Process each Java version
+        for (String javaVersion : JAVA_VERSIONS) {
+            log("Processing Kona version: " + javaVersion);
+            try {
+                allMetadata.addAll(scrapeVersion(javaVersion));
+            } catch (Exception e) {
+                log("Failed to process version " + javaVersion + ": " + e.getMessage());
+            }
+        }
+
+        return allMetadata;
     }
 
-    @Override
-    public String getScraperId() {
-        return "kona-" + getJavaVersion();
-    }
-
-    @Override
-    protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
+    private List<JdkMetadata> scrapeVersion(String javaVersion) throws Exception {
         List<JdkMetadata> metadataList = new ArrayList<>();
 
-        String tagName = release.get("tag_name").asText();
+        String repo = "TencentKona-" + javaVersion;
+        String releasesUrl =
+                String.format("%s/%s/%s/releases?per_page=100", GITHUB_API_BASE, ORG, repo);
+
+        String json = httpUtils.downloadString(releasesUrl);
+        JsonNode releases = objectMapper.readTree(json);
+
+        if (!releases.isArray()) {
+            log("No releases found for version " + javaVersion);
+            return metadataList;
+        }
+
+        for (JsonNode release : releases) {
+            metadataList.addAll(processRelease(release));
+        }
+
+        return metadataList;
+    }
+
+    private List<JdkMetadata> processRelease(JsonNode release) throws Exception {
+        List<JdkMetadata> metadataList = new ArrayList<>();
 
         JsonNode assets = release.get("assets");
         if (assets == null || !assets.isArray()) {
@@ -102,14 +129,17 @@ public abstract class KonaBaseScraper extends GitHubReleaseScraper {
         if (parsed.features != null) {
             String[] featureArray = parsed.features.trim().split("\\s+");
             for (String feature : featureArray) {
-                if (!feature.isEmpty() && !feature.equals("notarized") && !feature.equals("signed")) {
+                if (!feature.isEmpty()
+                        && !feature.equals("notarized")
+                        && !feature.equals("signed")) {
                     features.add(feature);
                 }
             }
         }
 
         // Determine release type
-        String releaseType = parsed.releaseType != null && parsed.releaseType.equals("ea") ? "ea" : "ga";
+        String releaseType =
+                parsed.releaseType != null && parsed.releaseType.equals("ea") ? "ea" : "ga";
 
         // Download and compute hashes
         DownloadResult download = downloadFile(url, filename);
@@ -169,7 +199,8 @@ public abstract class KonaBaseScraper extends GitHubReleaseScraper {
             result.javaVersion = matcher.group(5);
             String extraFeatures = matcher.group(6);
             if (extraFeatures != null) {
-                result.features = (result.features != null ? result.features + " " : "") + extraFeatures;
+                result.features =
+                        (result.features != null ? result.features + " " : "") + extraFeatures;
             }
             result.ext = filename.substring(filename.lastIndexOf('.') + 1);
             if (filename.endsWith(".tar.gz")) {

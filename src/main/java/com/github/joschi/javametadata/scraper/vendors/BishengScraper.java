@@ -2,6 +2,8 @@ package com.github.joschi.javametadata.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
+import com.github.joschi.javametadata.scraper.AdoptiumMarketplaceScraper;
+
 import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Logger;

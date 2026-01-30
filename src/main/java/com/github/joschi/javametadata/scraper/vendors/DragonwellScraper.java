@@ -2,7 +2,7 @@ package com.github.joschi.javametadata.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
-import com.github.joschi.javametadata.scraper.GitHubReleaseScraper;
+import com.github.joschi.javametadata.scraper.BaseScraper;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,10 +10,14 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Base scraper for Alibaba Dragonwell releases */
-public abstract class DragonwellBaseScraper extends GitHubReleaseScraper {
+/** Unified scraper for all Alibaba Dragonwell releases across multiple Java versions */
+public class DragonwellScraper extends BaseScraper {
     private static final String VENDOR = "dragonwell";
     private static final String ORG = "dragonwell-project";
+    private static final String GITHUB_API_BASE = "https://api.github.com/repos";
+
+    // List of all Java versions to scrape
+    private static final List<String> JAVA_VERSIONS = List.of("8", "11", "17", "21");
 
     // Multiple patterns to handle different filename formats
     private static final Pattern STANDARD_EXTENDED_PATTERN_8 =
@@ -35,13 +39,13 @@ public abstract class DragonwellBaseScraper extends GitHubReleaseScraper {
             Pattern.compile(
                     "^Alibaba_Dragonwell_([0-9.+]{1,}[^_]*)(?:_alpine)?_(aarch64|x64)_(Linux|linux|Windows|windows)\\.(.*)$");
 
-    public DragonwellBaseScraper(Path metadataDir, Path checksumDir, Logger logger) {
+    public DragonwellScraper(Path metadataDir, Path checksumDir, Logger logger) {
         super(metadataDir, checksumDir, logger);
     }
 
     @Override
-    protected String getGitHubOrg() {
-        return ORG;
+    public String getScraperId() {
+        return "dragonwell";
     }
 
     @Override
@@ -49,21 +53,46 @@ public abstract class DragonwellBaseScraper extends GitHubReleaseScraper {
         return VENDOR;
     }
 
-    /** Get the Java version this scraper handles */
-    protected abstract String getJavaVersion();
-
     @Override
-    protected String getGitHubRepo() {
-        return "dragonwell" + getJavaVersion();
+    protected List<JdkMetadata> scrape() throws Exception {
+        List<JdkMetadata> allMetadata = new ArrayList<>();
+
+        // Process each Java version
+        for (String javaVersion : JAVA_VERSIONS) {
+            log("Processing Dragonwell version: " + javaVersion);
+            try {
+                allMetadata.addAll(scrapeVersion(javaVersion));
+            } catch (Exception e) {
+                log("Failed to process version " + javaVersion + ": " + e.getMessage());
+            }
+        }
+
+        return allMetadata;
     }
 
-    @Override
-    public String getScraperId() {
-        return "dragonwell-" + getJavaVersion();
+    private List<JdkMetadata> scrapeVersion(String javaVersion) throws Exception {
+        List<JdkMetadata> metadataList = new ArrayList<>();
+
+        String repo = "dragonwell" + javaVersion;
+        String releasesUrl =
+                String.format("%s/%s/%s/releases?per_page=100", GITHUB_API_BASE, ORG, repo);
+
+        String json = httpUtils.downloadString(releasesUrl);
+        JsonNode releases = objectMapper.readTree(json);
+
+        if (!releases.isArray()) {
+            log("No releases found for version " + javaVersion);
+            return metadataList;
+        }
+
+        for (JsonNode release : releases) {
+            metadataList.addAll(processRelease(release));
+        }
+
+        return metadataList;
     }
 
-    @Override
-    protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
+    private List<JdkMetadata> processRelease(JsonNode release) throws Exception {
         List<JdkMetadata> metadataList = new ArrayList<>();
 
         String tagName = release.get("tag_name").asText();
@@ -96,7 +125,8 @@ public abstract class DragonwellBaseScraper extends GitHubReleaseScraper {
         return metadataList;
     }
 
-    private JdkMetadata processAsset(String tagName, String filename, String url) throws Exception {
+    private JdkMetadata processAsset(String tagName, String filename, String url)
+            throws Exception {
         ParsedFilename parsed = parseFilename(filename);
         if (parsed == null || parsed.version == null) {
             log("Could not parse filename: " + filename);
