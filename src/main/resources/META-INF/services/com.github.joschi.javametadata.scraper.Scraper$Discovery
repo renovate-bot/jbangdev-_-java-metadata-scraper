@@ -1,4 +1,5 @@
 com.github.joschi.javametadata.scraper.vendors.TemurinScraper$Discovery
+com.github.joschi.javametadata.scraper.vendors.TemurinEaScraper$Discovery
 com.github.joschi.javametadata.scraper.vendors.ZuluScraper$Discovery
 com.github.joschi.javametadata.scraper.vendors.LibericaScraper$Discovery
 com.github.joschi.javametadata.scraper.vendors.CorrettoScraper$Discovery
