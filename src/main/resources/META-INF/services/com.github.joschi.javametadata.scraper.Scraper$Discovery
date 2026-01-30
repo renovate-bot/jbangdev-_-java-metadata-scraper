@@ -14,6 +14,7 @@ com.github.joschi.javametadata.scraper.vendors.OracleScraper$Discovery
 com.github.joschi.javametadata.scraper.vendors.OracleGraalVmScraper$Discovery
 com.github.joschi.javametadata.scraper.vendors.OracleGraalVmEaScraper$Discovery
 com.github.joschi.javametadata.scraper.vendors.SemeruScraper$Discovery
+com.github.joschi.javametadata.scraper.vendors.SemeruCertifiedScraper$Discovery
 com.github.joschi.javametadata.scraper.vendors.TravaScraper$Discovery
 com.github.joschi.javametadata.scraper.vendors.AdoptOpenJdkScraper$Discovery
 com.github.joschi.javametadata.scraper.vendors.BishengScraper$Discovery

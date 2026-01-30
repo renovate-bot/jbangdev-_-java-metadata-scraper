@@ -2,25 +2,24 @@ package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-/** Scraper for IBM Semeru Open Edition releases */
-public class SemeruScraper extends SemeruBaseScraper {
-    private static final String VENDOR = "semeru";
+/** Scraper for IBM Semeru Certified Edition releases */
+public class SemeruCertifiedScraper extends SemeruBaseScraper {
+    private static final String VENDOR = "semeru-certified";
     
-    // List of Java versions for open edition
+    // List of Java versions for certified edition
     private static final List<String> JAVA_VERSIONS =
-            List.of("8", "11", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25");
+            List.of("11-certified", "17-certified", "21-certified", "25-certified");
 
-    public SemeruScraper(Path metadataDir, Path checksumDir, Logger logger) {
+    public SemeruCertifiedScraper(Path metadataDir, Path checksumDir, Logger logger) {
         super(metadataDir, checksumDir, logger);
     }
 
     @Override
     public String getScraperId() {
-        return "semeru";
+        return "semeru-certified";
     }
 
     @Override
@@ -30,7 +29,7 @@ public class SemeruScraper extends SemeruBaseScraper {
 
     @Override
     protected String getFilenamePrefix() {
-        return "ibm-semeru-open-";
+        return "ibm-semeru-certified-";
     }
 
     @Override
@@ -40,24 +39,23 @@ public class SemeruScraper extends SemeruBaseScraper {
 
     @Override
     protected List<String> getAdditionalFeatures() {
-        return new ArrayList<>();
+        return List.of("certified");
     }
 
     public static class Discovery implements Scraper.Discovery {
         @Override
         public String name() {
-            return "semeru";
+            return "semeru-certified";
         }
 
         @Override
         public String vendor() {
-            return "semeru";
+            return "IBM Semeru Certified";
         }
 
         @Override
         public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new SemeruScraper(metadataDir, checksumDir, logger);
+            return new SemeruCertifiedScraper(metadataDir, checksumDir, logger);
         }
     }
-
 }
