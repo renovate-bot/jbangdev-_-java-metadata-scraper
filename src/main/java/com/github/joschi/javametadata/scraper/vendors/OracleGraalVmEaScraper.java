@@ -1,5 +1,6 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
+import com.github.joschi.javametadata.scraper.Scraper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.GitHubReleaseScraper;
@@ -26,11 +27,6 @@ public class OracleGraalVmEaScraper extends GitHubReleaseScraper {
     @Override
     public String getScraperId() {
         return "oracle-graalvm-ea";
-    }
-
-    @Override
-    public String getVendorName() {
-        return VENDOR;
     }
 
     @Override
@@ -124,4 +120,22 @@ public class OracleGraalVmEaScraper extends GitHubReleaseScraper {
         saveMetadataFile(metadata);
         return metadata;
     }
+
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "oracle-graalvm-ea";
+        }
+
+        @Override
+        public String vendor() {
+            return "oracle-graalvm";
+        }
+
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new OracleGraalVmEaScraper(metadataDir, checksumDir, logger);
+        }
+    }
+
 }

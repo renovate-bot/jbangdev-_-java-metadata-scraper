@@ -33,9 +33,6 @@ public abstract class BaseScraper implements Scraper {
     /** Get the unique identifier for this scraper */
     public abstract String getScraperId();
 
-    /** Get the vendor name */
-    public abstract String getVendorName();
-
     /** Execute the scraping logic */
     protected abstract List<JdkMetadata> scrape() throws Exception;
 

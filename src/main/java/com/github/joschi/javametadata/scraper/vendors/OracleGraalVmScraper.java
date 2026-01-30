@@ -1,5 +1,6 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
+import com.github.joschi.javametadata.scraper.Scraper;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
 import com.github.joschi.javametadata.util.HashUtils;
@@ -30,11 +31,6 @@ public class OracleGraalVmScraper extends BaseScraper {
     @Override
     public String getScraperId() {
         return "oracle-graalvm";
-    }
-
-    @Override
-    public String getVendorName() {
-        return VENDOR;
     }
 
     @Override
@@ -178,4 +174,22 @@ public class OracleGraalVmScraper extends BaseScraper {
         saveMetadataFile(metadata);
         return metadata;
     }
+
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "oracle-graalvm";
+        }
+
+        @Override
+        public String vendor() {
+            return "oracle-graalvm";
+        }
+
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new OracleGraalVmScraper(metadataDir, checksumDir, logger);
+        }
+    }
+
 }

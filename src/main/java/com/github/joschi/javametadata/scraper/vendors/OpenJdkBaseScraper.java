@@ -22,11 +22,6 @@ public abstract class OpenJdkBaseScraper extends BaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getVendorName() {
-        return VENDOR;
-    }
-
     /** Get the list of URLs to fetch index pages from */
     protected abstract List<String> getIndexUrls();
 

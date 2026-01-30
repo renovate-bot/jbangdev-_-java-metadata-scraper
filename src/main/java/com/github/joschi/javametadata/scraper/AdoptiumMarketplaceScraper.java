@@ -18,6 +18,9 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
+    /** Get the vendor name */
+    public abstract String getVendorName();
+
     /** Get the API base URL */
     protected abstract String getApiBase();
 

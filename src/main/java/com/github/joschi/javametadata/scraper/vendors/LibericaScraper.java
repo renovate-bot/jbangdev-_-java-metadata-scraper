@@ -1,5 +1,6 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
+import com.github.joschi.javametadata.scraper.Scraper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.GitHubReleaseScraper;
@@ -24,11 +25,6 @@ public class LibericaScraper extends GitHubReleaseScraper {
     @Override
     public String getScraperId() {
         return "liberica";
-    }
-
-    @Override
-    public String getVendorName() {
-        return VENDOR;
     }
 
     @Override
@@ -191,4 +187,22 @@ public class LibericaScraper extends GitHubReleaseScraper {
 
         return features;
     }
+
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "liberica";
+        }
+
+        @Override
+        public String vendor() {
+            return "liberica";
+        }
+
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new LibericaScraper(metadataDir, checksumDir, logger);
+        }
+    }
+
 }

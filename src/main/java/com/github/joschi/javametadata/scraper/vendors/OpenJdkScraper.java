@@ -1,5 +1,6 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
+import com.github.joschi.javametadata.scraper.Scraper;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
@@ -26,5 +27,22 @@ public class OpenJdkScraper extends OpenJdkBaseScraper {
                 "http://jdk.java.net/24/",
                 "http://jdk.java.net/25/",
                 "http://jdk.java.net/26/");
+    }
+
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "openjdk";
+        }
+
+        @Override
+        public String vendor() {
+            return "openjdk";
+        }
+
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new OpenJdkScraper(metadataDir, checksumDir, logger);
+        }
     }
 }

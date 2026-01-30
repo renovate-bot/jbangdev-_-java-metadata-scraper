@@ -1,5 +1,6 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
+import com.github.joschi.javametadata.scraper.Scraper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
@@ -46,11 +47,6 @@ public class DragonwellScraper extends BaseScraper {
     @Override
     public String getScraperId() {
         return "dragonwell";
-    }
-
-    @Override
-    public String getVendorName() {
-        return VENDOR;
     }
 
     @Override
@@ -274,4 +270,22 @@ public class DragonwellScraper extends BaseScraper {
         String arch;
         String ext;
     }
+
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "dragonwell";
+        }
+
+        @Override
+        public String vendor() {
+            return "dragonwell";
+        }
+
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new DragonwellScraper(metadataDir, checksumDir, logger);
+        }
+    }
+
 }

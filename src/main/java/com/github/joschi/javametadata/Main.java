@@ -2,10 +2,12 @@ package com.github.joschi.javametadata;
 
 import com.github.joschi.javametadata.reporting.ProgressEvent;
 import com.github.joschi.javametadata.reporting.ProgressReporter;
+import com.github.joschi.javametadata.scraper.Scraper;
 import com.github.joschi.javametadata.scraper.ScraperFactory;
 import com.github.joschi.javametadata.scraper.ScraperResult;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
 import picocli.CommandLine;
@@ -74,11 +76,14 @@ public class Main implements Callable<Integer> {
             reporter.start();
 
             // Create scrapers
-            var scrapers =
-                    (scraperIds != null && !scraperIds.isEmpty())
-                            ? ScraperFactory.createScrapers(
-                                    scraperIds, metadataDir, checksumDir, reporter)
-                            : ScraperFactory.createAllScrapers(metadataDir, checksumDir, reporter);
+            var fact = ScraperFactory.create(metadataDir, checksumDir, reporter);
+            if (scraperIds == null) {
+                scraperIds = new ArrayList<>(ScraperFactory.getAvailableScraperDiscoveries().keySet());
+            }
+            var scrapers = new HashMap<String, Scraper>();
+            for (var scraperId : scraperIds) {
+                scrapers.put(scraperId, fact.createScraper(scraperId));
+            }
 
             if (scraperIds != null && !scraperIds.isEmpty()) {
                 System.out.println("Running specific scrapers: " + String.join(", ", scraperIds));
@@ -89,38 +94,32 @@ public class Main implements Callable<Integer> {
             System.out.println("Total scrapers: " + scrapers.size());
             System.out.println();
 
+            long startTime = System.currentTimeMillis();
+
             // Execute scrapers in parallel
             try (var executor = Executors.newFixedThreadPool(threadCount)) {
                 // Submit all scrapers and wrap them to report start/complete/failed events
                 var futures = new ArrayList<Future<ScraperResult>>();
-                for (var scraper : scrapers) {
+                for (var scraperEntry : scrapers.entrySet()) {
                     Future<ScraperResult> future =
                             executor.submit(
                                     () -> {
-                                        String scraperId = scraper.getScraperId();
-                                        reporter.report(ProgressEvent.started(scraperId));
-                                        try {
-                                            ScraperResult result = scraper.call();
-                                            if (result.success()) {
-                                                reporter.report(
-                                                        ProgressEvent.completed(scraperId));
-                                            } else {
-                                                reporter.report(
-                                                        ProgressEvent.failed(
-                                                                scraperId,
-                                                                result.error() != null
-                                                                        ? result.error()
-                                                                                .getMessage()
-                                                                        : "Unknown error",
-                                                                result.error()));
-                                            }
-                                            return result;
-                                        } catch (Exception e) {
+                                        String scraperName = scraperEntry.getKey();
+                                        reporter.report(ProgressEvent.started(scraperName));
+                                        ScraperResult result = scraperEntry.getValue().call();
+                                        if (result.success()) {
+                                            reporter.report(ProgressEvent.completed(scraperName));
+                                        } else {
                                             reporter.report(
                                                     ProgressEvent.failed(
-                                                            scraperId, e.getMessage(), e));
-                                            return ScraperResult.failure(scraperId, e);
+                                                            scraperName,
+                                                            result.error() != null
+                                                                    ? result.error()
+                                                                            .getMessage()
+                                                                    : "Unknown error",
+                                                            result.error()));
                                         }
+                                        return result;
                                     });
                     futures.add(future);
                 }
@@ -133,6 +132,9 @@ public class Main implements Callable<Integer> {
                     } catch (ExecutionException e) {
                         System.err.println(
                                 "Scraper execution failed: " + e.getCause().getMessage());
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        System.err.println("Scraper execution interrupted");
                     }
                 }
 
@@ -161,8 +163,17 @@ public class Main implements Callable<Integer> {
                 System.out.println("Failed: " + failed);
                 System.out.println("Total items processed: " + totalItems);
 
+                var endTime = System.currentTimeMillis();
+                var duration = (endTime - startTime) / 1000.0;
+                System.out.println();
+                System.out.println("All scrapers completed in " + duration + " seconds");
+
                 return failed > 0 ? 1 : 0;
             }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
+            return 1;
         }
     }
 
@@ -170,17 +181,14 @@ public class Main implements Callable<Integer> {
         System.out.println("Available Scrapers:");
         System.out.println("==================");
 
-        try (var dummyReporter = new ProgressReporter()) {
-            var ids =
-                    ScraperFactory.getAvailableScraperIds(metadataDir, checksumDir, dummyReporter);
+        var names = ScraperFactory.getAvailableScraperDiscoveries().keySet().stream().sorted().toList();
 
-            for (var id : ids) {
-                System.out.println("  - " + id);
-            }
-
-            System.out.println();
-            System.out.println("Total: " + ids.size() + " scrapers");
+        for (var name : names) {
+            System.out.println("  - " + name);
         }
+
+        System.out.println();
+        System.out.println("Total: " + names.size() + " scrapers");
     }
 
     public static void main(String[] args) {

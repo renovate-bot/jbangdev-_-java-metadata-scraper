@@ -1,5 +1,6 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
+import com.github.joschi.javametadata.scraper.Scraper;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
 import java.nio.file.Path;
@@ -27,11 +28,6 @@ public class ZuluScraper extends BaseScraper {
     @Override
     public String getScraperId() {
         return "zulu";
-    }
-
-    @Override
-    public String getVendorName() {
-        return VENDOR;
     }
 
     @Override
@@ -158,4 +154,22 @@ public class ZuluScraper extends BaseScraper {
 
         return features;
     }
+
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "zulu";
+        }
+
+        @Override
+        public String vendor() {
+            return "zulu";
+        }
+
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new ZuluScraper(metadataDir, checksumDir, logger);
+        }
+    }
+
 }

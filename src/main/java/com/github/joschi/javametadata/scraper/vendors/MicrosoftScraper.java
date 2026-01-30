@@ -1,5 +1,6 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
+import com.github.joschi.javametadata.scraper.Scraper;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
 import java.nio.file.Path;
@@ -22,11 +23,6 @@ public class MicrosoftScraper extends BaseScraper {
     @Override
     public String getScraperId() {
         return "microsoft";
-    }
-
-    @Override
-    public String getVendorName() {
-        return VENDOR;
     }
 
     @Override
@@ -115,4 +111,22 @@ public class MicrosoftScraper extends BaseScraper {
 
         return metadata;
     }
+
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "microsoft";
+        }
+
+        @Override
+        public String vendor() {
+            return "microsoft";
+        }
+        
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new MicrosoftScraper(metadataDir, checksumDir, logger);
+        }
+    }
+
 }

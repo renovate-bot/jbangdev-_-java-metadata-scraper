@@ -1,6 +1,8 @@
 package com.github.joschi.javametadata.scraper;
 
+import java.nio.file.Path;
 import java.util.concurrent.Callable;
+import java.util.logging.Logger;
 
 /**
  * Interface for vendor scrapers that collect JDK metadata. Scrapers implement {@link Callable} to
@@ -9,16 +11,11 @@ import java.util.concurrent.Callable;
 public interface Scraper extends Callable<ScraperResult> {
 
     /**
-     * Get the unique identifier for this scraper.
-     *
-     * @return the scraper ID
+     * Factory interface for scraper discovery
      */
-    String getScraperId();
-
-    /**
-     * Get the vendor name.
-     *
-     * @return the vendor name
-     */
-    String getVendorName();
+    interface Discovery {
+        String name();
+        String vendor();
+        Scraper create(Path metadataDir, Path checksumDir, Logger logger);
+    }
 }

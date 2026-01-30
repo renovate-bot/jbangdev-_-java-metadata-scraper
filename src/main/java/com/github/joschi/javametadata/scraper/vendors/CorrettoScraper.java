@@ -1,5 +1,6 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
+import com.github.joschi.javametadata.scraper.Scraper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
@@ -36,11 +37,6 @@ public class CorrettoScraper extends BaseScraper {
     @Override
     public String getScraperId() {
         return "corretto";
-    }
-
-    @Override
-    public String getVendorName() {
-        return VENDOR;
     }
 
     @Override
@@ -193,4 +189,22 @@ public class CorrettoScraper extends BaseScraper {
             return String.format("amazon-corretto-%s-%s-%s-%s.%s", version, os, arch, imageType, ext);
         }
     }
+
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "corretto";
+        }
+
+        @Override
+        public String vendor() {
+            return "corretto";
+        }
+
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new CorrettoScraper(metadataDir, checksumDir, logger);
+        }
+    }
+
 }

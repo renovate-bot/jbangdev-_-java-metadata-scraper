@@ -1,5 +1,6 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
+import com.github.joschi.javametadata.scraper.Scraper;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import java.nio.file.Path;
 import java.util.List;
@@ -25,11 +26,6 @@ public class GraalVmCommunityScraper extends GraalVmBaseScraper {
     @Override
     public String getScraperId() {
         return "graalvm-community";
-    }
-
-    @Override
-    public String getVendorName() {
-        return VENDOR;
     }
 
     @Override
@@ -98,4 +94,22 @@ public class GraalVmCommunityScraper extends GraalVmBaseScraper {
         allMetadata.add(metadata);
         log("Processed " + assetName);
     }
+
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "graalvm-community";
+        }
+
+        @Override
+        public String vendor() {
+            return "graalvm-community";
+        }
+
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new GraalVmCommunityScraper(metadataDir, checksumDir, logger);
+        }
+    }
+
 }

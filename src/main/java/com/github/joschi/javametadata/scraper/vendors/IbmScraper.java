@@ -1,5 +1,6 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
+import com.github.joschi.javametadata.scraper.Scraper;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
 import java.nio.file.Path;
@@ -26,11 +27,6 @@ public class IbmScraper extends BaseScraper {
     @Override
     public String getScraperId() {
         return "ibm";
-    }
-
-    @Override
-    public String getVendorName() {
-        return VENDOR;
     }
 
     @Override
@@ -135,4 +131,22 @@ public class IbmScraper extends BaseScraper {
         allMetadata.add(metadata);
         log("Processed " + ibmFile);
     }
+
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "ibm";
+        }
+
+        @Override
+        public String vendor() {
+            return "ibm";
+        }
+
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new IbmScraper(metadataDir, checksumDir, logger);
+        }
+    }
+
 }

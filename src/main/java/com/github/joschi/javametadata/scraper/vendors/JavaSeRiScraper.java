@@ -1,5 +1,6 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
+import com.github.joschi.javametadata.scraper.Scraper;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
 import java.nio.file.Path;
@@ -31,11 +32,6 @@ public class JavaSeRiScraper extends BaseScraper {
     @Override
     public String getScraperId() {
         return "java-se-ri";
-    }
-
-    @Override
-    public String getVendorName() {
-        return VENDOR;
     }
 
     @Override
@@ -138,4 +134,22 @@ public class JavaSeRiScraper extends BaseScraper {
         allMetadata.add(metadata);
         log("Processed " + filename);
     }
+
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "java-se-ri";
+        }
+
+        @Override
+        public String vendor() {
+            return "java-se-ri";
+        }
+
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new JavaSeRiScraper(metadataDir, checksumDir, logger);
+        }
+    }
+
 }
