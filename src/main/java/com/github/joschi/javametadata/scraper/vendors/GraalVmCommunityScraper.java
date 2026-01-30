@@ -23,10 +23,6 @@ public class GraalVmCommunityScraper extends GraalVmBaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "graalvm-community";
-    }
 
     @Override
     protected String getGithubOrg() {

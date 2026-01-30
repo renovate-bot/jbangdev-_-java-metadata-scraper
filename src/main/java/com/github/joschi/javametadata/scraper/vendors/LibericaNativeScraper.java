@@ -23,10 +23,6 @@ public class LibericaNativeScraper extends BaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "liberica-native";
-    }
 
     @Override
     protected List<JdkMetadata> scrape() throws Exception {

@@ -28,10 +28,6 @@ public class JetbrainsScraper extends BaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "jetbrains";
-    }
 
     @Override
     protected List<JdkMetadata> scrape() throws Exception {

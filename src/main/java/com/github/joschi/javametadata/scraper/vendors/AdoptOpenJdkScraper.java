@@ -18,10 +18,6 @@ public class AdoptOpenJdkScraper extends AdoptiumMarketplaceScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "adoptopenjdk";
-    }
 
     @Override
     public String getVendorName() {

@@ -22,10 +22,6 @@ public class GluonGraalVmScraper extends GitHubReleaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "gluon-graalvm";
-    }
 
     @Override
     protected String getGitHubOrg() {

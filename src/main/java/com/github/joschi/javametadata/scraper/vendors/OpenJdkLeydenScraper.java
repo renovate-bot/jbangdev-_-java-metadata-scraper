@@ -12,10 +12,6 @@ public class OpenJdkLeydenScraper extends OpenJdkBaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "openjdk-leyden";
-    }
 
     @Override
     protected List<String> getIndexUrls() {

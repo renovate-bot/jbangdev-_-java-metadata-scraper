@@ -24,10 +24,6 @@ public class IbmScraper extends BaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "ibm";
-    }
 
     @Override
     protected List<JdkMetadata> scrape() throws Exception {

@@ -30,16 +30,11 @@ public abstract class BaseScraper implements Scraper {
         this.httpUtils = new HttpUtils();
     }
 
-    /** Get the unique identifier for this scraper */
-    public abstract String getScraperId();
-
     /** Execute the scraping logic */
     protected abstract List<JdkMetadata> scrape() throws Exception;
 
     @Override
     public ScraperResult call() {
-        var scraperId = getScraperId();
-
         try {
             // Ensure directories exist
             Files.createDirectories(metadataDir);
@@ -55,11 +50,11 @@ public abstract class BaseScraper implements Scraper {
 
             log("Completed successfully. Processed " + metadataList.size() + " items");
 
-            return ScraperResult.success(scraperId, metadataList.size());
+            return ScraperResult.success(metadataList.size());
 
         } catch (Exception e) {
             log("Failed with error: " + e.getMessage());
-            return ScraperResult.failure(scraperId, e);
+            return ScraperResult.failure(e);
         }
     }
 

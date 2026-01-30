@@ -22,10 +22,6 @@ public class GraalVmCeScraper extends GraalVmBaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "graalvm-ce";
-    }
 
     @Override
     protected String getGithubOrg() {

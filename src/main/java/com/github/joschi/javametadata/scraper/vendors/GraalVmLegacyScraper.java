@@ -26,10 +26,6 @@ public class GraalVmLegacyScraper extends GraalVmBaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "graalvm-legacy";
-    }
 
     @Override
     protected String getGithubOrg() {

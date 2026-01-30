@@ -18,11 +18,6 @@ public class SemeruCertifiedScraper extends SemeruBaseScraper {
     }
 
     @Override
-    public String getScraperId() {
-        return "semeru-certified";
-    }
-
-    @Override
     protected List<String> getJavaVersions() {
         return JAVA_VERSIONS;
     }

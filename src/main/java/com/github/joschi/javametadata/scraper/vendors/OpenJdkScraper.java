@@ -12,10 +12,6 @@ public class OpenJdkScraper extends OpenJdkBaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "openjdk";
-    }
 
     @Override
     protected List<String> getIndexUrls() {

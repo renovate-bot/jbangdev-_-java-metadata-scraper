@@ -19,11 +19,6 @@ public class TemurinScraper extends BaseScraper {
     }
 
     @Override
-    public String getScraperId() {
-        return "temurin";
-    }
-
-    @Override
     protected List<JdkMetadata> scrape() throws Exception {
         List<JdkMetadata> allMetadata = new ArrayList<>();
 

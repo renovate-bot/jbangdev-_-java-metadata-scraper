@@ -12,10 +12,6 @@ public class OpenJdkValhallaScraper extends OpenJdkBaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "openjdk-valhalla";
-    }
 
     @Override
     protected List<String> getIndexUrls() {

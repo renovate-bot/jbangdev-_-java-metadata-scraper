@@ -17,10 +17,6 @@ public class BishengScraper extends AdoptiumMarketplaceScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "bisheng";
-    }
 
     @Override
     public String getVendorName() {

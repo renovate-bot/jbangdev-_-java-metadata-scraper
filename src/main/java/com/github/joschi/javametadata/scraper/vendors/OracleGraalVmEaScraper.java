@@ -24,10 +24,6 @@ public class OracleGraalVmEaScraper extends GitHubReleaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "oracle-graalvm-ea";
-    }
 
     @Override
     protected String getGitHubOrg() {

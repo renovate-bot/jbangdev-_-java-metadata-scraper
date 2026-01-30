@@ -25,10 +25,6 @@ public class ZuluPrimeScraper extends BaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "zulu-prime";
-    }
 
     @Override
     protected List<JdkMetadata> scrape() throws Exception {

@@ -17,10 +17,6 @@ public class RedhatScraper extends AdoptiumMarketplaceScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "redhat";
-    }
 
     @Override
     public String getVendorName() {

@@ -29,10 +29,6 @@ public class JavaSeRiScraper extends BaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "java-se-ri";
-    }
 
     @Override
     protected List<JdkMetadata> scrape() throws Exception {

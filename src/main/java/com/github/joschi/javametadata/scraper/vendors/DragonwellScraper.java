@@ -44,10 +44,6 @@ public class DragonwellScraper extends BaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "dragonwell";
-    }
 
     @Override
     protected List<JdkMetadata> scrape() throws Exception {

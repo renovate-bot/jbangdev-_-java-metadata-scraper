@@ -28,10 +28,6 @@ public class OracleScraper extends BaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "oracle";
-    }
 
     @Override
     protected List<JdkMetadata> scrape() throws Exception {

@@ -26,11 +26,6 @@ public class ZuluScraper extends BaseScraper {
     }
 
     @Override
-    public String getScraperId() {
-        return "zulu";
-    }
-
-    @Override
     protected List<JdkMetadata> scrape() throws Exception {
         List<JdkMetadata> allMetadata = new ArrayList<>();
 

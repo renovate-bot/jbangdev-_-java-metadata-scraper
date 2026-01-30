@@ -22,10 +22,6 @@ public class LibericaScraper extends GitHubReleaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "liberica";
-    }
 
     @Override
     protected String getGitHubOrg() {

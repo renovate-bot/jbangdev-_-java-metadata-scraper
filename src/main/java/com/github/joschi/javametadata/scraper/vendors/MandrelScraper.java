@@ -25,10 +25,6 @@ public class MandrelScraper extends BaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "mandrel";
-    }
 
     @Override
     protected List<JdkMetadata> scrape() throws Exception {

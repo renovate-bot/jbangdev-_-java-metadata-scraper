@@ -19,11 +19,6 @@ public class SemeruScraper extends SemeruBaseScraper {
     }
 
     @Override
-    public String getScraperId() {
-        return "semeru";
-    }
-
-    @Override
     protected List<String> getJavaVersions() {
         return JAVA_VERSIONS;
     }

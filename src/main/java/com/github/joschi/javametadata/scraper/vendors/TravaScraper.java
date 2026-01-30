@@ -50,10 +50,6 @@ public class TravaScraper extends BaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "trava";
-    }
 
     @Override
     protected List<JdkMetadata> scrape() throws Exception {

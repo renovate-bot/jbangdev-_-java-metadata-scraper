@@ -12,10 +12,6 @@ public class OpenJdkLoomScraper extends OpenJdkBaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "openjdk-loom";
-    }
 
     @Override
     protected List<String> getIndexUrls() {

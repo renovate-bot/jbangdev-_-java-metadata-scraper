@@ -24,10 +24,6 @@ public class SapMachineScraper extends GitHubReleaseScraper {
         super(metadataDir, checksumDir, logger);
     }
 
-    @Override
-    public String getScraperId() {
-        return "sapmachine";
-    }
 
     @Override
     protected String getGitHubOrg() {
