@@ -61,6 +61,11 @@ public class HttpUtils {
         }
     }
 
+    /** Alias for urlExists - check if a URL exists (returns 2xx status code) */
+    public boolean checkUrlExists(String url) {
+        return urlExists(url);
+    }
+
     public void close() throws IOException {
         httpClient.close();
     }

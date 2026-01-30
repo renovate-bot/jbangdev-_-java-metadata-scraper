@@ -1,0 +1,247 @@
+package com.github.joschi.javametadata.scraper.vendors;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.joschi.javametadata.model.JdkMetadata;
+import com.github.joschi.javametadata.scraper.GitHubReleaseScraper;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/** Base scraper for Alibaba Dragonwell releases */
+public abstract class DragonwellBaseScraper extends GitHubReleaseScraper {
+    private static final String VENDOR = "dragonwell";
+    private static final String ORG = "dragonwell-project";
+
+    // Multiple patterns to handle different filename formats
+    private static final Pattern STANDARD_EXTENDED_PATTERN_8 =
+            Pattern.compile(
+                    "^Alibaba_Dragonwell_(?:Standard|Extended)[-_]([0-9.+]{1,}[^_]*)[-_](x64|aarch64)[-_](Linux|linux|Windows|windows)\\.(.*)$");
+    private static final Pattern ALIBABA_PATTERN_8 =
+            Pattern.compile(
+                    "^Alibaba_Dragonwell_([0-9.+]{1,}[^_]*)[-_](?:(GA|Experimental|GA_Experimental|FP1)_)?(Linux|linux|Windows|windows)_(x64|aarch64)\\.(.*)$");
+    private static final Pattern STANDARD_EXTENDED_PATTERN =
+            Pattern.compile(
+                    "^Alibaba_Dragonwell_(?:Standard|Extended)[–_]([0-9.+]{1,}[^_]*)_(aarch64|x64)(?:_alpine)?[-_](Linux|linux|Windows|windows)\\.(.*)$");
+    private static final Pattern ALIBABA_PATTERN =
+            Pattern.compile(
+                    "^Alibaba_Dragonwell_([0-9.+]{1,}[^_]*)(?:_alpine)?[_-](?:(GA|Experimental|GA_Experimental|FP1)_)?(Linux|linux|Windows|windows)_(aarch64|x64)\\.(.*)$");
+    private static final Pattern OPENJDK_PATTERN =
+            Pattern.compile(
+                    "^OpenJDK(?:[0-9.+]{1,})_(x64|aarch64)_(linux|windows)_dragonwell_dragonwell-([0-9.]+)(?:_jdk)?[-_]([0-9._]+)-?(ga|.*?)\\.(tar\\.gz|zip)$");
+    private static final Pattern FALLBACK_PATTERN =
+            Pattern.compile(
+                    "^Alibaba_Dragonwell_([0-9.+]{1,}[^_]*)(?:_alpine)?_(aarch64|x64)_(Linux|linux|Windows|windows)\\.(.*)$");
+
+    public DragonwellBaseScraper(Path metadataDir, Path checksumDir, Logger logger) {
+        super(metadataDir, checksumDir, logger);
+    }
+
+    @Override
+    protected String getGitHubOrg() {
+        return ORG;
+    }
+
+    @Override
+    public String getVendorName() {
+        return VENDOR;
+    }
+
+    /** Get the Java version this scraper handles */
+    protected abstract String getJavaVersion();
+
+    @Override
+    protected String getGitHubRepo() {
+        return "dragonwell" + getJavaVersion();
+    }
+
+    @Override
+    public String getScraperId() {
+        return "dragonwell-" + getJavaVersion();
+    }
+
+    @Override
+    protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
+        List<JdkMetadata> metadataList = new ArrayList<>();
+
+        String tagName = release.get("tag_name").asText();
+
+        JsonNode assets = release.get("assets");
+        if (assets == null || !assets.isArray()) {
+            return metadataList;
+        }
+
+        for (JsonNode asset : assets) {
+            String assetName = asset.get("name").asText();
+            String downloadUrl = asset.get("browser_download_url").asText();
+
+            // Only process tar.gz and zip files
+            if (!assetName.endsWith(".tar.gz") && !assetName.endsWith(".zip")) {
+                continue;
+            }
+
+            if (metadataExists(assetName)) {
+                log("Skipping " + assetName + " (already exists)");
+                continue;
+            }
+
+            JdkMetadata metadata = processAsset(tagName, assetName, downloadUrl);
+            if (metadata != null) {
+                metadataList.add(metadata);
+            }
+        }
+
+        return metadataList;
+    }
+
+    private JdkMetadata processAsset(String tagName, String filename, String url) throws Exception {
+        ParsedFilename parsed = parseFilename(filename);
+        if (parsed == null || parsed.version == null) {
+            log("Could not parse filename: " + filename);
+            return null;
+        }
+
+        // Determine release type
+        String releaseType = determineReleaseType(parsed.releaseType);
+
+        // Handle alpine feature
+        List<String> features = new ArrayList<>();
+        if (filename.contains("_alpine")) {
+            features.add("musl");
+        }
+
+        // Download and compute hashes
+        DownloadResult download = downloadFile(url, filename);
+
+        // Create metadata
+        JdkMetadata metadata = new JdkMetadata();
+        metadata.setVendor(VENDOR);
+        metadata.setFilename(filename);
+        metadata.setReleaseType(releaseType);
+        metadata.setVersion(parsed.version);
+        metadata.setJavaVersion(parsed.javaVersion != null ? parsed.javaVersion : parsed.version);
+        metadata.setJvmImpl("hotspot");
+        metadata.setOs(normalizeOs(parsed.os));
+        metadata.setArchitecture(normalizeArch(parsed.arch));
+        metadata.setFileType(parsed.ext);
+        metadata.setImageType("jdk");
+        metadata.setFeatures(features);
+        metadata.setUrl(url);
+        metadata.setMd5(download.md5());
+        metadata.setMd5File(filename + ".md5");
+        metadata.setSha1(download.sha1());
+        metadata.setSha1File(filename + ".sha1");
+        metadata.setSha256(download.sha256());
+        metadata.setSha256File(filename + ".sha256");
+        metadata.setSha512(download.sha512());
+        metadata.setSha512File(filename + ".sha512");
+        metadata.setSize(download.size());
+
+        saveMetadataFile(metadata);
+        log("Processed " + filename);
+
+        return metadata;
+    }
+
+    private ParsedFilename parseFilename(String filename) {
+        ParsedFilename result = new ParsedFilename();
+
+        // Try patterns in order
+        Matcher matcher;
+
+        // Try Standard/Extended pattern (version 8)
+        matcher = STANDARD_EXTENDED_PATTERN_8.matcher(filename);
+        if (matcher.matches()) {
+            result.version = matcher.group(1);
+            result.javaVersion = result.version;
+            result.arch = matcher.group(2);
+            result.os = matcher.group(3);
+            result.ext = matcher.group(4);
+            return result;
+        }
+
+        // Try Alibaba pattern (version 8)
+        matcher = ALIBABA_PATTERN_8.matcher(filename);
+        if (matcher.matches()) {
+            result.version = matcher.group(1);
+            result.javaVersion = result.version;
+            result.releaseType = matcher.group(2);
+            result.os = matcher.group(3);
+            result.arch = matcher.group(4);
+            result.ext = matcher.group(5);
+            return result;
+        }
+
+        // Try Standard/Extended pattern (newer versions)
+        matcher = STANDARD_EXTENDED_PATTERN.matcher(filename);
+        if (matcher.matches()) {
+            result.version = matcher.group(1);
+            result.javaVersion = result.version;
+            result.arch = matcher.group(2);
+            result.os = matcher.group(3);
+            result.ext = matcher.group(4);
+            return result;
+        }
+
+        // Try Alibaba pattern (newer versions)
+        matcher = ALIBABA_PATTERN.matcher(filename);
+        if (matcher.matches()) {
+            result.version = matcher.group(1);
+            result.javaVersion = result.version;
+            result.releaseType = matcher.group(2);
+            result.os = matcher.group(3);
+            result.arch = matcher.group(4);
+            result.ext = matcher.group(5);
+            return result;
+        }
+
+        // Try OpenJDK pattern
+        matcher = OPENJDK_PATTERN.matcher(filename);
+        if (matcher.matches()) {
+            result.arch = matcher.group(1);
+            result.os = matcher.group(2);
+            result.version = matcher.group(3);
+            result.javaVersion = matcher.group(4);
+            result.releaseType = matcher.group(5);
+            result.ext = matcher.group(6);
+            return result;
+        }
+
+        // Try fallback pattern
+        matcher = FALLBACK_PATTERN.matcher(filename);
+        if (matcher.matches()) {
+            result.version = matcher.group(1);
+            result.javaVersion = result.version;
+            result.arch = matcher.group(2);
+            result.os = matcher.group(3);
+            result.ext = matcher.group(4);
+            result.releaseType = "jdk";
+            return result;
+        }
+
+        return null;
+    }
+
+    private String determineReleaseType(String releaseType) {
+        if (releaseType == null || releaseType.isEmpty() || releaseType.equals("jdk")) {
+            return "ga";
+        }
+        if (releaseType.equals("ea")
+                || releaseType.contains("Experimental")
+                || releaseType.equals("FP1")) {
+            return "ea";
+        }
+        return "ga";
+    }
+
+    private static class ParsedFilename {
+        String version;
+        String javaVersion;
+        String releaseType;
+        String os;
+        String arch;
+        String ext;
+    }
+}
