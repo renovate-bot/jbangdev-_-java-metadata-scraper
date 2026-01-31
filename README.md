@@ -17,15 +17,15 @@ A Java-based application for scraping JDK metadata from various vendors. This pr
 
 ## Building
 
-This project uses Maven for dependency management and building.
+This project uses Gradle for dependency management and building.
 
 ```bash
 # Build the project
-./mvnw clean package
+./gradlew build
 
 # This creates two jars:
-# - java-metadata-1.0.0-SNAPSHOT.jar (regular jar)
-# - java-metadata-1.0.0-SNAPSHOT-standalone.jar (fat jar with all dependencies)
+# - java-metadata-scraper-1.0.0-SNAPSHOT.jar (regular jar)
+# - java-metadata-scraper-1.0.0-SNAPSHOT-standalone.jar (fat jar with all dependencies)
 ```
 
 ## Usage
@@ -86,42 +86,75 @@ Options:
 - **ProgressReporter**: Central reporting thread that receives and logs progress events from all scrapers
 - **BaseScraper**: Abstract base class for all scrapers with common functionality (downloading, hashing, metadata saving)
 - **GitHubReleaseScraper**: Specialized base class for scrapers that fetch releases from GitHub
-- **ScraperFactory**: Factory class for instantiating scrapers
+- **AdoptiumMarketplaceScraper**: Specialized base class for scrapers using Adoptium Marketplace API
+- **ScraperFactory**: Factory class that uses ServiceLoader to dynamically discover and instantiate scrapers
+- **Scraper.Discovery**: Service provider interface for scraper registration via Java ServiceLoader
 
 ### Vendor Scrapers
 
-Current implementations:
-- **MicrosoftScraper**: Scrapes Microsoft OpenJDK builds
-- **SemeruBaseScraper**: Base class for IBM Semeru scrapers
-  - Semeru8Scraper, Semeru11Scraper, Semeru17Scraper, Semeru21Scraper
+The project includes 35+ vendor scrapers, supporting all major JDK distributions:
+
+- **Temurin** (Eclipse Adoptium): temurin, temurin-ea
+- **Zulu** (Azul): zulu, zulu-prime
+- **Liberica** (BellSoft): liberica, liberica-native
+- **Corretto** (Amazon)
+- **SapMachine** (SAP)
+- **Microsoft** (Microsoft Build of OpenJDK)
+- **OpenJDK**: openjdk, openjdk-leyden, openjdk-loom, openjdk-valhalla
+- **Dragonwell** (Alibaba)
+- **Kona** (Tencent)
+- **Oracle**: oracle, oracle-graalvm, oracle-graalvm-ea
+- **Semeru** (IBM): semeru, semeru-certified
+- **Trava** (TravaOpenJDK)
+- **AdoptOpenJDK** (Legacy)
+- **Bisheng** (Huawei)
+- **Red Hat**
+- **GraalVM**: graalvm-legacy, graalvm-ce, graalvm-ce-ea, graalvm-community, graalvm-community-ea
+- **IBM JDK**
+- **Java SE RI** (Reference Implementation)
+- **JetBrains Runtime**
+- **Mandrel** (Red Hat's GraalVM)
+- **Gluon GraalVM**
+- **OpenLogic**
+
+Each scraper is registered via Java's ServiceLoader mechanism in `META-INF/services`.
 
 ### Adding New Scrapers
 
-1. Create a new class extending `BaseScraper` or `GitHubReleaseScraper`
+1. Create a new class extending `BaseScraper`, `GitHubReleaseScraper`, or `AdoptiumMarketplaceScraper`
 2. Implement required abstract methods
-3. Add the scraper to `ScraperFactory.createAllScrapers()`
+3. Add an inner `Discovery` class implementing `Scraper.Discovery`
+4. Register the discovery class in `META-INF/services/com.github.joschi.javametadata.scraper.Scraper$Discovery`
 
 Example:
 
 ```java
-public class NewVendorScraper extends BaseScraper {
-    public NewVendorScraper(Path metadataDir, Path checksumDir, ProgressReporter reporter) {
-        super(metadataDir.resolve("vendor-name"), checksumDir.resolve("vendor-name"), reporter);
+public class NewScraper extends BaseScraper {
+    public NewScraper(Path metadataDir, Path checksumDir, Logger logger) {
+        super(metadataDir, checksumDir, logger);
     }
 
     @Override
-    public String getScraperId() {
-        return "vendor-name";
-    }
-
-    @Override
-    public String getVendorName() {
-        return "vendor-name";
-    }
-
-    @Override
-    protected List<JdkMetadata> scrape() throws Exception {
+    protected ScraperResult scrapeImpl() throws Exception {
         // Implementation here
+    }
+
+    // ServiceLoader discovery
+    public static class Discovery implements Scraper.Discovery {
+        @Override
+        public String name() {
+            return "scraper-name";
+        }
+
+        @Override
+        public String vendor() {
+            return "vendor-name";
+        }
+
+        @Override
+        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+            return new NewScraper(metadataDir, checksumDir, logger);
+        }
     }
 }
 ```
@@ -138,25 +171,32 @@ src/
 │   │       │   └── JdkMetadata.java              # Data model for JDK metadata
 │   │       ├── reporting/
 │   │       │   ├── ProgressEvent.java            # Progress event types
-│   │       │   └── ProgressReporter.java         # Central reporting thread
+│   │       │   ├── ProgressReporter.java         # Central reporting thread
+│   │       │   └── ProgressReporterLogger.java   # Logger adapter for scrapers
 │   │       ├── scraper/
+│   │       │   ├── Scraper.java                  # Scraper interface with Discovery SPI
 │   │       │   ├── BaseScraper.java              # Base class for all scrapers
 │   │       │   ├── GitHubReleaseScraper.java     # Base for GitHub-based scrapers
-│   │       │   ├── ScraperFactory.java           # Factory for creating scrapers
+│   │       │   ├── AdoptiumMarketplaceScraper.java # Base for Adoptium Marketplace
+│   │       │   ├── ScraperFactory.java           # Factory using ServiceLoader
 │   │       │   ├── ScraperResult.java            # Result wrapper
 │   │       │   └── vendors/
+│   │       │       ├── TemurinScraper.java
+│   │       │       ├── ZuluScraper.java
+│   │       │       ├── LibericaScraper.java
 │   │       │       ├── MicrosoftScraper.java
-│   │       │       ├── SemeruBaseScraper.java
-│   │       │       ├── Semeru8Scraper.java
-│   │       │       ├── Semeru11Scraper.java
-│   │       │       ├── Semeru17Scraper.java
-│   │       │       └── Semeru21Scraper.java
+│   │       │       ├── SemeruScraper.java
+│   │       │       ├── ... (35+ vendor scrapers)
+│   │       │       └── (See full list in Vendor Scrapers section)
 │   │       └── util/
 │   │           ├── FileUtils.java                # File operations
 │   │           ├── HashUtils.java                # Hash computation
 │   │           └── HttpUtils.java                # HTTP operations
 │   └── resources/
-│       └── logback.xml                           # Logging configuration
+│       ├── logback.xml                           # Logging configuration
+│       └── META-INF/
+│           └── services/
+│               └── com.github.joschi.javametadata.scraper.Scraper$Discovery
 └── test/
     └── java/
         └── (test classes)
@@ -164,12 +204,11 @@ src/
 
 ## Dependencies
 
-- **Jackson**: JSON processing
-- **Apache HttpClient 5**: HTTP operations
-- **JSoup**: HTML parsing
-- **SLF4J/Logback**: Logging
-- **Picocli**: Command-line interface
-- **JUnit 5**: Testing
+- **Jackson**: JSON processing (2.16.1)
+- **Apache HttpClient 5**: HTTP operations (5.3.1)
+- **SLF4J/Logback**: Logging (SLF4J 2.0.7, Logback 1.4.14)
+- **Picocli**: Command-line interface (4.7.5)
+- **JUnit 5**: Testing (5.10.1)
 
 ## Output
 
@@ -192,8 +231,8 @@ The logging configuration can be customized in `src/main/resources/logback.xml`.
 
 ## Requirements
 
-- Java 11 or higher
-- Maven 3.6+
+- Java 21 or higher
+- Gradle 8.x (included via wrapper)
 
 ## License
 
