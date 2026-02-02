@@ -86,6 +86,7 @@ Options:
 ### Core Components
 
 - **ProgressReporter**: Central reporting thread that receives and logs progress events from all scrapers
+- **ScraperConfig**: Configuration record encapsulating metadata directory, checksum directory, logger, etc
 - **BaseScraper**: Abstract base class for all scrapers with common functionality (downloading, hashing, metadata saving)
 - **GitHubReleaseScraper**: Specialized base class for scrapers that fetch releases from GitHub
 - **AdoptiumMarketplaceScraper**: Specialized base class for scrapers using Adoptium Marketplace API
@@ -132,13 +133,14 @@ Example:
 
 ```java
 public class NewScraper extends BaseScraper {
-	public NewScraper(Path metadataDir, Path checksumDir, Logger logger) {
-		super(metadataDir, checksumDir, logger);
+	public NewScraper(ScraperConfig config) {
+		super(config);
 	}
 
 	@Override
-	protected ScraperResult scrapeImpl() throws Exception {
+	protected List<JdkMetadata> scrape() throws Exception {
 		// Implementation here
+		return new ArrayList<>();
 	}
 
 	// ServiceLoader discovery
@@ -154,8 +156,8 @@ public class NewScraper extends BaseScraper {
 		}
 
 		@Override
-		public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-			return new NewScraper(metadataDir, checksumDir, logger);
+		public Scraper create(ScraperConfig config) {
+			return new NewScraper(config);
 		}
 	}
 }
@@ -177,6 +179,7 @@ src/
 │   │       │   └── ProgressReporterLogger.java   # Logger adapter for scrapers
 │   │       ├── scraper/
 │   │       │   ├── Scraper.java                  # Scraper interface with Discovery SPI
+│   │       │   ├── ScraperConfig.java            # Configuration record
 │   │       │   ├── BaseScraper.java              # Base class for all scrapers
 │   │       │   ├── GitHubReleaseScraper.java     # Base for GitHub-based scrapers
 │   │       │   ├── AdoptiumMarketplaceScraper.java # Base for Adoptium Marketplace
