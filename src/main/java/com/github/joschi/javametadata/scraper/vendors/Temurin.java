@@ -1,21 +1,20 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /** Scraper for Adoptium Eclipse Temurin releases */
 public class Temurin extends BaseScraper {
     private static final String VENDOR = "temurin";
     private static final String API_BASE = "https://api.adoptium.net/v3";
 
-    public Temurin(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Temurin(ScraperConfig config) {
+        super(config);
     }
 
     @Override
@@ -184,8 +183,8 @@ public class Temurin extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Temurin(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Temurin(config);
         }
     }
 

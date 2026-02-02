@@ -1,9 +1,8 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
-import java.nio.file.Path;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import java.util.List;
-import java.util.logging.Logger;
 
 /** Scraper for IBM Semeru Certified Edition releases */
 public class SemeruCertified extends SemeruBaseScraper {
@@ -13,8 +12,8 @@ public class SemeruCertified extends SemeruBaseScraper {
     private static final List<String> JAVA_VERSIONS =
             List.of("11-certified", "17-certified", "21-certified", "25-certified");
 
-    public SemeruCertified(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public SemeruCertified(ScraperConfig config) {
+        super(config);
     }
 
     @Override
@@ -49,8 +48,8 @@ public class SemeruCertified extends SemeruBaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new SemeruCertified(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new SemeruCertified(config);
         }
     }
 }

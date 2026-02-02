@@ -34,11 +34,12 @@ public class ScraperFactory {
             String vendor = discovery.vendor();
             String name = discovery.name();
 
-            Scraper scraper = discovery.create(
+            ScraperConfig config = new ScraperConfig(
                     metadataVendorDir.resolve(vendor),
                     checksumDir.resolve(vendor),
                     ProgressReporterLogger.forScraper(name, reporter));
 
+            Scraper scraper = discovery.create(config);
             scrapers.add(scraper);
         }
 
@@ -52,11 +53,11 @@ public class ScraperFactory {
         Scraper.Discovery discovery = allDiscoveries.get(scraperName);
         if (discovery != null) {
             String vendor = discovery.vendor();
-            Scraper scraper = discovery.create(
+            ScraperConfig config = new ScraperConfig(
                     metadataDir.resolve("vendor").resolve(vendor),
                     checksumDir.resolve(vendor),
                     ProgressReporterLogger.forScraper(scraperName, reporter));
-            return scraper;
+            return discovery.create(config);
         } else {
             throw new IllegalArgumentException("Unknown scraper ID: " + scraperName);
         }

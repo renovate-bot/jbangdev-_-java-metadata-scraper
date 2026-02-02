@@ -19,10 +19,10 @@ public abstract class BaseScraper implements Scraper {
     protected final ObjectMapper objectMapper;
     protected final HttpUtils httpUtils;
 
-    public BaseScraper(Path metadataDir, Path checksumDir, Logger logger) {
-        this.metadataDir = metadataDir;
-        this.checksumDir = checksumDir;
-        this.logger = logger;
+    public BaseScraper(ScraperConfig config) {
+        this.metadataDir = config.metadataDir();
+        this.checksumDir = config.checksumDir();
+        this.logger = config.logger();
         this.objectMapper =
                 new ObjectMapper()
                         .enable(SerializationFeature.INDENT_OUTPUT)

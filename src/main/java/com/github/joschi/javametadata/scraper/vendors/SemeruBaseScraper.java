@@ -3,10 +3,9 @@ package com.github.joschi.javametadata.scraper.vendors;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,8 +14,8 @@ public abstract class SemeruBaseScraper extends BaseScraper {
     private static final String ORG = "ibmruntimes";
     private static final String GITHUB_API_BASE = "https://api.github.com/repos";
 
-    public SemeruBaseScraper(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public SemeruBaseScraper(ScraperConfig config) {
+        super(config);
     }
 
     /** Get the list of Java versions to scrape */

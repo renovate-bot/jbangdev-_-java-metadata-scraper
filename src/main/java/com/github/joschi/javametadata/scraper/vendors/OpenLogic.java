@@ -1,14 +1,13 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.io.StringReader;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,8 +20,8 @@ public class OpenLogic extends BaseScraper {
             Pattern.compile(
                     "^openlogic-openjdk-(?:(jre|jdk)-)?([0-9]+(?:u[0-9]+)?(?:\\.[0-9.]+)?(?:-[0-9]+)?)-(linux|windows|mac)-(aarch64|x64|x32|arm32)\\.(tar\\.gz|zip|msi|dmg|deb|rpm)$");
 
-    public OpenLogic(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public OpenLogic(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -129,8 +128,8 @@ public class OpenLogic extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new OpenLogic(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new OpenLogic(config);
         }
     }
 }

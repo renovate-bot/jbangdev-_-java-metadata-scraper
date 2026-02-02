@@ -1,13 +1,12 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,8 +20,8 @@ public class Mandrel extends BaseScraper {
     private static final Pattern FILENAME_PATTERN = Pattern.compile(
             "^mandrel-java(\\d{1,2})-(linux|macos|windows)-(amd64|aarch64)-([\\d+.]{2,}.*)\\.tar\\.gz$");
 
-    public Mandrel(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Mandrel(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -147,8 +146,8 @@ public class Mandrel extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Mandrel(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Mandrel(config);
         }
     }
 

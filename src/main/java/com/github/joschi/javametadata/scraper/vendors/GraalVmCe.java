@@ -1,10 +1,9 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.github.joschi.javametadata.model.JdkMetadata;
-import java.nio.file.Path;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,8 +17,8 @@ public class GraalVmCe extends GraalVmBaseScraper {
     private static final Pattern FILENAME_PATTERN = Pattern.compile(
             "^graalvm-ce-(?:complete-)?java(\\d{1,2})-(linux|darwin|windows)-(aarch64|amd64)-([\\d+.]{2,})\\.(zip|tar\\.gz)$");
 
-    public GraalVmCe(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public GraalVmCe(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -104,8 +103,8 @@ public class GraalVmCe extends GraalVmBaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new GraalVmCe(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new GraalVmCe(config);
         }
     }
 

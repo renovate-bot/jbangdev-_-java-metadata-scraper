@@ -1,13 +1,11 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import com.github.joschi.javametadata.util.HashUtils;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,8 +22,8 @@ public class OracleGraalVm extends BaseScraper {
             "<a href=\"(https://download\\.oracle\\.com/graalvm/.+/archive/(graalvm-jdk-.+_(linux|macos|windows)-(x64|aarch64)_bin\\.(tar\\.gz|zip|msi|dmg|exe|deb|rpm)))\">"
     );
 
-    public OracleGraalVm(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public OracleGraalVm(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -183,8 +181,8 @@ public class OracleGraalVm extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new OracleGraalVm(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new OracleGraalVm(config);
         }
     }
 

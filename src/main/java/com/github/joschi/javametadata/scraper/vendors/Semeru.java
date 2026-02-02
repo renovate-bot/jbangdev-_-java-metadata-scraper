@@ -1,10 +1,10 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
-import java.nio.file.Path;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /** Scraper for IBM Semeru Open Edition releases */
 public class Semeru extends SemeruBaseScraper {
@@ -14,8 +14,8 @@ public class Semeru extends SemeruBaseScraper {
     private static final List<String> JAVA_VERSIONS =
             List.of("8", "11", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25");
 
-    public Semeru(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Semeru(ScraperConfig config) {
+        super(config);
     }
 
     @Override
@@ -50,8 +50,8 @@ public class Semeru extends SemeruBaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Semeru(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Semeru(config);
         }
     }
 

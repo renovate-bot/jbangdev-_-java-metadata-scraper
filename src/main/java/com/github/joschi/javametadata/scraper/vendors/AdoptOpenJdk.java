@@ -1,21 +1,20 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.AdoptiumMarketplaceScraper;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /** Scraper for AdoptOpenJDK releases (legacy, now part of Adoptium) */
 public class AdoptOpenJdk extends AdoptiumMarketplaceScraper {
     private static final String VENDOR = "adoptopenjdk";
 
-    public AdoptOpenJdk(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public AdoptOpenJdk(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -81,8 +80,8 @@ public class AdoptOpenJdk extends AdoptiumMarketplaceScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new AdoptOpenJdk(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new AdoptOpenJdk(config);
         }
     }
 

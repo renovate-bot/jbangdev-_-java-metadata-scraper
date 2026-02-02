@@ -1,13 +1,12 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.GitHubReleaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,8 +17,8 @@ public class Liberica extends GitHubReleaseScraper {
             Pattern.compile(
                     "^bellsoft-(jre|jdk)(.+?)-(?:ea-)?(linux|windows|macos|solaris)-(amd64|i386|i586|aarch64|arm64|ppc64le|arm32-vfp-hflt|x64|sparcv9|riscv64)-?(fx|lite|full|musl|musl-lite|crac|musl-crac|leyden|musl-leyden|lite-leyden|musl-lite-leyden)?\\.(apk|deb|rpm|msi|dmg|pkg|tar\\.gz|zip)$");
 
-    public Liberica(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Liberica(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -196,8 +195,8 @@ public class Liberica extends GitHubReleaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Liberica(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Liberica(config);
         }
     }
 

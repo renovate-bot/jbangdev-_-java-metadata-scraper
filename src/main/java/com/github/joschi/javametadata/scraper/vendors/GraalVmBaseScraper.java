@@ -3,17 +3,16 @@ package com.github.joschi.javametadata.scraper.vendors;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /** Base class for GraalVM scrapers */
 public abstract class GraalVmBaseScraper extends BaseScraper {
     private static final String GITHUB_API_BASE = "https://api.github.com/repos";
 
-    public GraalVmBaseScraper(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public GraalVmBaseScraper(ScraperConfig config) {
+        super(config);
     }
 
     /** Get the GitHub organization name */

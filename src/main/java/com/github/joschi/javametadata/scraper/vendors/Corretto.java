@@ -1,14 +1,13 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Logger;
 
 /** Scraper for Amazon Corretto releases */
 public class Corretto extends BaseScraper {
@@ -30,8 +29,8 @@ public class Corretto extends BaseScraper {
                     "corretto-25",
                     "corretto-jdk");
 
-    public Corretto(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Corretto(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -198,8 +197,8 @@ public class Corretto extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Corretto(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Corretto(config);
         }
     }
 

@@ -1,10 +1,9 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.github.joschi.javametadata.model.JdkMetadata;
-import java.nio.file.Path;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,8 +18,8 @@ public class GraalVmCommunity extends GraalVmBaseScraper {
     private static final Pattern FILENAME_PATTERN = Pattern.compile(
             "^graalvm-community-jdk-(\\d{1,2}\\.\\d{1}\\.\\d{1,3})_(linux|macos|windows)-(aarch64|x64)_bin\\.(zip|tar\\.gz)$");
 
-    public GraalVmCommunity(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public GraalVmCommunity(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -103,8 +102,8 @@ public class GraalVmCommunity extends GraalVmBaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new GraalVmCommunity(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new GraalVmCommunity(config);
         }
     }
 

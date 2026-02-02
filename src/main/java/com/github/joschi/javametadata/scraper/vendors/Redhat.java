@@ -1,20 +1,19 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.AdoptiumMarketplaceScraper;
 
-import java.nio.file.Path;
 import java.util.List;
-import java.util.logging.Logger;
 
 /** Scraper for Red Hat JDK releases */
 public class Redhat extends AdoptiumMarketplaceScraper {
     private static final String VENDOR = "redhat";
 
-    public Redhat(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Redhat(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -69,8 +68,8 @@ public class Redhat extends AdoptiumMarketplaceScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Redhat(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Redhat(config);
         }
     }
 

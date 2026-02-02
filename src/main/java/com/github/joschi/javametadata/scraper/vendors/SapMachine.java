@@ -1,13 +1,12 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.GitHubReleaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,8 +19,8 @@ public class SapMachine extends GitHubReleaseScraper {
             Pattern.compile(
                     "^sapmachine-(jdk|jre)-([0-9].+)_(aix|linux|macos|osx|windows)-(x64|aarch64|ppc64|ppc64le|x64)-?(.*)_bin\\.(.+)$");
 
-    public SapMachine(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public SapMachine(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -146,8 +145,8 @@ public class SapMachine extends GitHubReleaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new SapMachine(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new SapMachine(config);
         }
     }
 

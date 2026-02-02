@@ -1,12 +1,11 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,8 +18,8 @@ public class LibericaNative extends BaseScraper {
             Pattern.compile(
                     "^bellsoft-liberica-vm-(?:openjdk|core)([0-9]+(?:u[0-9]+)?(?:\\.[0-9]+)?)-([0-9.]+(?:-[0-9]+)?)-(?:(glibc|musl)-)?(linux|windows|macos)-(amd64|aarch64|arm32-vfp-hflt)\\.(tar\\.gz|zip)$");
 
-    public LibericaNative(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public LibericaNative(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -145,8 +144,8 @@ public class LibericaNative extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new LibericaNative(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new LibericaNative(config);
         }
     }
 }

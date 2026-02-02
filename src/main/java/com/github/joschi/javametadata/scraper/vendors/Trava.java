@@ -1,14 +1,13 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,8 +45,8 @@ public class Trava extends BaseScraper {
                                     "^java11-openjdk-dcevm-(linux|osx|windows)-(amd64|arm64|x64)\\.(.*)$"),
                             matcher -> matcher.group(1)));
 
-    public Trava(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Trava(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -199,8 +198,8 @@ public class Trava extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Trava(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Trava(config);
         }
     }
 

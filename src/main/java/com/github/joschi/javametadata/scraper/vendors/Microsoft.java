@@ -1,12 +1,11 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /** Scraper for Microsoft OpenJDK builds */
@@ -16,8 +15,8 @@ public class Microsoft extends BaseScraper {
             Pattern.compile(
                     "microsoft-jdk-([0-9.]+)-(linux|macos|macOS|windows)-(x64|aarch64)\\.(tar\\.gz|zip|msi|dmg|pkg)$");
 
-    public Microsoft(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Microsoft(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -120,8 +119,8 @@ public class Microsoft extends BaseScraper {
         }
         
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Microsoft(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Microsoft(config);
         }
     }
 

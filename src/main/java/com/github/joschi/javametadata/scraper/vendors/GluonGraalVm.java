@@ -1,13 +1,12 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
+import com.github.joschi.javametadata.scraper.GitHubReleaseScraper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
-import com.github.joschi.javametadata.scraper.GitHubReleaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,8 +17,8 @@ public class GluonGraalVm extends GitHubReleaseScraper {
             Pattern.compile(
                     "^graalvm-svm-java([0-9]+)-(linux|darwin|windows)-(aarch64|x86_64|amd64)-([0-9.]+(?:-dev)?)\\.(zip|tar\\.gz)$");
 
-    public GluonGraalVm(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public GluonGraalVm(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -137,8 +136,8 @@ public class GluonGraalVm extends GitHubReleaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new GluonGraalVm(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new GluonGraalVm(config);
         }
     }
 }

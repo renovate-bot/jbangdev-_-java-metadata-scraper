@@ -1,13 +1,12 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,8 +38,8 @@ public class Kona extends BaseScraper {
             Pattern.compile(
                     "^TencentKona-([0-9b.]{1,})(?:[_-](ea))?[-_]jdk_(linux|macosx|windows)-(aarch64|x86_64)(?:_(notarized|signed))?\\.(?:tar\\.gz|zip)$");
 
-    public Kona(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Kona(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -265,8 +264,8 @@ public class Kona extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Kona(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Kona(config);
         }
     }
 

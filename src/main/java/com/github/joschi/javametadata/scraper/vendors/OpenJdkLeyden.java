@@ -1,15 +1,14 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
-import java.nio.file.Path;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import java.util.*;
-import java.util.logging.Logger;
 
 /** Scraper for OpenJDK Project Leyden early access builds */
 public class OpenJdkLeyden extends OpenJdkBaseScraper {
     
-    public OpenJdkLeyden(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public OpenJdkLeyden(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -35,8 +34,8 @@ public class OpenJdkLeyden extends OpenJdkBaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new OpenJdkLeyden(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new OpenJdkLeyden(config);
         }
     }
 }

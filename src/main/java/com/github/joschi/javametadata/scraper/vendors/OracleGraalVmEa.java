@@ -1,13 +1,12 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
+import com.github.joschi.javametadata.scraper.GitHubReleaseScraper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
-import com.github.joschi.javametadata.scraper.GitHubReleaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,8 +19,8 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
             "^graalvm-jdk-([0-9]{1,2}\\.[0-9]{1}\\.[0-9]{1,3}-ea\\.[0-9]{1,2})_(linux|macos|windows)-(aarch64|x64)_bin(?:-(notarized))?\\.(?:zip|tar\\.gz)$"
     );
 
-    public OracleGraalVmEa(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public OracleGraalVmEa(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -129,8 +128,8 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new OracleGraalVmEa(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new OracleGraalVmEa(config);
         }
     }
 

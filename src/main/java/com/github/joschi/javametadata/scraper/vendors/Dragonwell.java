@@ -1,13 +1,12 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,8 +39,8 @@ public class Dragonwell extends BaseScraper {
             Pattern.compile(
                     "^Alibaba_Dragonwell_([0-9.+]{1,}[^_]*)(?:_alpine)?_(aarch64|x64)_(Linux|linux|Windows|windows)\\.(.*)$");
 
-    public Dragonwell(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Dragonwell(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -279,8 +278,8 @@ public class Dragonwell extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Dragonwell(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Dragonwell(config);
         }
     }
 

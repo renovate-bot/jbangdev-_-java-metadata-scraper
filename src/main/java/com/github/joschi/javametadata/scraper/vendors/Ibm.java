@@ -1,12 +1,11 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,8 +19,8 @@ public class Ibm extends BaseScraper {
     private static final Pattern ARCH_PATTERN = Pattern.compile("<a href=\"([a-z0-9_]+)/\">");
     private static final Pattern FILE_PATTERN = Pattern.compile("<a href=\"(.*\\.tgz)\">");
 
-    public Ibm(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Ibm(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -140,8 +139,8 @@ public class Ibm extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Ibm(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Ibm(config);
         }
     }
 

@@ -1,15 +1,14 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
-import java.nio.file.Path;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Logger;
 
 /** Scraper for mainline OpenJDK releases */
 public class OpenJdk extends OpenJdkBaseScraper {
-    public OpenJdk(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public OpenJdk(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -37,8 +36,8 @@ public class OpenJdk extends OpenJdkBaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new OpenJdk(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new OpenJdk(config);
         }
     }
 }

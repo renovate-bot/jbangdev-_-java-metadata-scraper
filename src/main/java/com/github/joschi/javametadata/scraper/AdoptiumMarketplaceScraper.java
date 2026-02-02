@@ -3,10 +3,8 @@ package com.github.joschi.javametadata.scraper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Base class for scrapers that fetch releases from Adoptium Marketplace API or legacy AdoptOpenJDK
@@ -14,8 +12,8 @@ import java.util.logging.Logger;
  */
 public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 
-    public AdoptiumMarketplaceScraper(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public AdoptiumMarketplaceScraper(ScraperConfig config) {
+        super(config);
     }
 
     /** Get the vendor name */

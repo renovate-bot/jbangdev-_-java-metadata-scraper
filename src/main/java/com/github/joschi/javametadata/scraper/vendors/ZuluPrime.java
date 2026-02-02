@@ -1,14 +1,13 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.io.StringReader;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,8 +20,8 @@ public class ZuluPrime extends BaseScraper {
             Pattern.compile(
                     "^prime-([0-9]+\\.[0-9]+\\.[0-9]+)(?:-([0-9]+))-(linux|macos|windows)_(x64|aarch64)-(jdk|jre)-(hotspot|openj9)(?:-(.+?))?\\.(tar\\.gz|zip)$");
 
-    public ZuluPrime(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public ZuluPrime(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -139,8 +138,8 @@ public class ZuluPrime extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new ZuluPrime(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new ZuluPrime(config);
         }
     }
 }

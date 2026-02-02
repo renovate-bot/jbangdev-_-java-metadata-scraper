@@ -2,17 +2,15 @@ package com.github.joschi.javametadata.scraper;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /** Base class for scrapers that fetch releases from GitHub */
 public abstract class GitHubReleaseScraper extends BaseScraper {
     private static final String GITHUB_API_BASE = "https://api.github.com/repos";
 
-    public GitHubReleaseScraper(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public GitHubReleaseScraper(ScraperConfig config) {
+        super(config);
     }
 
     /** Get the GitHub organization name */

@@ -1,13 +1,12 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,8 +23,8 @@ public class Jetbrains extends BaseScraper {
     private static final Pattern BODY_PATTERN = Pattern.compile(
             "\\|\\s*(?:\\*\\*)?(?<description>[^|]+?)(?:\\*\\*)?\\s*\\|\\s*\\[(?<file>[^\\]]+)\\]\\((?<url>[^\\)]+)\\)\\s*\\|\\s*\\[checksum\\]\\((?<checksumUrl>[^\\)]+)\\)");
 
-    public Jetbrains(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public Jetbrains(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -167,8 +166,8 @@ public class Jetbrains extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new Jetbrains(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new Jetbrains(config);
         }
     }
 

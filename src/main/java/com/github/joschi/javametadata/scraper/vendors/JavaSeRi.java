@@ -1,12 +1,11 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,8 +24,8 @@ public class JavaSeRi extends BaseScraper {
     private static final Pattern FILENAME_PATTERN = Pattern.compile(
             "^openjdk-([0-9ub-]{1,}[^_]*)[-_](linux|osx|windows)-(aarch64|x64-musl|x64|i586).*\\.(tar\\.gz|zip)$");
 
-    public JavaSeRi(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public JavaSeRi(ScraperConfig config) {
+        super(config);
     }
 
 
@@ -143,8 +142,8 @@ public class JavaSeRi extends BaseScraper {
         }
 
         @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new JavaSeRi(metadataDir, checksumDir, logger);
+        public Scraper create(ScraperConfig config) {
+            return new JavaSeRi(config);
         }
     }
 

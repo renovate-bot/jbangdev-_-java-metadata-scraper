@@ -2,10 +2,9 @@ package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
-import java.nio.file.Path;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,8 +17,8 @@ public abstract class OpenJdkBaseScraper extends BaseScraper {
     private static final Pattern URL_PATTERN =
             Pattern.compile("href=\"(https://download\\.java\\.net/java/[^\"]*\\.(tar\\.gz|zip))\"");
 
-    public OpenJdkBaseScraper(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
+    public OpenJdkBaseScraper(ScraperConfig config) {
+        super(config);
     }
 
     /** Get the list of URLs to fetch index pages from */
