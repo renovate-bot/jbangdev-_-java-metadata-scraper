@@ -60,7 +60,8 @@ java -jar build/libs/java-metadata-scraper-1.0.0-SNAPSHOT-standalone.jar --help
 
 ```
 Usage: java-metadata-scraper [-hlV] [--from-start] [-c=<checksumDir>]
-							[-m=<metadataDir>] [-s=<scraperIds>[,<scraperIds>...]]...
+							[-m=<metadataDir>] [--max-failures=<maxFailures>]
+							[-s=<scraperIds>[,<scraperIds>...]]...
 							[-t=<maxThreads>]
 
 Scrapes JDK metadata from various vendors
@@ -79,6 +80,9 @@ Options:
 						of processors)
 	--from-start      Ignore existing metadata files and scrape all items from the
 						start
+	--max-failures=<maxFailures>
+						Maximum number of allowed failures per scraper before
+						aborting that scraper (default: 10)
 -h, --help            Show this help message and exit.
 -V, --version         Print version information and exit.
 ```

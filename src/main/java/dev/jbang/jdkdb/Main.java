@@ -56,6 +56,12 @@ public class Main implements Callable<Integer> {
 			description = "Ignore existing metadata files and scrape all items from the start")
 	private boolean fromStart;
 
+	@Option(
+			names = {"--max-failures"},
+			description = "Maximum number of allowed failures per scraper before aborting that scraper (default: 10)",
+			defaultValue = "10")
+	private int maxFailures;
+
 	@Override
 	public Integer call() throws Exception {
 		// Handle list command
@@ -79,7 +85,7 @@ public class Main implements Callable<Integer> {
 			reporter.start();
 
 			// Create scrapers
-			var fact = ScraperFactory.create(metadataDir, checksumDir, reporter, fromStart);
+			var fact = ScraperFactory.create(metadataDir, checksumDir, reporter, fromStart, maxFailures);
 			if (scraperIds == null) {
 				scraperIds = new ArrayList<>(
 						ScraperFactory.getAvailableScraperDiscoveries().keySet());

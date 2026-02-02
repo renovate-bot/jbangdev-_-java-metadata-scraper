@@ -19,12 +19,16 @@ public abstract class BaseScraper implements Scraper {
 	protected final ObjectMapper objectMapper;
 	protected final HttpUtils httpUtils;
 	protected final boolean fromStart;
+	protected final int maxFailureCount;
+
+	private int failureCount = 0;
 
 	public BaseScraper(ScraperConfig config) {
 		this.metadataDir = config.metadataDir();
 		this.checksumDir = config.checksumDir();
 		this.logger = config.logger();
 		this.fromStart = config.fromStart();
+		this.maxFailureCount = config.maxFailureCount();
 		this.objectMapper = new ObjectMapper()
 				.enable(SerializationFeature.INDENT_OUTPUT)
 				.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
@@ -72,6 +76,9 @@ public abstract class BaseScraper implements Scraper {
 	/** Log failure to process single metadata item */
 	protected void fail(String message, Exception error) {
 		logger.severe("Failed " + message + ": " + error.getMessage());
+		if (failureCount > 0 && ++failureCount >= maxFailureCount) {
+			throw new InterruptedProgressException("Too many failures, aborting");
+		}
 	}
 
 	/** Check if metadata file already exists */
