@@ -21,7 +21,7 @@ public class ProgressReporterLogger extends Logger {
 			@Override
 			public void publish(LogRecord record) {
 				if (isLoggable(record)) {
-					String message = record.getMessage();
+					String message = record.getLevel() + ": " + record.getMessage();
 					if (message != null && !message.isBlank()) {
 						reporter.report(ProgressEvent.progress(scraperId, message));
 					}

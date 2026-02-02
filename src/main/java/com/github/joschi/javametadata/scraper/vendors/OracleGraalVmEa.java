@@ -58,9 +58,13 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 				continue;
 			}
 
-			JdkMetadata jdkMetadata = parseAsset(assetName, asset);
-			if (jdkMetadata != null) {
-				metadata.add(jdkMetadata);
+			try {
+				JdkMetadata jdkMetadata = parseAsset(assetName, asset);
+				if (jdkMetadata != null) {
+					metadata.add(jdkMetadata);
+				}
+			} catch (Exception e) {
+				fail(assetName, e);
 			}
 		}
 
@@ -109,6 +113,8 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
+		success(assetName);
+
 		return metadata;
 	}
 

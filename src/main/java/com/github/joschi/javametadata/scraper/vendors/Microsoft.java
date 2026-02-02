@@ -45,9 +45,13 @@ public class Microsoft extends BaseScraper {
 				continue;
 			}
 
-			var metadata = processFile(filename);
-			if (metadata != null) {
-				allMetadata.add(metadata);
+			try {
+				var metadata = processFile(filename);
+				if (metadata != null) {
+					allMetadata.add(metadata);
+				}
+			} catch (Exception e) {
+				fail(filename, e);
 			}
 		}
 
@@ -99,7 +103,7 @@ public class Microsoft extends BaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
-		log("Processed " + filename);
+		success(filename);
 
 		return metadata;
 	}

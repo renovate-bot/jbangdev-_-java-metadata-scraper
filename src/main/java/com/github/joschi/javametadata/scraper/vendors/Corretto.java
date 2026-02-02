@@ -39,19 +39,16 @@ public class Corretto extends BaseScraper {
 		// Fetch releases from all Corretto repositories
 		for (String repo : CORRETTO_REPOS) {
 			log("Processing repository: " + repo);
-			try {
-				String releasesUrl = String.format("%s/%s/%s/releases?per_page=100", GITHUB_API_BASE, GITHUB_ORG, repo);
-				String json = httpUtils.downloadString(releasesUrl);
-				JsonNode releases = objectMapper.readTree(json);
 
-				if (releases.isArray()) {
-					for (JsonNode release : releases) {
-						String version = release.get("tag_name").asText();
-						processVersion(version, allMetadata);
-					}
+			String releasesUrl = String.format("%s/%s/%s/releases?per_page=100", GITHUB_API_BASE, GITHUB_ORG, repo);
+			String json = httpUtils.downloadString(releasesUrl);
+			JsonNode releases = objectMapper.readTree(json);
+
+			if (releases.isArray()) {
+				for (JsonNode release : releases) {
+					String version = release.get("tag_name").asText();
+					processVersion(version, allMetadata);
 				}
-			} catch (Exception e) {
-				log("Failed to fetch releases for " + repo + ": " + e.getMessage());
 			}
 		}
 
@@ -81,10 +78,11 @@ public class Corretto extends BaseScraper {
 							continue;
 						}
 
+						String filename = buildFilename(version, os, arch, ext, imageType);
 						try {
-							downloadVersion(version, os, arch, ext, imageType, allMetadata);
+							downloadVersion(filename, version, os, arch, ext, imageType, allMetadata);
 						} catch (Exception e) {
-							// Silently skip files that don't exist
+							fail(filename, e);
 						}
 					}
 				}
@@ -93,10 +91,14 @@ public class Corretto extends BaseScraper {
 	}
 
 	private void downloadVersion(
-			String version, String os, String arch, String ext, String imageType, List<JdkMetadata> allMetadata)
+			String filename,
+			String version,
+			String os,
+			String arch,
+			String ext,
+			String imageType,
+			List<JdkMetadata> allMetadata)
 			throws Exception {
-
-		String filename = buildFilename(version, os, arch, ext, imageType);
 
 		if (metadataExists(filename)) {
 			log("Skipping " + filename + " (already exists)");
@@ -161,7 +163,7 @@ public class Corretto extends BaseScraper {
 
 		saveMetadataFile(metadata);
 		allMetadata.add(metadata);
-		log("Processed " + filename);
+		success(filename);
 	}
 
 	private String buildFilename(String version, String os, String arch, String ext, String imageType) {

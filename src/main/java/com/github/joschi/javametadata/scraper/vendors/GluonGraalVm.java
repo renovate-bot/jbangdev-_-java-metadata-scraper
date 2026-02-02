@@ -55,9 +55,13 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 				continue;
 			}
 
-			JdkMetadata metadata = processAsset(tagName, assetName, isPrerelease);
-			if (metadata != null) {
-				metadataList.add(metadata);
+			try {
+				JdkMetadata metadata = processAsset(tagName, assetName, isPrerelease);
+				if (metadata != null) {
+					metadataList.add(metadata);
+				}
+			} catch (Exception e) {
+				fail(assetName, e);
 			}
 		}
 
@@ -113,7 +117,7 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
-		log("Processed " + filename);
+		success(filename);
 
 		return metadata;
 	}

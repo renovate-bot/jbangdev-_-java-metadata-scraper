@@ -36,12 +36,8 @@ public abstract class OpenJdkBaseScraper extends BaseScraper {
 		List<String> downloadUrls = new ArrayList<>();
 		for (String indexUrl : getIndexUrls()) {
 			log("Fetching index from " + indexUrl);
-			try {
-				String html = httpUtils.downloadString(indexUrl);
-				extractUrls(html, downloadUrls);
-			} catch (Exception e) {
-				log("Failed to fetch " + indexUrl + ": " + e.getMessage());
-			}
+			String html = httpUtils.downloadString(indexUrl);
+			extractUrls(html, downloadUrls);
 		}
 
 		log("Found " + downloadUrls.size() + " download URLs");
@@ -58,9 +54,13 @@ public abstract class OpenJdkBaseScraper extends BaseScraper {
 				continue;
 			}
 
-			JdkMetadata metadata = processFile(filename, url);
-			if (metadata != null) {
-				allMetadata.add(metadata);
+			try {
+				JdkMetadata metadata = processFile(filename, url);
+				if (metadata != null) {
+					allMetadata.add(metadata);
+				}
+			} catch (Exception e) {
+				fail(filename, e);
 			}
 		}
 
@@ -142,7 +142,7 @@ public abstract class OpenJdkBaseScraper extends BaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
-		log("Processed " + filename);
+		success(filename);
 
 		return metadata;
 	}

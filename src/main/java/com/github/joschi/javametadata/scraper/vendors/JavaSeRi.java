@@ -36,19 +36,16 @@ public class JavaSeRi extends BaseScraper {
 		// Fetch all URLs from index pages
 		for (String urlVersion : URL_VERSIONS) {
 			log("Fetching index for version: " + urlVersion);
-			try {
-				String indexHtml = httpUtils.downloadString(BASE_URL + urlVersion);
-				Matcher urlMatcher = URL_PATTERN.matcher(indexHtml);
 
-				while (urlMatcher.find()) {
-					String url = urlMatcher.group(1);
-					// Skip source files
-					if (!url.contains("-src") && !url.contains("_src")) {
-						urls.add(url);
-					}
+			String indexHtml = httpUtils.downloadString(BASE_URL + urlVersion);
+			Matcher urlMatcher = URL_PATTERN.matcher(indexHtml);
+
+			while (urlMatcher.find()) {
+				String url = urlMatcher.group(1);
+				// Skip source files
+				if (!url.contains("-src") && !url.contains("_src")) {
+					urls.add(url);
 				}
-			} catch (Exception e) {
-				log("Failed to fetch index for version " + urlVersion + ": " + e.getMessage());
 			}
 		}
 
@@ -61,7 +58,7 @@ public class JavaSeRi extends BaseScraper {
 			try {
 				processFile(url, filename, allMetadata);
 			} catch (Exception e) {
-				log("Failed to process " + filename + ": " + e.getMessage());
+				fail(filename, e);
 			}
 		}
 
@@ -125,7 +122,7 @@ public class JavaSeRi extends BaseScraper {
 
 		saveMetadataFile(metadata);
 		allMetadata.add(metadata);
-		log("Processed " + filename);
+		success(filename);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

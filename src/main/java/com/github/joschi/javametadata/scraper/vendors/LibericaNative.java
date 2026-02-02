@@ -40,26 +40,32 @@ public class LibericaNative extends BaseScraper {
 		log("Found " + releases.size() + " potential releases");
 
 		for (JsonNode release : releases) {
+			JsonNode downloadUrl = release.get("downloadUrl");
+			if (downloadUrl == null || !downloadUrl.isTextual()) {
+				return null;
+			}
+
+			String url = downloadUrl.asText();
+
+			// Get additional info from API response
+			JsonNode releaseTypeNode = release.get("releaseType");
+			String apiReleaseType = releaseTypeNode != null ? releaseTypeNode.asText() : "GA";
+			String releaseType = apiReleaseType.equalsIgnoreCase("EA") ? "ea" : "ga";
+
 			try {
-				JdkMetadata metadata = processRelease(release);
+				JdkMetadata metadata = processRelease(url, releaseType);
 				if (metadata != null) {
 					allMetadata.add(metadata);
 				}
 			} catch (Exception e) {
-				log("Failed to process release: " + e.getMessage());
+				fail(url, e);
 			}
 		}
 
 		return allMetadata;
 	}
 
-	private JdkMetadata processRelease(JsonNode release) throws Exception {
-		JsonNode downloadUrl = release.get("downloadUrl");
-		if (downloadUrl == null || !downloadUrl.isTextual()) {
-			return null;
-		}
-
-		String url = downloadUrl.asText();
+	private JdkMetadata processRelease(String url, String releaseType) throws Exception {
 		String filename = url.substring(url.lastIndexOf('/') + 1);
 
 		// Skip if not a native image kit file
@@ -84,11 +90,6 @@ public class LibericaNative extends BaseScraper {
 		String os = matcher.group(4);
 		String arch = matcher.group(5);
 		String ext = matcher.group(6);
-
-		// Get additional info from API response
-		JsonNode releaseTypeNode = release.get("releaseType");
-		String apiReleaseType = releaseTypeNode != null ? releaseTypeNode.asText() : "GA";
-		String releaseType = apiReleaseType.equalsIgnoreCase("EA") ? "ea" : "ga";
 
 		// Build features list
 		List<String> features = new ArrayList<>();
@@ -125,7 +126,7 @@ public class LibericaNative extends BaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
-		log("Processed " + filename);
+		success(filename);
 
 		return metadata;
 	}

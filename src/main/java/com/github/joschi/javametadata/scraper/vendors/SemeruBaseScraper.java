@@ -37,11 +37,7 @@ public abstract class SemeruBaseScraper extends BaseScraper {
 		// Process each Java version
 		for (String javaVersion : getJavaVersions()) {
 			log("Processing " + getVendor() + " version: " + javaVersion);
-			try {
-				allMetadata.addAll(scrapeVersion(javaVersion));
-			} catch (Exception e) {
-				log("Failed to process version " + javaVersion + ": " + e.getMessage());
-			}
+			allMetadata.addAll(scrapeVersion(javaVersion));
 		}
 
 		return allMetadata;
@@ -104,9 +100,13 @@ public abstract class SemeruBaseScraper extends BaseScraper {
 				continue;
 			}
 
-			JdkMetadata metadata = processAsset(assetName, downloadUrl, version, parsedJavaVersion);
-			if (metadata != null) {
-				metadataList.add(metadata);
+			try {
+				JdkMetadata metadata = processAsset(assetName, downloadUrl, version, parsedJavaVersion);
+				if (metadata != null) {
+					metadataList.add(metadata);
+				}
+			} catch (Exception e) {
+				fail(assetName, e);
 			}
 		}
 
@@ -178,7 +178,7 @@ public abstract class SemeruBaseScraper extends BaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
-		log("Processed " + filename);
+		success(filename);
 
 		return metadata;
 	}

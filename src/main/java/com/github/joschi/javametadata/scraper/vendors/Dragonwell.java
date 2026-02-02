@@ -44,11 +44,7 @@ public class Dragonwell extends BaseScraper {
 		// Process each Java version
 		for (String javaVersion : JAVA_VERSIONS) {
 			log("Processing Dragonwell version: " + javaVersion);
-			try {
-				allMetadata.addAll(scrapeVersion(javaVersion));
-			} catch (Exception e) {
-				log("Failed to process version " + javaVersion + ": " + e.getMessage());
-			}
+			allMetadata.addAll(scrapeVersion(javaVersion));
 		}
 
 		return allMetadata;
@@ -99,9 +95,13 @@ public class Dragonwell extends BaseScraper {
 				continue;
 			}
 
-			JdkMetadata metadata = processAsset(tagName, assetName, downloadUrl);
-			if (metadata != null) {
-				metadataList.add(metadata);
+			try {
+				JdkMetadata metadata = processAsset(tagName, assetName, downloadUrl);
+				if (metadata != null) {
+					metadataList.add(metadata);
+				}
+			} catch (Exception e) {
+				fail(assetName, e);
 			}
 		}
 
@@ -152,7 +152,7 @@ public class Dragonwell extends BaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
-		log("Processed " + filename);
+		success(filename);
 
 		return metadata;
 	}

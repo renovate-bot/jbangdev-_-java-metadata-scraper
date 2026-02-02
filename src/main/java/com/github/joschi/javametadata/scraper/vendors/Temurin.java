@@ -46,18 +46,13 @@ public class Temurin extends BaseScraper {
 						"%s/assets/feature_releases/%d/ga?page=%d&page_size=50&project=jdk&sort_order=ASC&vendor=adoptium",
 						API_BASE, release, page);
 
-				try {
-					String assetsJson = httpUtils.downloadString(assetsUrl);
-					JsonNode assets = objectMapper.readTree(assetsJson);
+				String assetsJson = httpUtils.downloadString(assetsUrl);
+				JsonNode assets = objectMapper.readTree(assetsJson);
 
-					if (assets.isArray() && assets.size() > 0) {
-						processAssets(assets, allMetadata);
-						page++;
-					} else {
-						hasMore = false;
-					}
-				} catch (Exception e) {
-					log("Failed to fetch page " + page + " for release " + release + ": " + e.getMessage());
+				if (assets.isArray() && assets.size() > 0) {
+					processAssets(assets, allMetadata);
+					page++;
+				} else {
 					hasMore = false;
 				}
 			}
@@ -75,7 +70,15 @@ public class Temurin extends BaseScraper {
 			JsonNode binaries = asset.get("binaries");
 			if (binaries != null && binaries.isArray()) {
 				for (JsonNode binary : binaries) {
-					processBinary(binary, version, javaVersion, allMetadata);
+					try {
+						processBinary(binary, version, javaVersion, allMetadata);
+					} catch (Exception e) {
+						String filename =
+								binary.has("package") && binary.get("package").has("name")
+										? binary.get("package").get("name").asText()
+										: "unknown";
+						fail(filename, e);
+					}
 				}
 			}
 		}
@@ -160,7 +163,7 @@ public class Temurin extends BaseScraper {
 
 		saveMetadataFile(metadata);
 		allMetadata.add(metadata);
-		log("Processed " + filename);
+		success(filename);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

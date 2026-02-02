@@ -52,9 +52,13 @@ public class SapMachine extends GitHubReleaseScraper {
 				continue;
 			}
 
-			JdkMetadata metadata = processAsset(tagName, assetName, downloadUrl);
-			if (metadata != null) {
-				metadataList.add(metadata);
+			try {
+				JdkMetadata metadata = processAsset(tagName, assetName, downloadUrl);
+				if (metadata != null) {
+					metadataList.add(metadata);
+				}
+			} catch (Exception e) {
+				fail(assetName, e);
 			}
 		}
 
@@ -126,7 +130,7 @@ public class SapMachine extends GitHubReleaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
-		log("Processed " + filename);
+		success(filename);
 
 		return metadata;
 	}

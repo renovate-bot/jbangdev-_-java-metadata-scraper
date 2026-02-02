@@ -50,7 +50,7 @@ public class OpenLogic extends BaseScraper {
 					allMetadata.add(metadata);
 				}
 			} catch (Exception e) {
-				log("Failed to process " + filename + ": " + e.getMessage());
+				fail(filename, e);
 			}
 		}
 
@@ -109,7 +109,7 @@ public class OpenLogic extends BaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
-		log("Processed " + filename);
+		success(filename);
 
 		return metadata;
 	}

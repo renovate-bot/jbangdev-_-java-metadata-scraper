@@ -95,26 +95,26 @@ public class Oracle extends BaseScraper {
 
 		log("Scraping Oracle JDK " + majorVersion + " archive from " + archiveUrl);
 
-		try {
-			String html = httpUtils.downloadString(archiveUrl);
+		String html = httpUtils.downloadString(archiveUrl);
 
-			// Find all download links using regex
-			Matcher matcher = LINK_PATTERN.matcher(html);
-			while (matcher.find()) {
-				String downloadUrl = matcher.group(1);
-				String filename = matcher.group(2);
+		// Find all download links using regex
+		Matcher matcher = LINK_PATTERN.matcher(html);
+		while (matcher.find()) {
+			String downloadUrl = matcher.group(1);
+			String filename = matcher.group(2);
 
-				if (metadataExists(filename)) {
-					continue;
-				}
+			if (metadataExists(filename)) {
+				continue;
+			}
 
+			try {
 				JdkMetadata jdkMetadata = parseFilename(filename, downloadUrl);
 				if (jdkMetadata != null) {
 					metadata.add(jdkMetadata);
 				}
+			} catch (Exception e) {
+				fail(filename, e);
 			}
-		} catch (Exception e) {
-			log("Failed to scrape Oracle JDK " + majorVersion + " archive: " + e.getMessage());
 		}
 
 		return metadata;
@@ -159,6 +159,8 @@ public class Oracle extends BaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
+		success(filename);
+
 		return metadata;
 	}
 

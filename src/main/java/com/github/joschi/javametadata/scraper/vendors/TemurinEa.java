@@ -33,11 +33,7 @@ public class TemurinEa extends BaseScraper {
 
 		for (int version : EA_VERSIONS) {
 			log("Checking EA releases for Java " + version);
-			try {
-				allMetadata.addAll(scrapeVersion(version));
-			} catch (Exception e) {
-				log("Failed to process Java " + version + " EA: " + e.getMessage());
-			}
+			allMetadata.addAll(scrapeVersion(version));
 		}
 
 		return allMetadata;
@@ -100,9 +96,13 @@ public class TemurinEa extends BaseScraper {
 				continue;
 			}
 
-			JdkMetadata metadata = processAsset(filename, downloadUrl, javaVersion);
-			if (metadata != null) {
-				metadataList.add(metadata);
+			try {
+				JdkMetadata metadata = processAsset(filename, downloadUrl, javaVersion);
+				if (metadata != null) {
+					metadataList.add(metadata);
+				}
+			} catch (Exception e) {
+				fail(filename, e);
 			}
 		}
 
@@ -164,7 +164,7 @@ public class TemurinEa extends BaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
-		log("Processed EA release " + filename);
+		success(filename);
 
 		return metadata;
 	}

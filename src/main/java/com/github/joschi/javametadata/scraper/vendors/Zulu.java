@@ -45,9 +45,13 @@ public class Zulu extends BaseScraper {
 				continue;
 			}
 
-			JdkMetadata metadata = processFile(filename);
-			if (metadata != null) {
-				allMetadata.add(metadata);
+			try {
+				JdkMetadata metadata = processFile(filename);
+				if (metadata != null) {
+					allMetadata.add(metadata);
+				}
+			} catch (Exception e) {
+				fail(filename, e);
 			}
 		}
 
@@ -117,7 +121,7 @@ public class Zulu extends BaseScraper {
 		metadata.setSize(download.size());
 
 		saveMetadataFile(metadata);
-		log("Processed " + filename);
+		success(filename);
 
 		return metadata;
 	}

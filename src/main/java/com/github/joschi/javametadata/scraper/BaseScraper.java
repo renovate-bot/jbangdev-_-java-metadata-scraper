@@ -61,7 +61,17 @@ public abstract class BaseScraper implements Scraper {
 
 	/** Log a progress message */
 	protected void log(String message) {
-		logger.info(message);
+		logger.fine(message);
+	}
+
+	/** Log successful processing of single metadata item */
+	protected void success(String filename) {
+		logger.info("Processed " + filename);
+	}
+
+	/** Log failure to process single metadata item */
+	protected void fail(String message, Exception error) {
+		logger.severe("Failed " + message + ": " + error.getMessage());
 	}
 
 	/** Check if metadata file already exists */
