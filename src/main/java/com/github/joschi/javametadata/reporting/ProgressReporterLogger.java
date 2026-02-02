@@ -11,40 +11,39 @@ import java.util.logging.Logger;
  */
 public class ProgressReporterLogger extends Logger {
 
-    private ProgressReporterLogger(String scraperId, ProgressReporter reporter) {
-        super(scraperId, null);
-        setLevel(Level.ALL);
-        setUseParentHandlers(false);
+	private ProgressReporterLogger(String scraperId, ProgressReporter reporter) {
+		super(scraperId, null);
+		setLevel(Level.ALL);
+		setUseParentHandlers(false);
 
-        // Add custom handler that forwards to progress reporter
-        addHandler(
-                new Handler() {
-                    @Override
-                    public void publish(LogRecord record) {
-                        if (isLoggable(record)) {
-                            String message = record.getMessage();
-                            if (message != null && !message.isBlank()) {
-                                reporter.report(ProgressEvent.progress(scraperId, message));
-                            }
-                        }
-                    }
+		// Add custom handler that forwards to progress reporter
+		addHandler(new Handler() {
+			@Override
+			public void publish(LogRecord record) {
+				if (isLoggable(record)) {
+					String message = record.getMessage();
+					if (message != null && !message.isBlank()) {
+						reporter.report(ProgressEvent.progress(scraperId, message));
+					}
+				}
+			}
 
-                    @Override
-                    public void flush() {}
+			@Override
+			public void flush() {}
 
-                    @Override
-                    public void close() {}
-                });
-    }
+			@Override
+			public void close() {}
+		});
+	}
 
-    /**
-     * Create a new logger for a scraper.
-     *
-     * @param scraperId the scraper ID
-     * @param reporter the progress reporter
-     * @return a new logger instance
-     */
-    public static Logger forScraper(String scraperId, ProgressReporter reporter) {
-        return new ProgressReporterLogger(scraperId, reporter);
-    }
+	/**
+	 * Create a new logger for a scraper.
+	 *
+	 * @param scraperId the scraper ID
+	 * @param reporter the progress reporter
+	 * @return a new logger instance
+	 */
+	public static Logger forScraper(String scraperId, ProgressReporter reporter) {
+		return new ProgressReporterLogger(scraperId, reporter);
+	}
 }

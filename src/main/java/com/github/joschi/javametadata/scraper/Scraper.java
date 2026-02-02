@@ -8,12 +8,12 @@ import java.util.concurrent.Callable;
  */
 public interface Scraper extends Callable<ScraperResult> {
 
-    /**
-     * Factory interface for scraper discovery
-     */
-    interface Discovery {
-        String name();
-        String vendor();
-        Scraper create(ScraperConfig config);
-    }
+	/** Factory interface for scraper discovery */
+	interface Discovery {
+		String name();
+
+		String vendor();
+
+		Scraper create(ScraperConfig config);
+	}
 }

@@ -21,7 +21,7 @@ This project uses Gradle for dependency management and building.
 
 ```bash
 # Build the project
-./gradlew build
+./gradlew spotlessApply build
 
 # This creates two jars:
 # - java-metadata-scraper-1.0.0-SNAPSHOT.jar (regular jar)
@@ -44,8 +44,8 @@ java -jar build/libs/java-metadata-scraper-1.0.0-SNAPSHOT-standalone.jar --scrap
 
 # Specify custom directories
 java -jar build/libs/java-metadata-scraper-1.0.0-SNAPSHOT-standalone.jar \
-  --metadata-dir /path/to/metadata \
-  --checksum-dir /path/to/checksums
+--metadata-dir /path/to/metadata \
+--checksum-dir /path/to/checksums
 
 # Control parallelism
 java -jar build/libs/java-metadata-scraper-1.0.0-SNAPSHOT-standalone.jar --threads 4
@@ -58,27 +58,27 @@ java -jar build/libs/java-metadata-scraper-1.0.0-SNAPSHOT-standalone.jar --help
 
 ```
 Usage: java-metadata-scraper [-hlV] [--from-start] [-c=<checksumDir>]
-                              [-m=<metadataDir>] [-s=<scraperIds>[,<scraperIds>...]]...
-                              [-t=<maxThreads>]
+							[-m=<metadataDir>] [-s=<scraperIds>[,<scraperIds>...]]...
+							[-t=<maxThreads>]
 
 Scrapes JDK metadata from various vendors
 
 Options:
-  -m, --metadata-dir=<metadataDir>
-                        Directory to store metadata files (default: docs/metadata)
-  -c, --checksum-dir=<checksumDir>
-                        Directory to store checksum files (default: docs/checksums)
-  -s, --scrapers=<scraperIds>[,<scraperIds>...]
-                        Comma-separated list of scraper IDs to run (if not specified,
-                        all scrapers run)
-  -l, --list            List all available scraper IDs and exit
-  -t, --threads=<maxThreads>
-                        Maximum number of parallel scraper threads (default: number
-                        of processors)
-      --from-start      Ignore existing metadata files and scrape all items from the
-                        start
-  -h, --help            Show this help message and exit.
-  -V, --version         Print version information and exit.
+-m, --metadata-dir=<metadataDir>
+						Directory to store metadata files (default: docs/metadata)
+-c, --checksum-dir=<checksumDir>
+						Directory to store checksum files (default: docs/checksums)
+-s, --scrapers=<scraperIds>[,<scraperIds>...]
+						Comma-separated list of scraper IDs to run (if not specified,
+						all scrapers run)
+-l, --list            List all available scraper IDs and exit
+-t, --threads=<maxThreads>
+						Maximum number of parallel scraper threads (default: number
+						of processors)
+	--from-start      Ignore existing metadata files and scrape all items from the
+						start
+-h, --help            Show this help message and exit.
+-V, --version         Print version information and exit.
 ```
 
 ## Architecture
@@ -132,32 +132,32 @@ Example:
 
 ```java
 public class NewScraper extends BaseScraper {
-    public NewScraper(Path metadataDir, Path checksumDir, Logger logger) {
-        super(metadataDir, checksumDir, logger);
-    }
+	public NewScraper(Path metadataDir, Path checksumDir, Logger logger) {
+		super(metadataDir, checksumDir, logger);
+	}
 
-    @Override
-    protected ScraperResult scrapeImpl() throws Exception {
-        // Implementation here
-    }
+	@Override
+	protected ScraperResult scrapeImpl() throws Exception {
+		// Implementation here
+	}
 
-    // ServiceLoader discovery
-    public static class Discovery implements Scraper.Discovery {
-        @Override
-        public String name() {
-            return "scraper-name";
-        }
+	// ServiceLoader discovery
+	public static class Discovery implements Scraper.Discovery {
+		@Override
+		public String name() {
+			return "scraper-name";
+		}
 
-        @Override
-        public String vendor() {
-            return "vendor-name";
-        }
+		@Override
+		public String vendor() {
+			return "vendor-name";
+		}
 
-        @Override
-        public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
-            return new NewScraper(metadataDir, checksumDir, logger);
-        }
-    }
+		@Override
+		public Scraper create(Path metadataDir, Path checksumDir, Logger logger) {
+			return new NewScraper(metadataDir, checksumDir, logger);
+		}
+	}
 }
 ```
 
@@ -200,8 +200,8 @@ src/
 │           └── services/
 │               └── com.github.joschi.javametadata.scraper.Scraper$Discovery
 └── test/
-    └── java/
-        └── (test classes)
+	└── java/
+		└── (test classes)
 ```
 
 ## Dependencies

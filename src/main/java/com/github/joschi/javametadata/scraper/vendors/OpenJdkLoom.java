@@ -6,36 +6,35 @@ import java.util.*;
 
 /** Scraper for OpenJDK Project Loom early access builds */
 public class OpenJdkLoom extends OpenJdkBaseScraper {
-    
-    public OpenJdkLoom(ScraperConfig config) {
-        super(config);
-    }
 
+	public OpenJdkLoom(ScraperConfig config) {
+		super(config);
+	}
 
-    @Override
-    protected List<String> getIndexUrls() {
-        return Collections.singletonList("https://jdk.java.net/loom/");
-    }
+	@Override
+	protected List<String> getIndexUrls() {
+		return Collections.singletonList("https://jdk.java.net/loom/");
+	}
 
-    @Override
-    protected String getFeature() {
-        return "loom";
-    }
+	@Override
+	protected String getFeature() {
+		return "loom";
+	}
 
-    public static class Discovery implements Scraper.Discovery {
-        @Override
-        public String name() {
-            return "openjdk-loom";
-        }
+	public static class Discovery implements Scraper.Discovery {
+		@Override
+		public String name() {
+			return "openjdk-loom";
+		}
 
-        @Override
-        public String vendor() {
-            return "openjdk";
-        }
+		@Override
+		public String vendor() {
+			return "openjdk";
+		}
 
-        @Override
-        public Scraper create(ScraperConfig config) {
-            return new OpenJdkLoom(config);
-        }
-    }
+		@Override
+		public Scraper create(ScraperConfig config) {
+			return new OpenJdkLoom(config);
+		}
+	}
 }

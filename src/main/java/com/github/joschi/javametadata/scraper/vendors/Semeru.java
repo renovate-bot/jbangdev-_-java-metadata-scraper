@@ -2,57 +2,55 @@ package com.github.joschi.javametadata.scraper.vendors;
 
 import com.github.joschi.javametadata.scraper.Scraper;
 import com.github.joschi.javametadata.scraper.ScraperConfig;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /** Scraper for IBM Semeru Open Edition releases */
 public class Semeru extends SemeruBaseScraper {
-    private static final String VENDOR = "semeru";
-    
-    // List of Java versions for open edition
-    private static final List<String> JAVA_VERSIONS =
-            List.of("8", "11", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25");
+	private static final String VENDOR = "semeru";
 
-    public Semeru(ScraperConfig config) {
-        super(config);
-    }
+	// List of Java versions for open edition
+	private static final List<String> JAVA_VERSIONS =
+			List.of("8", "11", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25");
 
-    @Override
-    protected List<String> getJavaVersions() {
-        return JAVA_VERSIONS;
-    }
+	public Semeru(ScraperConfig config) {
+		super(config);
+	}
 
-    @Override
-    protected String getFilenamePrefix() {
-        return "ibm-semeru-open-";
-    }
+	@Override
+	protected List<String> getJavaVersions() {
+		return JAVA_VERSIONS;
+	}
 
-    @Override
-    protected String getVendor() {
-        return VENDOR;
-    }
+	@Override
+	protected String getFilenamePrefix() {
+		return "ibm-semeru-open-";
+	}
 
-    @Override
-    protected List<String> getAdditionalFeatures() {
-        return new ArrayList<>();
-    }
+	@Override
+	protected String getVendor() {
+		return VENDOR;
+	}
 
-    public static class Discovery implements Scraper.Discovery {
-        @Override
-        public String name() {
-            return "semeru";
-        }
+	@Override
+	protected List<String> getAdditionalFeatures() {
+		return new ArrayList<>();
+	}
 
-        @Override
-        public String vendor() {
-            return "semeru";
-        }
+	public static class Discovery implements Scraper.Discovery {
+		@Override
+		public String name() {
+			return "semeru";
+		}
 
-        @Override
-        public Scraper create(ScraperConfig config) {
-            return new Semeru(config);
-        }
-    }
+		@Override
+		public String vendor() {
+			return "semeru";
+		}
 
+		@Override
+		public Scraper create(ScraperConfig config) {
+			return new Semeru(config);
+		}
+	}
 }

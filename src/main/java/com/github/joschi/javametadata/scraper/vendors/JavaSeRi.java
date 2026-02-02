@@ -1,9 +1,9 @@
 package com.github.joschi.javametadata.scraper.vendors;
 
-import com.github.joschi.javametadata.scraper.Scraper;
-import com.github.joschi.javametadata.scraper.ScraperConfig;
 import com.github.joschi.javametadata.model.JdkMetadata;
 import com.github.joschi.javametadata.scraper.BaseScraper;
+import com.github.joschi.javametadata.scraper.Scraper;
+import com.github.joschi.javametadata.scraper.ScraperConfig;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -11,140 +11,137 @@ import java.util.regex.Pattern;
 
 /** Scraper for Java SE Reference Implementation releases */
 public class JavaSeRi extends BaseScraper {
-    private static final String VENDOR = "java-se-ri";
-    private static final String BASE_URL = "https://jdk.java.net/java-se-ri/";
-    
-    private static final String[] URL_VERSIONS = {
-        "7", "8-MR3", "9", "10", "11", "12", "13", "14", "15", 
-        "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"
-    };
-    
-    private static final Pattern URL_PATTERN = Pattern.compile(
-            "href=\"(https://download\\.java\\.net/.*/openjdk-[^/]*\\.(tar\\.gz|zip))\"");
-    private static final Pattern FILENAME_PATTERN = Pattern.compile(
-            "^openjdk-([0-9ub-]{1,}[^_]*)[-_](linux|osx|windows)-(aarch64|x64-musl|x64|i586).*\\.(tar\\.gz|zip)$");
+	private static final String VENDOR = "java-se-ri";
+	private static final String BASE_URL = "https://jdk.java.net/java-se-ri/";
 
-    public JavaSeRi(ScraperConfig config) {
-        super(config);
-    }
+	private static final String[] URL_VERSIONS = {
+		"7", "8-MR3", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24",
+		"25"
+	};
 
+	private static final Pattern URL_PATTERN =
+			Pattern.compile("href=\"(https://download\\.java\\.net/.*/openjdk-[^/]*\\.(tar\\.gz|zip))\"");
+	private static final Pattern FILENAME_PATTERN = Pattern.compile(
+			"^openjdk-([0-9ub-]{1,}[^_]*)[-_](linux|osx|windows)-(aarch64|x64-musl|x64|i586).*\\.(tar\\.gz|zip)$");
 
-    @Override
-    protected List<JdkMetadata> scrape() throws Exception {
-        List<JdkMetadata> allMetadata = new ArrayList<>();
-        List<String> urls = new ArrayList<>();
+	public JavaSeRi(ScraperConfig config) {
+		super(config);
+	}
 
-        // Fetch all URLs from index pages
-        for (String urlVersion : URL_VERSIONS) {
-            log("Fetching index for version: " + urlVersion);
-            try {
-                String indexHtml = httpUtils.downloadString(BASE_URL + urlVersion);
-                Matcher urlMatcher = URL_PATTERN.matcher(indexHtml);
-                
-                while (urlMatcher.find()) {
-                    String url = urlMatcher.group(1);
-                    // Skip source files
-                    if (!url.contains("-src") && !url.contains("_src")) {
-                        urls.add(url);
-                    }
-                }
-            } catch (Exception e) {
-                log("Failed to fetch index for version " + urlVersion + ": " + e.getMessage());
-            }
-        }
+	@Override
+	protected List<JdkMetadata> scrape() throws Exception {
+		List<JdkMetadata> allMetadata = new ArrayList<>();
+		List<String> urls = new ArrayList<>();
 
-        log("Found " + urls.size() + " files to process");
+		// Fetch all URLs from index pages
+		for (String urlVersion : URL_VERSIONS) {
+			log("Fetching index for version: " + urlVersion);
+			try {
+				String indexHtml = httpUtils.downloadString(BASE_URL + urlVersion);
+				Matcher urlMatcher = URL_PATTERN.matcher(indexHtml);
 
-        // Process each URL
-        for (String url : urls) {
-            String filename = url.substring(url.lastIndexOf('/') + 1);
-            
-            try {
-                processFile(url, filename, allMetadata);
-            } catch (Exception e) {
-                log("Failed to process " + filename + ": " + e.getMessage());
-            }
-        }
+				while (urlMatcher.find()) {
+					String url = urlMatcher.group(1);
+					// Skip source files
+					if (!url.contains("-src") && !url.contains("_src")) {
+						urls.add(url);
+					}
+				}
+			} catch (Exception e) {
+				log("Failed to fetch index for version " + urlVersion + ": " + e.getMessage());
+			}
+		}
 
-        return allMetadata;
-    }
+		log("Found " + urls.size() + " files to process");
 
-    private void processFile(String url, String filename, List<JdkMetadata> allMetadata)
-            throws Exception {
-        
-        if (metadataExists(filename)) {
-            log("Skipping " + filename + " (already exists)");
-            return;
-        }
+		// Process each URL
+		for (String url : urls) {
+			String filename = url.substring(url.lastIndexOf('/') + 1);
 
-        Matcher matcher = FILENAME_PATTERN.matcher(filename);
-        if (!matcher.matches()) {
-            log("Skipping " + filename + " (does not match pattern)");
-            return;
-        }
+			try {
+				processFile(url, filename, allMetadata);
+			} catch (Exception e) {
+				log("Failed to process " + filename + ": " + e.getMessage());
+			}
+		}
 
-        String version = matcher.group(1);
-        String os = matcher.group(2);
-        String arch = matcher.group(3);
-        String ext = matcher.group(4);
+		return allMetadata;
+	}
 
-        // Determine release type
-        String releaseType = version.contains("-ea") ? "ea" : "ga";
+	private void processFile(String url, String filename, List<JdkMetadata> allMetadata) throws Exception {
 
-        // Handle musl feature
-        List<String> features = new ArrayList<>();
-        if (arch.equals("x64-musl")) {
-            features.add("musl");
-            arch = "x64";
-        }
+		if (metadataExists(filename)) {
+			log("Skipping " + filename + " (already exists)");
+			return;
+		}
 
-        // Download and compute hashes
-        DownloadResult download = downloadFile(url, filename);
+		Matcher matcher = FILENAME_PATTERN.matcher(filename);
+		if (!matcher.matches()) {
+			log("Skipping " + filename + " (does not match pattern)");
+			return;
+		}
 
-        // Create metadata
-        JdkMetadata metadata = new JdkMetadata();
-        metadata.setVendor(VENDOR);
-        metadata.setFilename(filename);
-        metadata.setReleaseType(releaseType);
-        metadata.setVersion(version);
-        metadata.setJavaVersion(version);
-        metadata.setJvmImpl("hotspot");
-        metadata.setOs(normalizeOs(os));
-        metadata.setArchitecture(normalizeArch(arch));
-        metadata.setFileType(ext);
-        metadata.setImageType("jdk");
-        metadata.setFeatures(features);
-        metadata.setUrl(url);
-        metadata.setMd5(download.md5());
-        metadata.setMd5File(filename + ".md5");
-        metadata.setSha1(download.sha1());
-        metadata.setSha1File(filename + ".sha1");
-        metadata.setSha256(download.sha256());
-        metadata.setSha256File(filename + ".sha256");
-        metadata.setSha512(download.sha512());
-        metadata.setSha512File(filename + ".sha512");
-        metadata.setSize(download.size());
+		String version = matcher.group(1);
+		String os = matcher.group(2);
+		String arch = matcher.group(3);
+		String ext = matcher.group(4);
 
-        saveMetadataFile(metadata);
-        allMetadata.add(metadata);
-        log("Processed " + filename);
-    }
+		// Determine release type
+		String releaseType = version.contains("-ea") ? "ea" : "ga";
 
-    public static class Discovery implements Scraper.Discovery {
-        @Override
-        public String name() {
-            return "java-se-ri";
-        }
+		// Handle musl feature
+		List<String> features = new ArrayList<>();
+		if (arch.equals("x64-musl")) {
+			features.add("musl");
+			arch = "x64";
+		}
 
-        @Override
-        public String vendor() {
-            return "java-se-ri";
-        }
+		// Download and compute hashes
+		DownloadResult download = downloadFile(url, filename);
 
-        @Override
-        public Scraper create(ScraperConfig config) {
-            return new JavaSeRi(config);
-        }
-    }
+		// Create metadata
+		JdkMetadata metadata = new JdkMetadata();
+		metadata.setVendor(VENDOR);
+		metadata.setFilename(filename);
+		metadata.setReleaseType(releaseType);
+		metadata.setVersion(version);
+		metadata.setJavaVersion(version);
+		metadata.setJvmImpl("hotspot");
+		metadata.setOs(normalizeOs(os));
+		metadata.setArchitecture(normalizeArch(arch));
+		metadata.setFileType(ext);
+		metadata.setImageType("jdk");
+		metadata.setFeatures(features);
+		metadata.setUrl(url);
+		metadata.setMd5(download.md5());
+		metadata.setMd5File(filename + ".md5");
+		metadata.setSha1(download.sha1());
+		metadata.setSha1File(filename + ".sha1");
+		metadata.setSha256(download.sha256());
+		metadata.setSha256File(filename + ".sha256");
+		metadata.setSha512(download.sha512());
+		metadata.setSha512File(filename + ".sha512");
+		metadata.setSize(download.size());
 
+		saveMetadataFile(metadata);
+		allMetadata.add(metadata);
+		log("Processed " + filename);
+	}
+
+	public static class Discovery implements Scraper.Discovery {
+		@Override
+		public String name() {
+			return "java-se-ri";
+		}
+
+		@Override
+		public String vendor() {
+			return "java-se-ri";
+		}
+
+		@Override
+		public Scraper create(ScraperConfig config) {
+			return new JavaSeRi(config);
+		}
+	}
 }

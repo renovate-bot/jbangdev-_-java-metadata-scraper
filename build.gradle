@@ -1,57 +1,93 @@
 
 plugins {
-    id 'java'
-    id 'application'
+	id 'java'
+	id 'application'
+	id 'com.diffplug.spotless' version '8.2.1'
 }
 
 version "1.0.0-SNAPSHOT"
 group "com.github.joschi.javametadata"
 
 repositories {
-    mavenCentral()
+	mavenCentral()
 }
 
 dependencies {
-    // Jackson JSON processing
-    implementation "com.fasterxml.jackson.core:jackson-databind:2.16.1"
-    implementation "com.fasterxml.jackson.core:jackson-annotations:2.16.1"
-    
-    // HTTP Client
-    implementation "org.apache.httpcomponents.client5:httpclient5:5.3.1"
+	// Jackson JSON processing
+	implementation "com.fasterxml.jackson.core:jackson-databind:2.16.1"
+	implementation "com.fasterxml.jackson.core:jackson-annotations:2.16.1"
 
-    // Logging API used by distro implementations (binding can be added by consumers/runtime).
-    implementation "org.slf4j:slf4j-api:2.0.7"
-    implementation "ch.qos.logback:logback-classic:1.4.14"
-    
-    // Command Line Parsing
-    implementation "info.picocli:picocli:4.7.5"
-    
-    // Testing
-    testImplementation "org.junit.jupiter:junit-jupiter:5.10.1"
+	// HTTP Client
+	implementation "org.apache.httpcomponents.client5:httpclient5:5.3.1"
+
+	// Logging API used by distro implementations (binding can be added by consumers/runtime).
+	implementation "org.slf4j:slf4j-api:2.0.7"
+	implementation "ch.qos.logback:logback-classic:1.4.14"
+
+	// Command Line Parsing
+	implementation "info.picocli:picocli:4.7.5"
+
+	// Testing
+	testImplementation "org.junit.jupiter:junit-jupiter:5.10.1"
 }
 
 application {
-    mainClass = 'com.github.joschi.javametadata.Main'
+	mainClass = 'com.github.joschi.javametadata.Main'
 }
 
 java {
-    sourceCompatibility = JavaVersion.toVersion('21')
-    targetCompatibility = JavaVersion.toVersion('21')
+	sourceCompatibility = JavaVersion.toVersion('21')
+	targetCompatibility = JavaVersion.toVersion('21')
 }
 
 tasks.register('standaloneJar', Jar) {
-    archiveClassifier = 'standalone'
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    
-    manifest {
-        attributes 'Main-Class': application.mainClass.get()
-    }
-    
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    
-    with jar
+	archiveClassifier = 'standalone'
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+	manifest {
+		attributes 'Main-Class': application.mainClass.get()
+	}
+
+	from {
+		configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+	}
+
+	with jar
 }
 
 build.dependsOn standaloneJar
+
+spotless {
+	lineEndings 'UNIX'
+	java {
+		// Use Palantir Java Format (alternative to Google Java Format)
+		palantirJavaFormat()
+
+		// Remove unused imports
+		removeUnusedImports()
+
+		// Format other Java elements
+		formatAnnotations()
+
+		// Convert 4 leading spaces to tabs
+		leadingSpacesToTabs(4)
+
+		// Target all Java source files
+		target 'src/**/*.java'
+	}
+
+	format 'misc', {
+		// Define the target files for miscellaneous formatting
+		target '*.gradle', '*.md', '.gitignore'
+		targetExclude 'build/**/*', 'out/**/*'
+
+		// Trim trailing whitespace
+		trimTrailingWhitespace()
+
+		// Convert 4 leading spaces to tabs
+		leadingSpacesToTabs(4)
+
+		// Ensure files end with a newline
+		endWithNewline()
+	}
+}
