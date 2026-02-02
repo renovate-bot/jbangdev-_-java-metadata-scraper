@@ -62,6 +62,13 @@ public class Main implements Callable<Integer> {
 			defaultValue = "10")
 	private int maxFailures;
 
+	@Option(
+			names = {"--limit-progress"},
+			description =
+					"Maximum number of metadata items to process per scraper before aborting (default: unlimited)",
+			defaultValue = "-1")
+	private int limitProgress;
+
 	@Override
 	public Integer call() throws Exception {
 		// Handle list command
@@ -85,7 +92,7 @@ public class Main implements Callable<Integer> {
 			reporter.start();
 
 			// Create scrapers
-			var fact = ScraperFactory.create(metadataDir, checksumDir, reporter, fromStart, maxFailures);
+			var fact = ScraperFactory.create(metadataDir, checksumDir, reporter, fromStart, maxFailures, limitProgress);
 			if (scraperIds == null) {
 				scraperIds = new ArrayList<>(
 						ScraperFactory.getAvailableScraperDiscoveries().keySet());

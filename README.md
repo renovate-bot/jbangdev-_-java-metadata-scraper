@@ -60,7 +60,8 @@ java -jar build/libs/java-metadata-scraper-1.0.0-SNAPSHOT-standalone.jar --help
 
 ```
 Usage: java-metadata-scraper [-hlV] [--from-start] [-c=<checksumDir>]
-							[-m=<metadataDir>] [--max-failures=<maxFailures>]
+							[-m=<metadataDir>] [--limit-progress=<limitProgress>]
+							[--max-failures=<maxFailures>]
 							[-s=<scraperIds>[,<scraperIds>...]]...
 							[-t=<maxThreads>]
 
@@ -80,6 +81,9 @@ Options:
 						of processors)
 	--from-start      Ignore existing metadata files and scrape all items from the
 						start
+	--limit-progress=<limitProgress>
+						Maximum number of metadata items to process per scraper
+						before aborting (default: unlimited)
 	--max-failures=<maxFailures>
 						Maximum number of allowed failures per scraper before
 						aborting that scraper (default: 10)

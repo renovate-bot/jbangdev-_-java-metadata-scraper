@@ -8,4 +8,4 @@ import java.util.logging.Logger;
  * directory, logger, and whether to ignore existing metadata files.
  */
 public record ScraperConfig(
-		Path metadataDir, Path checksumDir, Logger logger, boolean fromStart, int maxFailureCount) {}
+		Path metadataDir, Path checksumDir, Logger logger, boolean fromStart, int maxFailureCount, int limitProgress) {}

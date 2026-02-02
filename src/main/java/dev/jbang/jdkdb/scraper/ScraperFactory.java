@@ -12,19 +12,31 @@ public class ScraperFactory {
 	private final ProgressReporter reporter;
 	private final boolean fromStart;
 	private final int maxFailureCount;
+	private final int limitProgress;
 
 	public static ScraperFactory create(
-			Path metadataDir, Path checksumDir, ProgressReporter reporter, boolean fromStart, int maxFailureCount) {
-		return new ScraperFactory(metadataDir, checksumDir, reporter, fromStart, maxFailureCount);
+			Path metadataDir,
+			Path checksumDir,
+			ProgressReporter reporter,
+			boolean fromStart,
+			int maxFailureCount,
+			int limitProgress) {
+		return new ScraperFactory(metadataDir, checksumDir, reporter, fromStart, maxFailureCount, limitProgress);
 	}
 
 	private ScraperFactory(
-			Path metadataDir, Path checksumDir, ProgressReporter reporter, boolean fromStart, int maxFailureCount) {
+			Path metadataDir,
+			Path checksumDir,
+			ProgressReporter reporter,
+			boolean fromStart,
+			int maxFailureCount,
+			int limitProgress) {
 		this.metadataDir = metadataDir;
 		this.checksumDir = checksumDir;
 		this.reporter = reporter;
 		this.fromStart = fromStart;
 		this.maxFailureCount = maxFailureCount;
+		this.limitProgress = limitProgress;
 	}
 
 	/** Create all available scrapers using ServiceLoader */
@@ -43,7 +55,8 @@ public class ScraperFactory {
 					checksumDir.resolve(vendor),
 					ProgressReporterLogger.forScraper(name, reporter),
 					fromStart,
-					maxFailureCount);
+					maxFailureCount,
+					limitProgress);
 
 			Scraper scraper = discovery.create(config);
 			scrapers.add(scraper);
@@ -64,7 +77,8 @@ public class ScraperFactory {
 					checksumDir.resolve(vendor),
 					ProgressReporterLogger.forScraper(scraperName, reporter),
 					fromStart,
-					maxFailureCount);
+					maxFailureCount,
+					limitProgress);
 			return discovery.create(config);
 		} else {
 			throw new IllegalArgumentException("Unknown scraper ID: " + scraperName);

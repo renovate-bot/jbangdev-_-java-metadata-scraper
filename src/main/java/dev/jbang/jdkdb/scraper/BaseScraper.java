@@ -20,8 +20,10 @@ public abstract class BaseScraper implements Scraper {
 	protected final HttpUtils httpUtils;
 	protected final boolean fromStart;
 	protected final int maxFailureCount;
+	protected final int limitProgress;
 
 	private int failureCount = 0;
+	private int processedCount = 0;
 
 	public BaseScraper(ScraperConfig config) {
 		this.metadataDir = config.metadataDir();
@@ -29,6 +31,7 @@ public abstract class BaseScraper implements Scraper {
 		this.logger = config.logger();
 		this.fromStart = config.fromStart();
 		this.maxFailureCount = config.maxFailureCount();
+		this.limitProgress = config.limitProgress();
 		this.objectMapper = new ObjectMapper()
 				.enable(SerializationFeature.INDENT_OUTPUT)
 				.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
@@ -71,6 +74,9 @@ public abstract class BaseScraper implements Scraper {
 	/** Log successful processing of single metadata item */
 	protected void success(String filename) {
 		logger.info("Processed " + filename);
+		if (limitProgress > 0 && ++processedCount >= limitProgress) {
+			throw new InterruptedProgressException("Reached progress limit of " + limitProgress + " items, aborting");
+		}
 	}
 
 	/** Log failure to process single metadata item */
