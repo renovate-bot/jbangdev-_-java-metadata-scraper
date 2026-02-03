@@ -41,6 +41,8 @@ public abstract class GitHubReleaseScraper extends BaseScraper {
 					try {
 						List<JdkMetadata> metadata = processRelease(release);
 						allMetadata.addAll(metadata);
+					} catch (InterruptedProgressException | TooManyFailuresException e) {
+						throw e;
 					} catch (Exception e) {
 						String tagName = release.has("tag_name")
 								? release.get("tag_name").asText()
