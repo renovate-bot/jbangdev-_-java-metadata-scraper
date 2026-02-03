@@ -38,6 +38,10 @@ java {
 	targetCompatibility = JavaVersion.toVersion('21')
 }
 
+test {
+	useJUnitPlatform()
+}
+
 tasks.register('standaloneJar', Jar) {
 	archiveClassifier = 'standalone'
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
