@@ -55,15 +55,18 @@ public class LibericaNative extends BaseScraper {
 				String apiReleaseType = releaseTypeNode != null ? releaseTypeNode.asText() : "GA";
 				String releaseType = apiReleaseType.equalsIgnoreCase("EA") ? "ea" : "ga";
 
+				String filename = url.substring(url.lastIndexOf('/') + 1);
 				try {
 					JdkMetadata metadata = processRelease(url, releaseType);
 					if (metadata != null) {
+						saveMetadataFile(metadata);
 						allMetadata.add(metadata);
+						success(filename);
 					}
 				} catch (InterruptedProgressException | TooManyFailuresException e) {
 					throw e;
 				} catch (Exception e) {
-					fail(url, e);
+					fail(filename, e);
 				}
 			}
 		} catch (InterruptedProgressException e) {
@@ -132,9 +135,6 @@ public class LibericaNative extends BaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		success(filename);
 
 		return metadata;
 	}

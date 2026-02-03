@@ -90,7 +90,9 @@ public class Debian extends BaseScraper {
 			try {
 				JdkMetadata meta = processDebianPackage(filename, cdnUrl);
 				if (meta != null) {
+					saveMetadataFile(meta);
 					metadata.add(meta);
+					success(filename);
 				}
 			} catch (InterruptedProgressException | TooManyFailuresException e) {
 				throw e;
@@ -171,9 +173,6 @@ public class Debian extends BaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		success(filename);
 
 		return metadata;
 	}

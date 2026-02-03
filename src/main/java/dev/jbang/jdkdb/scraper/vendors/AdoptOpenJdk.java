@@ -47,8 +47,8 @@ public class AdoptOpenJdk extends AdoptiumMarketplaceScraper {
 	}
 
 	@Override
-	protected void processBinary(JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata)
-			throws Exception {
+	protected JdkMetadata processBinary(
+			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception {
 
 		String heapSize = binary.path("heap_size").asText();
 		String os = binary.path("os").asText();
@@ -62,7 +62,7 @@ public class AdoptOpenJdk extends AdoptiumMarketplaceScraper {
 			additionalFeatures.add("musl");
 		}
 
-		createStandardMetadata(binary, version, javaVersion, allMetadata, additionalFeatures);
+		return createStandardMetadata(binary, version, javaVersion, allMetadata, additionalFeatures);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

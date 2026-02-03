@@ -48,9 +48,9 @@ public class Bisheng extends AdoptiumMarketplaceScraper {
 	}
 
 	@Override
-	protected void processBinary(JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata)
-			throws Exception {
-		createStandardMetadata(binary, version, javaVersion, allMetadata, List.of());
+	protected JdkMetadata processBinary(
+			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception {
+		return createStandardMetadata(binary, version, javaVersion, allMetadata, List.of());
 	}
 
 	public static class Discovery implements Scraper.Discovery {

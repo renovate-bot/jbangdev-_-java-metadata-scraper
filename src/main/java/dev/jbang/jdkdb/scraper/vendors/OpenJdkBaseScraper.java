@@ -60,7 +60,9 @@ public abstract class OpenJdkBaseScraper extends BaseScraper {
 				try {
 					JdkMetadata metadata = processFile(filename, url);
 					if (metadata != null) {
+						saveMetadataFile(metadata);
 						allMetadata.add(metadata);
+						success(filename);
 					}
 				} catch (InterruptedProgressException | TooManyFailuresException e) {
 					throw e;
@@ -148,9 +150,6 @@ public abstract class OpenJdkBaseScraper extends BaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		success(filename);
 
 		return metadata;
 	}

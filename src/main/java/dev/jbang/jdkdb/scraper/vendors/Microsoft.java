@@ -51,7 +51,9 @@ public class Microsoft extends BaseScraper {
 				try {
 					var metadata = processFile(filename);
 					if (metadata != null) {
+						saveMetadataFile(metadata);
 						allMetadata.add(metadata);
+						success(filename);
 					}
 				} catch (InterruptedProgressException | TooManyFailuresException e) {
 					throw e;
@@ -109,9 +111,6 @@ public class Microsoft extends BaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		success(filename);
 
 		return metadata;
 	}

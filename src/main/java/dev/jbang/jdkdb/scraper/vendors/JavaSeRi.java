@@ -59,7 +59,12 @@ public class JavaSeRi extends BaseScraper {
 				String filename = url.substring(url.lastIndexOf('/') + 1);
 
 				try {
-					processFile(url, filename, allMetadata);
+					JdkMetadata metadata = processFile(url, filename, allMetadata);
+					if (metadata != null) {
+						saveMetadataFile(metadata);
+						allMetadata.add(metadata);
+						success(filename);
+					}
 				} catch (InterruptedProgressException | TooManyFailuresException e) {
 					throw e;
 				} catch (Exception e) {
@@ -73,17 +78,17 @@ public class JavaSeRi extends BaseScraper {
 		return allMetadata;
 	}
 
-	private void processFile(String url, String filename, List<JdkMetadata> allMetadata) throws Exception {
+	private JdkMetadata processFile(String url, String filename, List<JdkMetadata> allMetadata) throws Exception {
 
 		if (metadataExists(filename)) {
 			log("Skipping " + filename + " (already exists)");
-			return;
+			return null;
 		}
 
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			log("Skipping " + filename + " (does not match pattern)");
-			return;
+			return null;
 		}
 
 		String version = matcher.group(1);
@@ -128,9 +133,7 @@ public class JavaSeRi extends BaseScraper {
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
 
-		saveMetadataFile(metadata);
-		allMetadata.add(metadata);
-		success(filename);
+		return metadata;
 	}
 
 	public static class Discovery implements Scraper.Discovery {

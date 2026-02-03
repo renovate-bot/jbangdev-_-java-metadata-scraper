@@ -69,7 +69,9 @@ public class Liberica extends GitHubReleaseScraper {
 			try {
 				JdkMetadata metadata = processAsset(tagName, assetName, isPrerelease);
 				if (metadata != null) {
+					saveMetadataFile(metadata);
 					metadataList.add(metadata);
+					success(assetName);
 				}
 			} catch (InterruptedProgressException | TooManyFailuresException e) {
 				throw e;
@@ -136,9 +138,6 @@ public class Liberica extends GitHubReleaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		success(filename);
 
 		return metadata;
 	}

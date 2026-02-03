@@ -86,7 +86,13 @@ public class Corretto extends BaseScraper {
 
 						String filename = buildFilename(version, os, arch, ext, imageType);
 						try {
-							downloadVersion(filename, version, os, arch, ext, imageType, allMetadata);
+							JdkMetadata metadata =
+									downloadVersion(filename, version, os, arch, ext, imageType, allMetadata);
+							if (metadata != null) {
+								saveMetadataFile(metadata);
+								allMetadata.add(metadata);
+								success(filename);
+							}
 						} catch (InterruptedProgressException | TooManyFailuresException e) {
 							throw e;
 						} catch (Exception e) {
@@ -98,7 +104,7 @@ public class Corretto extends BaseScraper {
 		}
 	}
 
-	private void downloadVersion(
+	private JdkMetadata downloadVersion(
 			String filename,
 			String version,
 			String os,
@@ -110,7 +116,7 @@ public class Corretto extends BaseScraper {
 
 		if (metadataExists(filename)) {
 			log("Skipping " + filename + " (already exists)");
-			return;
+			return null;
 		}
 
 		// Try both CDN URLs
@@ -126,11 +132,11 @@ public class Corretto extends BaseScraper {
 			}
 		} catch (Exception e) {
 			// URL doesn't exist, skip
-			return;
+			return null;
 		}
 
 		if (url == null) {
-			return;
+			return null;
 		}
 
 		// Download and compute hashes
@@ -168,10 +174,7 @@ public class Corretto extends BaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		allMetadata.add(metadata);
-		success(filename);
+		return metadata;
 	}
 
 	private String buildFilename(String version, String os, String arch, String ext, String imageType) {

@@ -63,7 +63,9 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 			try {
 				JdkMetadata jdkMetadata = parseAsset(assetName, asset);
 				if (jdkMetadata != null) {
+					saveMetadataFile(jdkMetadata);
 					metadata.add(jdkMetadata);
+					success(assetName);
 				}
 			} catch (InterruptedProgressException | TooManyFailuresException e) {
 				throw e;
@@ -115,9 +117,6 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(assetName + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		success(assetName);
 
 		return metadata;
 	}

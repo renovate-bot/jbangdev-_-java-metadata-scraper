@@ -116,7 +116,9 @@ public class Oracle extends BaseScraper {
 			try {
 				JdkMetadata jdkMetadata = parseFilename(filename, downloadUrl);
 				if (jdkMetadata != null) {
+					saveMetadataFile(jdkMetadata);
 					metadata.add(jdkMetadata);
+					success(filename);
 				}
 			} catch (InterruptedProgressException | TooManyFailuresException e) {
 				throw e;
@@ -165,9 +167,6 @@ public class Oracle extends BaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		success(filename);
 
 		return metadata;
 	}

@@ -105,7 +105,9 @@ public class TemurinEa extends BaseScraper {
 			try {
 				JdkMetadata metadata = processAsset(filename, downloadUrl, javaVersion);
 				if (metadata != null) {
+					saveMetadataFile(metadata);
 					metadataList.add(metadata);
+					success(filename);
 				}
 			} catch (InterruptedProgressException | TooManyFailuresException e) {
 				throw e;
@@ -170,9 +172,6 @@ public class TemurinEa extends BaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		success(filename);
 
 		return metadata;
 	}

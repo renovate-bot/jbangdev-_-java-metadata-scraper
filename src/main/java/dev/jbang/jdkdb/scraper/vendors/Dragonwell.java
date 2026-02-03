@@ -104,7 +104,9 @@ public class Dragonwell extends BaseScraper {
 			try {
 				JdkMetadata metadata = processAsset(tagName, assetName, downloadUrl);
 				if (metadata != null) {
+					saveMetadataFile(metadata);
 					metadataList.add(metadata);
+					success(assetName);
 				}
 			} catch (InterruptedProgressException | TooManyFailuresException e) {
 				throw e;
@@ -158,9 +160,6 @@ public class Dragonwell extends BaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		success(filename);
 
 		return metadata;
 	}

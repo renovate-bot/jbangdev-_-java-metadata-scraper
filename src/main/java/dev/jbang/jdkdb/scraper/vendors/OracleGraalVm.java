@@ -126,7 +126,9 @@ public class OracleGraalVm extends BaseScraper {
 				try {
 					JdkMetadata jdkMetadata = parseFilename(filename, downloadUrl);
 					if (jdkMetadata != null) {
+						saveMetadataFile(jdkMetadata);
 						metadata.add(jdkMetadata);
+						success(filename);
 					}
 				} catch (Exception e) {
 					fail(filename, e);
@@ -174,9 +176,6 @@ public class OracleGraalVm extends BaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		success(filename);
 
 		return metadata;
 	}

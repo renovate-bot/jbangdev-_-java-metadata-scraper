@@ -76,15 +76,20 @@ public class Temurin extends BaseScraper {
 			JsonNode binaries = asset.get("binaries");
 			if (binaries != null && binaries.isArray()) {
 				for (JsonNode binary : binaries) {
+					String filename =
+							binary.has("package") && binary.get("package").has("name")
+									? binary.get("package").get("name").asText()
+									: "unknown";
 					try {
-						processBinary(binary, version, javaVersion, allMetadata);
+						JdkMetadata metadata = processBinary(binary, version, javaVersion, allMetadata);
+						if (metadata != null) {
+							saveMetadataFile(metadata);
+							allMetadata.add(metadata);
+							success(filename);
+						}
 					} catch (InterruptedProgressException | TooManyFailuresException e) {
 						throw e;
 					} catch (Exception e) {
-						String filename =
-								binary.has("package") && binary.get("package").has("name")
-										? binary.get("package").get("name").asText()
-										: "unknown";
 						fail(filename, e);
 					}
 				}
@@ -92,19 +97,19 @@ public class Temurin extends BaseScraper {
 		}
 	}
 
-	private void processBinary(JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata)
-			throws Exception {
+	private JdkMetadata processBinary(
+			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception {
 
 		String imageType = binary.path("image_type").asText();
 
 		// Only process JDK and JRE
 		if (!imageType.equals("jdk") && !imageType.equals("jre")) {
-			return;
+			return null;
 		}
 
 		JsonNode packageNode = binary.get("package");
 		if (packageNode == null) {
-			return;
+			return null;
 		}
 
 		String filename = packageNode.path("name").asText();
@@ -112,7 +117,7 @@ public class Temurin extends BaseScraper {
 
 		if (metadataExists(filename)) {
 			log("Skipping " + filename + " (already exists)");
-			return;
+			return null;
 		}
 
 		String os = binary.path("os").asText();
@@ -169,9 +174,7 @@ public class Temurin extends BaseScraper {
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
 
-		saveMetadataFile(metadata);
-		allMetadata.add(metadata);
-		success(filename);
+		return metadata;
 	}
 
 	public static class Discovery implements Scraper.Discovery {

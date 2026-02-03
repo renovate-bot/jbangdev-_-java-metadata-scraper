@@ -50,8 +50,10 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 	 * @param version the version string
 	 * @param javaVersion the Java version string
 	 * @param allMetadata list to add processed metadata to
+	 * @return the JdkMetadata object, or null if not processed
+	 * @throws Exception on processing errors
 	 */
-	protected abstract void processBinary(
+	protected abstract JdkMetadata processBinary(
 			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception;
 
 	@Override
@@ -110,15 +112,20 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 			JsonNode binaries = asset.get("binaries");
 			if (binaries != null && binaries.isArray()) {
 				for (JsonNode binary : binaries) {
+					String filename =
+							binary.has("package") && binary.get("package").has("name")
+									? binary.get("package").get("name").asText()
+									: "unknown";
 					try {
-						processBinary(binary, version, javaVersion, allMetadata);
+						JdkMetadata metadata = processBinary(binary, version, javaVersion, allMetadata);
+						if (metadata != null) {
+							saveMetadataFile(metadata);
+							allMetadata.add(metadata);
+							success(filename);
+						}
 					} catch (InterruptedProgressException | TooManyFailuresException e) {
 						throw e;
 					} catch (Exception e) {
-						String filename =
-								binary.has("package") && binary.get("package").has("name")
-										? binary.get("package").get("name").asText()
-										: "unknown";
 						fail(filename, e);
 					}
 				}
@@ -139,7 +146,7 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 	}
 
 	/** Helper to create standard metadata from binary JSON */
-	protected void createStandardMetadata(
+	protected JdkMetadata createStandardMetadata(
 			JsonNode binary,
 			String version,
 			String javaVersion,
@@ -152,12 +159,12 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 		// Only process JDK and JRE
 		if (!imageType.equals("jdk") && !imageType.equals("jre")) {
 			log("Skipping non-JRE, non-JDK image: " + imageType);
-			return;
+			return null;
 		}
 
 		JsonNode packageNode = binary.get("package");
 		if (packageNode == null) {
-			return;
+			return null;
 		}
 
 		String filename = packageNode.path("name").asText();
@@ -165,7 +172,7 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 
 		if (metadataExists(filename)) {
 			log("Skipping " + filename + " (already exists)");
-			return;
+			return null;
 		}
 
 		String os = binary.path("os").asText();
@@ -214,9 +221,6 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 		metadata.setSha512(download.sha512());
 		metadata.setSha512File(filename + ".sha512");
 		metadata.setSize(download.size());
-
-		saveMetadataFile(metadata);
-		allMetadata.add(metadata);
-		success(filename);
+		return metadata;
 	}
 }
