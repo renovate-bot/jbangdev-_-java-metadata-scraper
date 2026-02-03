@@ -119,11 +119,6 @@ public abstract class BaseScraper implements Scraper {
 
 	/** Save all metadata and create combined all.json file */
 	protected void saveMetadata(List<JdkMetadata> metadataList) throws IOException {
-		// Save individual files
-		for (JdkMetadata metadata : metadataList) {
-			saveMetadataFile(metadata);
-		}
-
 		// Create all.json
 		if (!metadataList.isEmpty()) {
 			Path allJsonPath = metadataDir.resolve("all.json");

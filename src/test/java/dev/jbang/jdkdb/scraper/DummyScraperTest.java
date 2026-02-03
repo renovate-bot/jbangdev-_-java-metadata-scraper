@@ -75,8 +75,6 @@ class DummyScraperTest {
 		scraper.call();
 
 		// Then
-		assertThat(metadataDir.resolve("test-jdk-0.json")).exists();
-		assertThat(metadataDir.resolve("test-jdk-1.json")).exists();
 		assertThat(metadataDir.resolve("all.json")).exists();
 
 		// Verify all.json contains all metadata
