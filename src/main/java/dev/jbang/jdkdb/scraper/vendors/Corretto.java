@@ -38,9 +38,6 @@ public class Corretto extends GitHubReleaseScraper {
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
 		String version = release.get("tag_name").asText();
-		if (!shouldProcessTag(version)) {
-			return null;
-		}
 
 		String body = release.get("body").asText("");
 
@@ -54,6 +51,7 @@ public class Corretto extends GitHubReleaseScraper {
 
 			if (metadataExists(filename)) {
 				log("Skipping " + filename + " (already exists)");
+				allMetadata.add(skipped(filename));
 				continue;
 			}
 

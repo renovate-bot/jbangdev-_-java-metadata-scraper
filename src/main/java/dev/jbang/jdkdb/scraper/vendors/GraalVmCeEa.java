@@ -35,41 +35,30 @@ public class GraalVmCeEa extends GitHubReleaseScraper {
 
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
-		// Only process prereleases (EA releases)
+		// Exclude Community releases (which start with "jdk")
+		String tagName = release.get("tag_name").asText();
+		if (tagName.startsWith("jdk")) {
+			return null;
+		}
+
 		boolean isPrerelease = release.path("prerelease").asBoolean(false);
+		// Only process prereleases (EA releases)
 		if (!isPrerelease) {
 			return null;
 		}
 
-		String tagName = release.path("tag_name").asText();
-
-		if (!shouldProcessTag(tagName)) {
-			return List.of();
-		}
-
-		return processReleaseAssets(release, asset -> {
-			String assetName = asset.path("name").asText();
-
-			if (!shouldProcessAsset(assetName)) {
-				return null;
-			}
-
-			return processAsset(tagName, assetName);
-		});
+		return processReleaseAssets(release, this::processAsset);
 	}
 
 	@Override
-	protected boolean shouldProcessTag(String tagName) {
-		// Exclude Community releases (which start with "jdk")
-		return !tagName.startsWith("jdk");
-	}
-
-	@Override
-	protected boolean shouldProcessAsset(String assetName) {
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+		String assetName = asset.get("name").asText();
 		return assetName.startsWith("graalvm-ce") && (assetName.endsWith("tar.gz") || assetName.endsWith("zip"));
 	}
 
-	private JdkMetadata processAsset(String tagName, String assetName) throws Exception {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String tagName = release.get("tag_name").asText();
+		String assetName = asset.get("name").asText();
 
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {

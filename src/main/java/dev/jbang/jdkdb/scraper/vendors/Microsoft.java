@@ -45,6 +45,7 @@ public class Microsoft extends BaseScraper {
 			for (var filename : files) {
 				if (metadataExists(filename)) {
 					log("Skipping " + filename + " (already exists)");
+					allMetadata.add(skipped(filename));
 					continue;
 				}
 

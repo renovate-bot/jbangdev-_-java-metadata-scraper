@@ -32,34 +32,24 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
-		String tagName = release.get("tag_name").asText();
-		boolean isPrerelease = release.get("prerelease").asBoolean();
-
-		if (!shouldProcessTag(tagName)) {
-			return null;
-		}
-
-		return processReleaseAssets(release, asset -> {
-			String assetName = asset.get("name").asText();
-
-			if (!shouldProcessAsset(assetName)) {
-				return null;
-			}
-
-			return processAsset(tagName, assetName, isPrerelease);
-		});
+		return processReleaseAssets(release, this::processAsset);
 	}
 
 	@Override
-	protected boolean shouldProcessAsset(String assetName) {
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
 		// Skip non-matching files
+		String assetName = asset.get("name").asText();
 		return assetName.startsWith("graalvm-svm-") && !assetName.endsWith(".sha256");
 	}
 
-	private JdkMetadata processAsset(String tagName, String filename, boolean isPrerelease) throws Exception {
-		Matcher matcher = FILENAME_PATTERN.matcher(filename);
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String tagName = release.get("tag_name").asText();
+		boolean isPrerelease = release.get("prerelease").asBoolean();
+		String assetName = asset.get("name").asText();
+
+		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {
-			log("Filename doesn't match pattern: " + filename);
+			log("Filename doesn't match pattern: " + assetName);
 			return null;
 		}
 
@@ -69,11 +59,10 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 		String version = matcher.group(4);
 		String ext = matcher.group(5);
 
-		String url = String.format("https://github.com/gluonhq/graal/releases/download/%s/%s", tagName, filename);
+		String url = String.format("https://github.com/gluonhq/graal/releases/download/%s/%s", tagName, assetName);
 
 		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
-
+		DownloadResult download = downloadFile(url, assetName);
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(VENDOR)
@@ -87,7 +76,7 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 				.imageType("jdk")
 				.features(List.of("native-image", "substrate-vm"))
 				.url(url)
-				.download(filename, download)
+				.download(assetName, download)
 				.build();
 	}
 

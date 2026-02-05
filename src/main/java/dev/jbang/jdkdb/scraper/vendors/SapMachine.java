@@ -34,25 +34,13 @@ public class SapMachine extends GitHubReleaseScraper {
 
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
-		String tagName = release.get("tag_name").asText();
-
-		if (!shouldProcessTag(tagName)) {
-			return null;
-		}
-
-		return processReleaseAssets(release, asset -> {
-			String assetName = asset.get("name").asText();
-			String downloadUrl = asset.get("browser_download_url").asText();
-
-			if (!shouldProcessAsset(assetName)) {
-				return null;
-			}
-
-			return processAsset(tagName, assetName, downloadUrl);
-		});
+		return processReleaseAssets(release, this::processAsset);
 	}
 
-	private JdkMetadata processAsset(String tagName, String filename, String url) throws Exception {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String assetName = asset.get("name").asText();
+		String downloadUrl = asset.get("browser_download_url").asText();
+
 		String imageType = null;
 		String version = null;
 		String os = null;
@@ -61,7 +49,7 @@ public class SapMachine extends GitHubReleaseScraper {
 		String ext = null;
 
 		// Try RPM pattern first
-		Matcher rpmMatcher = RPM_PATTERN.matcher(filename);
+		Matcher rpmMatcher = RPM_PATTERN.matcher(assetName);
 		if (rpmMatcher.matches()) {
 			imageType = rpmMatcher.group(1);
 			version = rpmMatcher.group(2);
@@ -70,7 +58,7 @@ public class SapMachine extends GitHubReleaseScraper {
 			ext = "rpm";
 		} else {
 			// Try BIN pattern
-			Matcher binMatcher = BIN_PATTERN.matcher(filename);
+			Matcher binMatcher = BIN_PATTERN.matcher(assetName);
 			if (binMatcher.matches()) {
 				imageType = binMatcher.group(1);
 				version = binMatcher.group(2);
@@ -82,12 +70,12 @@ public class SapMachine extends GitHubReleaseScraper {
 		}
 
 		if (imageType == null) {
-			log("Filename doesn't match pattern: " + filename);
+			log("Filename doesn't match pattern: " + assetName);
 			return null;
 		}
 
 		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
+		DownloadResult download = downloadFile(downloadUrl, assetName);
 
 		// Create metadata using builder
 		return JdkMetadata.builder()
@@ -101,8 +89,8 @@ public class SapMachine extends GitHubReleaseScraper {
 				.fileType(ext)
 				.imageType(imageType)
 				.features(features.isEmpty() ? null : List.of(features.split(",")))
-				.url(url)
-				.download(filename, download)
+				.url(downloadUrl)
+				.download(assetName, download)
 				.build();
 	}
 

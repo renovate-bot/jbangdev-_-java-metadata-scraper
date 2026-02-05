@@ -63,13 +63,13 @@ public class Debian extends BaseScraper {
 	}
 
 	private List<JdkMetadata> scrapeVersionDirectory(String cdnUrl) throws Exception {
-		List<JdkMetadata> metadata = new ArrayList<>();
+		List<JdkMetadata> allMetadata = new ArrayList<>();
 
 		// Download the directory listing
 		String html = httpUtils.downloadString(cdnUrl);
 		if (html.isEmpty()) {
 			log("Empty response from " + cdnUrl);
-			return metadata;
+			return null;
 		}
 
 		// Extract all hrefs from the HTML
@@ -88,11 +88,17 @@ public class Debian extends BaseScraper {
 				continue;
 			}
 
+			if (metadataExists(filename)) {
+				log("Skipping " + filename + " (already exists)");
+				allMetadata.add(skipped(filename));
+				continue;
+			}
+
 			try {
-				JdkMetadata meta = processDebianPackage(filename, cdnUrl);
-				if (meta != null) {
-					saveMetadataFile(meta);
-					metadata.add(meta);
+				JdkMetadata metadata = processDebianPackage(filename, cdnUrl);
+				if (metadata != null) {
+					saveMetadataFile(metadata);
+					allMetadata.add(metadata);
 					success(filename);
 				}
 			} catch (InterruptedProgressException | TooManyFailuresException e) {
@@ -102,15 +108,10 @@ public class Debian extends BaseScraper {
 			}
 		}
 
-		return metadata;
+		return allMetadata;
 	}
 
 	private JdkMetadata processDebianPackage(String filename, String cdnUrl) throws Exception {
-		if (metadataExists(filename)) {
-			log("Skipping " + filename + " (already exists)");
-			return null;
-		}
-
 		Matcher matcher = DEB_PKG_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			fine("Filename doesn't match pattern: " + filename);

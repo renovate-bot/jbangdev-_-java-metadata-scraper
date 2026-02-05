@@ -72,8 +72,19 @@ public class Ibm extends BaseScraper {
 							continue;
 						}
 
+						if (metadataExists(ibmFile)) {
+							log("Skipping " + ibmFile + " (already exists)");
+							allMetadata.add(skipped(ibmFile));
+							continue;
+						}
+
 						try {
-							processFile(ibmFile, jdkVersion, architecture, allMetadata);
+							JdkMetadata metadata = processFile(ibmFile, jdkVersion, architecture, allMetadata);
+							if (metadata != null) {
+								saveMetadataFile(metadata);
+								allMetadata.add(metadata);
+								success(ibmFile);
+							}
 						} catch (InterruptedProgressException | TooManyFailuresException e) {
 							throw e;
 						} catch (Exception e) {
@@ -89,13 +100,8 @@ public class Ibm extends BaseScraper {
 		return allMetadata;
 	}
 
-	private void processFile(String ibmFile, String jdkVersion, String architecture, List<JdkMetadata> allMetadata)
-			throws Exception {
-
-		if (metadataExists(ibmFile)) {
-			log("Skipping " + ibmFile + " (already exists)");
-			return;
-		}
+	private JdkMetadata processFile(
+			String ibmFile, String jdkVersion, String architecture, List<JdkMetadata> allMetadata) throws Exception {
 
 		String imageType = ibmFile.contains("sdk") ? "jdk" : "jre";
 		String url = BASE_URL + jdkVersion + "/linux/" + architecture + "/" + ibmFile;
@@ -104,7 +110,7 @@ public class Ibm extends BaseScraper {
 		DownloadResult download = downloadFile(url, ibmFile);
 
 		// Create metadata using builder
-		JdkMetadata metadata = JdkMetadata.builder()
+		return JdkMetadata.builder()
 				.vendor(VENDOR)
 				.releaseType("ga")
 				.version(jdkVersion)
@@ -117,10 +123,6 @@ public class Ibm extends BaseScraper {
 				.url(url)
 				.download(ibmFile, download)
 				.build();
-
-		saveMetadataFile(metadata);
-		allMetadata.add(metadata);
-		log("Processed " + ibmFile);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

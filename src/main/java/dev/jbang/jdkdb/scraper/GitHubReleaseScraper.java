@@ -25,14 +25,14 @@ public abstract class GitHubReleaseScraper extends BaseScraper {
 	/** Process a single release and extract metadata */
 	protected abstract List<JdkMetadata> processRelease(JsonNode release) throws Exception;
 
-	protected boolean shouldProcessTag(String tagName) {
-		// By default, process all tags
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+		// By default, process all assets
 		return true;
 	}
 
-	protected boolean shouldProcessAsset(String assetName) {
-		// By default, process all assets
-		return true;
+	/** Return metadata filename based on asset name */
+	protected String toMetadataFilename(JsonNode release, JsonNode asset) {
+		return asset.get("name").asText();
 	}
 
 	/**
@@ -48,21 +48,26 @@ public abstract class GitHubReleaseScraper extends BaseScraper {
 
 		JsonNode assets = release.get("assets");
 		if (assets == null || !assets.isArray()) {
-			return metadataList;
+			return null;
 		}
 
 		for (JsonNode asset : assets) {
-			String assetName = asset.get("name").asText();
+			if (!shouldProcessAsset(release, asset)) {
+				continue;
+			}
 
-			if (metadataExists(assetName)) {
+			String assetName = asset.get("name").asText();
+			String metadataFilename = toMetadataFilename(release, asset);
+			if (metadataExists(metadataFilename)) {
 				log("Skipping " + assetName + " (already exists)");
+				metadataList.add(skipped(assetName));
 				continue;
 			}
 
 			try {
-				JdkMetadata metadata = assetProcessor.process(asset);
+				JdkMetadata metadata = assetProcessor.process(release, asset);
 				if (metadata != null) {
-					saveMetadataFile(metadata);
+					saveMetadataFile(metadataFilename, metadata);
 					metadataList.add(metadata);
 					success(assetName);
 				}
@@ -106,7 +111,7 @@ public abstract class GitHubReleaseScraper extends BaseScraper {
 	 */
 	@FunctionalInterface
 	protected interface AssetProcessor {
-		JdkMetadata process(JsonNode asset) throws Exception;
+		JdkMetadata process(JsonNode release, JsonNode asset) throws Exception;
 	}
 
 	@Override

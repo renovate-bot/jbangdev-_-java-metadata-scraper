@@ -48,45 +48,26 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
 		String tagName = release.get("tag_name").asText();
-
-		if (!shouldProcessTag(tagName)) {
+		Matcher versionMatcher = versionPattern.matcher(tagName);
+		if (!versionMatcher.matches()) {
 			return null;
 		}
-
-		// Parse version from tag name
-		Matcher versionMatcher = versionPattern.matcher(tagName);
-		versionMatcher.matches(); // We know this will succeed
 		String parsedJavaVersion = versionMatcher.group(1);
 		String openj9Version = versionMatcher.group(2);
 		String version = parsedJavaVersion + "_openj9-" + openj9Version;
-
-		return processReleaseAssets(release, asset -> {
-			String assetName = asset.get("name").asText();
-			String downloadUrl = asset.get("browser_download_url").asText();
-
-			if (!shouldProcessAsset(assetName)) {
-				return null;
-			}
-
-			return processAsset(assetName, downloadUrl, version, parsedJavaVersion);
-		});
+		return processReleaseAssets(release, (r, asset) -> processAsset(release, asset, version, parsedJavaVersion));
 	}
 
 	@Override
-	protected boolean shouldProcessTag(String tagName) {
-		Matcher versionMatcher = versionPattern.matcher(tagName);
-		if (!versionMatcher.matches()) {
-			return false;
-		}
-		return true;
-	}
-
-	@Override
-	protected boolean shouldProcessAsset(String assetName) {
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+		String assetName = asset.get("name").asText();
 		return assetName.startsWith(getFilenamePrefix());
 	}
 
-	private JdkMetadata processAsset(String filename, String url, String version, String javaVersion) throws Exception {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset, String version, String parsedJavaVersion)
+			throws Exception {
+		String filename = asset.get("name").asText();
+		String url = asset.get("browser_download_url").asText();
 
 		// Parse filename patterns for both open and certified releases
 		Pattern rpmPattern = Pattern.compile(
@@ -131,7 +112,7 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 				.vendor(getVendor())
 				.releaseType("ga")
 				.version(version)
-				.javaVersion(javaVersion)
+				.javaVersion(parsedJavaVersion)
 				.jvmImpl("openj9")
 				.os(normalizeOs(os))
 				.arch(normalizeArch(arch))

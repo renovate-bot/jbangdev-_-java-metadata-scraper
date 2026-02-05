@@ -81,6 +81,13 @@ public class Temurin extends BaseScraper {
 							binary.has("package") && binary.get("package").has("name")
 									? binary.get("package").get("name").asText()
 									: "unknown";
+
+					if (metadataExists(filename)) {
+						log("Skipping " + filename + " (already exists)");
+						allMetadata.add(skipped(filename));
+						continue;
+					}
+
 					try {
 						JdkMetadata metadata = processBinary(binary, version, javaVersion, allMetadata);
 						if (metadata != null) {
@@ -115,11 +122,6 @@ public class Temurin extends BaseScraper {
 
 		String filename = packageNode.path("name").asText();
 		String url = packageNode.path("link").asText();
-
-		if (metadataExists(filename)) {
-			log("Skipping " + filename + " (already exists)");
-			return null;
-		}
 
 		String os = binary.path("os").asText();
 		String arch = binary.path("architecture").asText();

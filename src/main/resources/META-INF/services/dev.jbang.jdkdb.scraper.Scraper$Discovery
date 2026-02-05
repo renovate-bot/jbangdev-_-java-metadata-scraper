@@ -17,7 +17,8 @@ dev.jbang.jdkdb.scraper.vendors.OracleGraalVm$Discovery
 dev.jbang.jdkdb.scraper.vendors.OracleGraalVmEa$Discovery
 dev.jbang.jdkdb.scraper.vendors.Semeru$Discovery
 dev.jbang.jdkdb.scraper.vendors.SemeruCertified$Discovery
-dev.jbang.jdkdb.scraper.vendors.Trava$Discovery
+dev.jbang.jdkdb.scraper.vendors.TravaJdk8$Discovery
+dev.jbang.jdkdb.scraper.vendors.TravaJdk11$Discovery
 dev.jbang.jdkdb.scraper.vendors.AdoptOpenJdk$Discovery
 dev.jbang.jdkdb.scraper.vendors.Bisheng$Discovery
 dev.jbang.jdkdb.scraper.vendors.Redhat$Discovery

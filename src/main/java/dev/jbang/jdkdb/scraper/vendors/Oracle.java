@@ -51,7 +51,7 @@ public class Oracle extends BaseScraper {
 	}
 
 	private List<JdkMetadata> scrapeLatestReleases() throws Exception {
-		List<JdkMetadata> metadata = new ArrayList<>();
+		List<JdkMetadata> allMetadata = new ArrayList<>();
 		String versionsUrl = "https://java.oraclecloud.com/javaVersions";
 
 		log("Fetching Oracle JDK versions from " + versionsUrl);
@@ -81,22 +81,25 @@ public class Oracle extends BaseScraper {
 					String filename = downloadUrl.substring(downloadUrl.lastIndexOf('/') + 1);
 
 					if (metadataExists(filename)) {
+						allMetadata.add(skipped(filename));
 						continue;
 					}
 
 					JdkMetadata jdkMetadata = parseFilename(filename, downloadUrl);
 					if (jdkMetadata != null) {
-						metadata.add(jdkMetadata);
+						saveMetadataFile(jdkMetadata);
+						allMetadata.add(jdkMetadata);
+						success(filename);
 					}
 				}
 			}
 		}
 
-		return metadata;
+		return allMetadata;
 	}
 
 	private List<JdkMetadata> scrapeArchive(int majorVersion) throws Exception {
-		List<JdkMetadata> metadata = new ArrayList<>();
+		List<JdkMetadata> allMetadata = new ArrayList<>();
 		String archiveUrl = String.format(
 				"https://www.oracle.com/java/technologies/javase/jdk%d-archive-downloads.html", majorVersion);
 
@@ -111,6 +114,7 @@ public class Oracle extends BaseScraper {
 			String filename = matcher.group(2);
 
 			if (metadataExists(filename)) {
+				allMetadata.add(skipped(filename));
 				continue;
 			}
 
@@ -118,7 +122,7 @@ public class Oracle extends BaseScraper {
 				JdkMetadata jdkMetadata = parseFilename(filename, downloadUrl);
 				if (jdkMetadata != null) {
 					saveMetadataFile(jdkMetadata);
-					metadata.add(jdkMetadata);
+					allMetadata.add(jdkMetadata);
 					success(filename);
 				}
 			} catch (InterruptedProgressException | TooManyFailuresException e) {
@@ -128,7 +132,7 @@ public class Oracle extends BaseScraper {
 			}
 		}
 
-		return metadata;
+		return allMetadata;
 	}
 
 	private JdkMetadata parseFilename(String filename, String downloadUrl) throws Exception {

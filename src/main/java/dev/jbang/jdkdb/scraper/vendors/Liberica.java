@@ -33,32 +33,13 @@ public class Liberica extends GitHubReleaseScraper {
 
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
-		String tagName = release.get("tag_name").asText();
-		boolean isPrerelease = release.get("prerelease").asBoolean();
-
-		if (!shouldProcessTag(tagName)) {
-			return null;
-		}
-
-		return processReleaseAssets(release, asset -> {
-			String assetName = asset.get("name").asText();
-			String contentType = asset.get("content_type").asText("application/octet-stream");
-
-			if (!shouldProcessAsset(assetName)) {
-				return null;
-			}
-
-			if (contentType.equals("text/plain")) {
-				return null;
-			}
-
-			return processAsset(tagName, assetName, isPrerelease);
-		});
+		return processReleaseAssets(release, this::processAsset);
 	}
 
 	@Override
-	protected boolean shouldProcessAsset(String assetName) {
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
 		// Skip non-binary files
+		String assetName = asset.get("name").asText();
 		if (assetName.endsWith(".txt")
 				|| assetName.endsWith(".bom")
 				|| assetName.endsWith(".json")
@@ -69,10 +50,18 @@ public class Liberica extends GitHubReleaseScraper {
 				|| assetName.contains("-full-nosign")) {
 			return false;
 		}
+		String contentType = asset.get("content_type").asText("application/octet-stream");
+		if (contentType.equals("text/plain")) {
+			return false;
+		}
 		return true;
 	}
 
-	private JdkMetadata processAsset(String tagName, String filename, boolean isPrerelease) throws Exception {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String tagName = release.get("tag_name").asText();
+		boolean isPrerelease = release.get("prerelease").asBoolean();
+		String filename = asset.get("name").asText();
+
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			log("Filename doesn't match pattern: " + filename);

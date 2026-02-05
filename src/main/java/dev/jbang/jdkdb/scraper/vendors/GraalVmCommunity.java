@@ -37,34 +37,24 @@ public class GraalVmCommunity extends GitHubReleaseScraper {
 
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
+		// Only process Community releases (which start with "jdk")
 		String tagName = release.get("tag_name").asText();
-
-		if (!shouldProcessTag(tagName)) {
+		if (!tagName.startsWith("jdk")) {
 			return null;
 		}
-
-		return processReleaseAssets(release, asset -> {
-			String assetName = asset.get("name").asText();
-
-			if (!shouldProcessAsset(assetName)) {
-				return null;
-			}
-
-			return processAsset(tagName, assetName);
-		});
+		return processReleaseAssets(release, this::processAsset);
 	}
 
 	@Override
-	protected boolean shouldProcessTag(String tagName) {
-		return tagName.startsWith("jdk");
-	}
-
-	@Override
-	protected boolean shouldProcessAsset(String assetName) {
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+		String assetName = asset.get("name").asText();
 		return assetName.startsWith("graalvm-community") && (assetName.endsWith("tar.gz") || assetName.endsWith("zip"));
 	}
 
-	protected JdkMetadata processAsset(String tagName, String assetName) throws Exception {
+	protected JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String tagName = release.get("tag_name").asText();
+		String assetName = asset.get("name").asText();
+
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {
 			log("Skipping " + assetName + " (does not match pattern)");

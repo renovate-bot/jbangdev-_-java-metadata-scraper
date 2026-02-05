@@ -41,33 +41,22 @@ public class GraalVmLegacy extends GitHubReleaseScraper {
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
 		String tagName = release.get("tag_name").asText();
-
-		if (!shouldProcessTag(tagName)) {
+		if (!tagName.startsWith("vm-")) {
 			return null;
 		}
-
-		return processReleaseAssets(release, asset -> {
-			String assetName = asset.get("name").asText();
-
-			if (!shouldProcessAsset(assetName)) {
-				return null;
-			}
-
-			return processAsset(tagName, assetName);
-		});
+		return processReleaseAssets(release, this::processAsset);
 	}
 
 	@Override
-	protected boolean shouldProcessTag(String tagName) {
-		return tagName.startsWith("vm-");
-	}
-
-	@Override
-	protected boolean shouldProcessAsset(String assetName) {
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+		String assetName = asset.get("name").asText();
 		return assetName.startsWith("graalvm-ce");
 	}
 
-	protected JdkMetadata processAsset(String tagName, String assetName) throws Exception {
+	protected JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String assetName = asset.get("name").asText();
+		String tagName = release.get("tag_name").asText();
+
 		String releaseType;
 		String os;
 		String arch;

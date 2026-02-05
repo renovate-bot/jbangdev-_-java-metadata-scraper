@@ -36,32 +36,18 @@ public class TemurinEa extends GitHubReleaseScraper {
 
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
-		String tagName = release.get("tag_name").asText();
-
-		if (!shouldProcessTag(tagName)) {
-			return null;
-		}
-
 		// Only process prereleases (EA releases)
 		boolean isPrerelease = release.path("prerelease").asBoolean(false);
 		if (!isPrerelease) {
 			return null;
 		}
 
-		return processReleaseAssets(release, asset -> {
-			String filename = asset.path("name").asText();
-			String downloadUrl = asset.path("browser_download_url").asText();
-
-			if (!shouldProcessAsset(filename)) {
-				return null;
-			}
-
-			return processAsset(filename, downloadUrl);
-		});
+		return processReleaseAssets(release, this::processAsset);
 	}
 
-	protected boolean shouldProcessAsset(String assetName) {
+	protected boolean shouldProcessAsset(JsonNode asset) {
 		// Only process OpenJDK files with known extensions
+		String assetName = asset.get("name").asText();
 		return assetName.startsWith("OpenJDK")
 				&& (assetName.endsWith(".tar.gz")
 						|| assetName.endsWith(".zip")
@@ -69,11 +55,13 @@ public class TemurinEa extends GitHubReleaseScraper {
 						|| assetName.endsWith(".msi"));
 	}
 
-	private JdkMetadata processAsset(String filename, String url) throws Exception {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String assetName = asset.get("name").asText();
+		String downloadUrl = asset.get("browser_download_url").asText();
 
-		Matcher matcher = FILENAME_PATTERN.matcher(filename);
+		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {
-			log("Filename doesn't match pattern: " + filename);
+			log("Filename doesn't match pattern: " + assetName);
 			return null;
 		}
 
@@ -94,7 +82,7 @@ public class TemurinEa extends GitHubReleaseScraper {
 		int javaVersion = Integer.parseInt(versionStr);
 
 		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
+		DownloadResult download = downloadFile(downloadUrl, assetName);
 
 		// Build features list
 		List<String> features = new ArrayList<>();
@@ -114,8 +102,8 @@ public class TemurinEa extends GitHubReleaseScraper {
 				.fileType(ext)
 				.imageType(imageType)
 				.features(features)
-				.url(url)
-				.download(filename, download)
+				.url(downloadUrl)
+				.download(assetName, download)
 				.build();
 	}
 

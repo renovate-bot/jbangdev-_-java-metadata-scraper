@@ -33,30 +33,20 @@ public class Mandrel extends GitHubReleaseScraper {
 
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
-		String tagName = release.get("tag_name").asText();
-
-		if (!shouldProcessTag(tagName)) {
-			return null;
-		}
-
-		return processReleaseAssets(release, asset -> {
-			String assetName = asset.get("name").asText();
-
-			if (!shouldProcessAsset(assetName)) {
-				return null;
-			}
-
-			return processAsset(tagName, assetName);
-		});
+		return processReleaseAssets(release, this::processAsset);
 	}
 
 	@Override
-	protected boolean shouldProcessAsset(String assetName) {
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
 		// Only process mandrel-java files with tar.gz extension
+		String assetName = asset.get("name").asText();
 		return assetName.startsWith("mandrel-java") && assetName.endsWith(".tar.gz");
 	}
 
-	private JdkMetadata processAsset(String tagName, String assetName) throws Exception {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String tagName = release.get("tag_name").asText();
+		String assetName = asset.get("name").asText();
+
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {
 			log("Skipping " + assetName + " (does not match pattern)");

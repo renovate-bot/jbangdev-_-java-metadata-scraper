@@ -46,7 +46,7 @@ public class LibericaNative extends BaseScraper {
 			for (JsonNode release : releases) {
 				JsonNode downloadUrl = release.get("downloadUrl");
 				if (downloadUrl == null || !downloadUrl.isTextual()) {
-					return null;
+					continue;
 				}
 
 				String url = downloadUrl.asText();
@@ -57,8 +57,20 @@ public class LibericaNative extends BaseScraper {
 				String releaseType = apiReleaseType.equalsIgnoreCase("EA") ? "ea" : "ga";
 
 				String filename = url.substring(url.lastIndexOf('/') + 1);
+
+				// Skip if not a native image kit file
+				if (!filename.startsWith("bellsoft-liberica-vm-")) {
+					continue;
+				}
+
+				if (metadataExists(filename)) {
+					log("Skipping " + filename + " (already exists)");
+					allMetadata.add(skipped(filename));
+					continue;
+				}
+
 				try {
-					JdkMetadata metadata = processRelease(url, releaseType);
+					JdkMetadata metadata = processFile(url, releaseType);
 					if (metadata != null) {
 						saveMetadataFile(metadata);
 						allMetadata.add(metadata);
@@ -77,18 +89,8 @@ public class LibericaNative extends BaseScraper {
 		return allMetadata;
 	}
 
-	private JdkMetadata processRelease(String url, String releaseType) throws Exception {
+	private JdkMetadata processFile(String url, String releaseType) throws Exception {
 		String filename = url.substring(url.lastIndexOf('/') + 1);
-
-		// Skip if not a native image kit file
-		if (!filename.startsWith("bellsoft-liberica-vm-")) {
-			return null;
-		}
-
-		if (metadataExists(filename)) {
-			log("Skipping " + filename + " (already exists)");
-			return null;
-		}
 
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {

@@ -47,28 +47,16 @@ public class Kona extends GitHubReleaseScraper {
 
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
-		String tagName = release.get("tag_name").asText();
-
-		if (!shouldProcessTag(tagName)) {
-			return null;
-		}
-
-		return processReleaseAssets(release, asset -> {
-			String assetName = asset.get("name").asText();
-			String downloadUrl = asset.get("browser_download_url").asText();
-
-			if (!shouldProcessAsset(assetName)) {
-				return null;
-			}
-
-			return processAsset(assetName, downloadUrl);
-		});
+		return processReleaseAssets(release, this::processAsset);
 	}
 
-	private JdkMetadata processAsset(String filename, String url) throws Exception {
-		ParsedFilename parsed = parseFilename(filename);
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String assetName = asset.get("name").asText();
+		String downloadUrl = asset.get("browser_download_url").asText();
+
+		ParsedFilename parsed = parseFilename(assetName);
 		if (parsed == null || parsed.version == null) {
-			log("Could not parse filename: " + filename);
+			log("Could not parse filename: " + assetName);
 			return null;
 		}
 
@@ -87,7 +75,7 @@ public class Kona extends GitHubReleaseScraper {
 		String releaseType = parsed.releaseType != null && parsed.releaseType.equals("ea") ? "ea" : "ga";
 
 		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
+		DownloadResult download = downloadFile(downloadUrl, assetName);
 
 		// Create metadata using builder
 		return JdkMetadata.builder()
@@ -101,8 +89,8 @@ public class Kona extends GitHubReleaseScraper {
 				.fileType(parsed.ext)
 				.imageType("jdk")
 				.features(features)
-				.url(url)
-				.download(filename, download)
+				.url(downloadUrl)
+				.download(assetName, download)
 				.build();
 	}
 

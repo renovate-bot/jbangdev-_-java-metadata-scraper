@@ -52,15 +52,17 @@ public class Jetbrains extends GitHubReleaseScraper {
 			String file = matcher.group("file");
 			String url = matcher.group("url");
 
+			if (!shouldProcessAsset(file)) {
+				return null;
+			}
+
 			if (metadataExists(file)) {
 				log("Skipping " + file + " (already exists)");
+				allMetadata.add(skipped(file));
 				continue;
 			}
 
 			try {
-				if (!shouldProcessAsset(file)) {
-					return null;
-				}
 				JdkMetadata metadata = processAsset(file, url, releaseType, description);
 				if (metadata != null) {
 					saveMetadataFile(metadata);

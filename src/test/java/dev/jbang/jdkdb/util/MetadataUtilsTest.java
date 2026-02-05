@@ -125,8 +125,8 @@ class MetadataUtilsTest {
 				.build();
 
 		// Save individual metadata files
-		MetadataUtils.saveMetadataFile(vendorDir, metadata1);
-		MetadataUtils.saveMetadataFile(vendorDir, metadata2);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata1.getFilename() + ".json"), metadata1);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata2.getFilename() + ".json"), metadata2);
 
 		// Verify individual files exist
 		assertThat(vendorDir.resolve("test-jdk-1.json")).exists();
@@ -167,7 +167,7 @@ class MetadataUtilsTest {
 				.download("test-jdk", download)
 				.build();
 
-		MetadataUtils.saveMetadataFile(vendorDir, metadata);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata.getFilename() + ".json"), metadata);
 
 		// Create an old all.json with different content
 		Files.writeString(vendorDir.resolve("all.json"), "[{\"old\": \"data\"}]");

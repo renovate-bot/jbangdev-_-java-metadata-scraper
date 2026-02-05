@@ -102,7 +102,17 @@ public abstract class BaseScraper implements Scraper {
 
 	/** Save individual metadata to file */
 	protected void saveMetadataFile(JdkMetadata metadata) throws IOException {
-		MetadataUtils.saveMetadataFile(metadataDir, metadata);
+		saveMetadataFile(metadata.getFilename(), metadata);
+	}
+
+	/** Save individual metadata to file */
+	protected void saveMetadataFile(String metadataFilename, JdkMetadata metadata) throws IOException {
+		Path metadataFile = metadataDir.resolve(metadataFilename + ".json");
+		MetadataUtils.saveMetadataFile(metadataFile, metadata);
+	}
+
+	protected JdkMetadata skipped(String filename) {
+		return JdkMetadata.builder().filename(filename).build();
 	}
 
 	/** Download a file and compute its hashes */

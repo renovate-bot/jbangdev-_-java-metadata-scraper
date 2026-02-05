@@ -46,34 +46,23 @@ public class Dragonwell extends GitHubReleaseScraper {
 
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
-		String tagName = release.get("tag_name").asText();
-
-		if (!shouldProcessTag(tagName)) {
-			return null;
-		}
-
-		return processReleaseAssets(release, asset -> {
-			String assetName = asset.get("name").asText();
-			String downloadUrl = asset.get("browser_download_url").asText();
-
-			if (!shouldProcessAsset(assetName)) {
-				return null;
-			}
-
-			return processAsset(assetName, downloadUrl);
-		});
+		return processReleaseAssets(release, this::processAsset);
 	}
 
 	@Override
-	protected boolean shouldProcessAsset(String assetName) {
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
 		// Only process tar.gz and zip files
+		String assetName = asset.get("name").asText();
 		return assetName.endsWith(".tar.gz") || assetName.endsWith(".zip");
 	}
 
-	private JdkMetadata processAsset(String filename, String url) throws Exception {
-		ParsedFilename parsed = parseFilename(filename);
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String assetName = asset.get("name").asText();
+		String downloadUrl = asset.get("browser_download_url").asText();
+
+		ParsedFilename parsed = parseFilename(assetName);
 		if (parsed == null || parsed.version == null) {
-			log("Could not parse filename: " + filename);
+			log("Could not parse filename: " + assetName);
 			return null;
 		}
 
@@ -91,12 +80,12 @@ public class Dragonwell extends GitHubReleaseScraper {
 
 		// Handle alpine feature
 		List<String> features = new ArrayList<>();
-		if (filename.contains("_alpine")) {
+		if (assetName.contains("_alpine")) {
 			features.add("musl");
 		}
 
 		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
+		DownloadResult download = downloadFile(downloadUrl, assetName);
 
 		// Create metadata using builder
 		return JdkMetadata.builder()
@@ -110,8 +99,8 @@ public class Dragonwell extends GitHubReleaseScraper {
 				.fileType(parsed.ext)
 				.imageType("jdk")
 				.features(features)
-				.url(url)
-				.download(filename, download)
+				.url(downloadUrl)
+				.download(assetName, download)
 				.build();
 	}
 

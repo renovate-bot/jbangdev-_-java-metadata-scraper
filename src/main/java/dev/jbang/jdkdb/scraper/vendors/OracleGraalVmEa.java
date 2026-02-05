@@ -32,36 +32,25 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 
 	@Override
 	protected List<JdkMetadata> processRelease(JsonNode release) throws Exception {
+		// Only process releases with jdk tag prefix
 		String tagName = release.get("tag_name").asText();
-
-		if (!shouldProcessTag(tagName)) {
+		if (!tagName.startsWith("jdk")) {
 			return null;
 		}
-
-		return processReleaseAssets(release, asset -> {
-			String assetName = asset.get("name").asText();
-
-			if (!shouldProcessAsset(assetName)) {
-				return null;
-			}
-
-			return parseAsset(assetName, asset);
-		});
+		return processReleaseAssets(release, this::parseAsset);
 	}
 
 	@Override
-	protected boolean shouldProcessTag(String tagName) {
-		// Only process releases with jdk tag prefix
-		return tagName.startsWith("jdk");
-	}
-
-	@Override
-	protected boolean shouldProcessAsset(String assetName) {
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
 		// Only process graalvm-jdk files with zip or tar.gz extension
+		String assetName = asset.get("name").asText();
 		return assetName.startsWith("graalvm-jdk") && (assetName.endsWith(".tar.gz") || assetName.endsWith(".zip"));
 	}
 
-	private JdkMetadata parseAsset(String assetName, JsonNode asset) throws Exception {
+	private JdkMetadata parseAsset(JsonNode release, JsonNode asset) throws Exception {
+		String assetName = asset.get("name").asText();
+		String downloadUrl = asset.get("browser_download_url").asText();
+
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {
 			log("Filename does not match pattern: " + assetName);
@@ -73,8 +62,6 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 		String arch = matcher.group(3);
 		String features = matcher.group(4) != null ? matcher.group(4) : "";
 		String extension = assetName.endsWith(".zip") ? "zip" : "tar.gz";
-
-		String downloadUrl = asset.get("browser_download_url").asText();
 
 		// Download and calculate checksums
 		DownloadResult download = downloadFile(downloadUrl, assetName);

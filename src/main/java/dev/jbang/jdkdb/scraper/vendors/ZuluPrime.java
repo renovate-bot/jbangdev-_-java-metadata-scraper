@@ -45,6 +45,7 @@ public class ZuluPrime extends BaseScraper {
 
 				if (metadataExists(filename)) {
 					log("Skipping " + filename + " (already exists)");
+					allMetadata.add(skipped(filename));
 					continue;
 				}
 

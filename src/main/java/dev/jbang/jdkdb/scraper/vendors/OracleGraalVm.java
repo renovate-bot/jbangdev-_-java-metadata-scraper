@@ -47,7 +47,7 @@ public class OracleGraalVm extends BaseScraper {
 	}
 
 	private List<JdkMetadata> scrapeArchive(int majorVersion) throws Exception {
-		List<JdkMetadata> metadata = new ArrayList<>();
+		List<JdkMetadata> allMetadata = new ArrayList<>();
 		String archiveUrl = String.format(
 				"https://www.oracle.com/java/technologies/javase/graalvm-jdk%d-archive-downloads.html", majorVersion);
 
@@ -55,7 +55,7 @@ public class OracleGraalVm extends BaseScraper {
 
 		// First try to get current releases
 		try {
-			metadata.addAll(scrapeCurrentRelease(majorVersion));
+			allMetadata.addAll(scrapeCurrentRelease(majorVersion));
 		} catch (Exception e) {
 			// Current release not found, continue with archive
 		}
@@ -70,13 +70,14 @@ public class OracleGraalVm extends BaseScraper {
 			String filename = matcher.group(2);
 
 			if (metadataExists(filename)) {
+				allMetadata.add(skipped(filename));
 				continue;
 			}
 
 			try {
 				JdkMetadata jdkMetadata = parseFilename(filename, downloadUrl);
 				if (jdkMetadata != null) {
-					metadata.add(jdkMetadata);
+					allMetadata.add(jdkMetadata);
 				}
 			} catch (InterruptedProgressException | TooManyFailuresException e) {
 				throw e;
@@ -85,11 +86,11 @@ public class OracleGraalVm extends BaseScraper {
 			}
 		}
 
-		return metadata;
+		return allMetadata;
 	}
 
 	private List<JdkMetadata> scrapeCurrentRelease(int majorVersion) throws Exception {
-		List<JdkMetadata> metadata = new ArrayList<>();
+		List<JdkMetadata> allMetadata = new ArrayList<>();
 
 		// Try to find current release version from downloads page
 		String downloadsUrl = "https://www.oracle.com/java/technologies/downloads/";
@@ -121,6 +122,7 @@ public class OracleGraalVm extends BaseScraper {
 						String.format("https://download.oracle.com/graalvm/%d/archive/%s", majorVersion, filename);
 
 				if (metadataExists(filename)) {
+					allMetadata.add(skipped(filename));
 					continue;
 				}
 
@@ -128,7 +130,7 @@ public class OracleGraalVm extends BaseScraper {
 					JdkMetadata jdkMetadata = parseFilename(filename, downloadUrl);
 					if (jdkMetadata != null) {
 						saveMetadataFile(jdkMetadata);
-						metadata.add(jdkMetadata);
+						allMetadata.add(jdkMetadata);
 						success(filename);
 					}
 				} catch (Exception e) {
@@ -137,7 +139,7 @@ public class OracleGraalVm extends BaseScraper {
 			}
 		}
 
-		return metadata;
+		return allMetadata;
 	}
 
 	private JdkMetadata parseFilename(String filename, String downloadUrl) throws Exception {

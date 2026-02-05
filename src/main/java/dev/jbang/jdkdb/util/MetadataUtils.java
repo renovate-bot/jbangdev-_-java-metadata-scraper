@@ -23,8 +23,7 @@ public class MetadataUtils {
 	private interface AlphabeticPropertyOrder {}
 
 	/** Save individual metadata to file */
-	public static void saveMetadataFile(Path metadataDir, JdkMetadata metadata) throws IOException {
-		Path metadataFile = metadataDir.resolve(metadata.getFilename() + ".json");
+	public static void saveMetadataFile(Path metadataFile, JdkMetadata metadata) throws IOException {
 		try (var writer = Files.newBufferedWriter(metadataFile)) {
 			ObjectMapper objectMapper = new ObjectMapper().configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
 			objectMapper.writeValue(writer, metadata);
