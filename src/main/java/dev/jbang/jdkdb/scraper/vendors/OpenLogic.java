@@ -7,20 +7,21 @@ import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
 import dev.jbang.jdkdb.scraper.TooManyFailuresException;
-import java.io.StringReader;
+import dev.jbang.jdkdb.util.HtmlUtils;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** Scraper for OpenLogic OpenJDK releases */
 public class OpenLogic extends BaseScraper {
 	private static final String VENDOR = "openlogic";
-	private static final String PROPERTIES_URL =
-			"https://github.com/foojayio/openjdk_releases/raw/main/openlogic.properties";
+	private static final String BASE_URL = "https://www.openlogic.com/openjdk-downloads";
+	private static final String DOWNLOAD_PREFIX = "https://builds.openlogic.com/";
 	private static final Pattern FILENAME_PATTERN = Pattern.compile(
-			"^openlogic-openjdk-(?:(jre|jdk)-)?([0-9]+(?:u[0-9]+)?(?:\\.[0-9.]+)?(?:-[0-9]+)?)-(linux|windows|mac)-(aarch64|x64|x32|arm32)\\.(tar\\.gz|zip|msi|dmg|deb|rpm)$");
+			"^openlogic-openjdk-(?:(jre|jdk)-)?([0-9]+(?:u[0-9]+)?(?:\\.[0-9.]+)?(?:[-+]b?[0-9]+)?)-(linux|windows|mac)-(aarch64|x64|x32|arm32)\\.(tar\\.gz|zip|msi|dmg|deb|rpm)$");
+	private static final Random random = new Random();
 
 	public OpenLogic(ScraperConfig config) {
 		super(config);
@@ -30,36 +31,89 @@ public class OpenLogic extends BaseScraper {
 	protected List<JdkMetadata> scrape() throws Exception {
 		List<JdkMetadata> allMetadata = new ArrayList<>();
 
-		log("Fetching properties from " + PROPERTIES_URL);
-		String propertiesContent = httpUtils.downloadString(PROPERTIES_URL);
-
-		Properties props = new Properties();
-		props.load(new StringReader(propertiesContent));
-
-		log("Found " + props.size() + " entries in properties file");
+		int page = 0;
+		boolean hasMore = true;
 
 		try {
-			for (String key : props.stringPropertyNames()) {
-				String url = props.getProperty(key);
-				String filename = url.substring(url.lastIndexOf('/') + 1);
+			while (hasMore) {
+				String pageUrl = BASE_URL + "?page=" + page;
+				log("Fetching page " + page + " from " + pageUrl);
 
-				if (metadataExists(filename)) {
-					log("Skipping " + filename + " (already exists)");
-					allMetadata.add(skipped(filename));
-					continue;
+				String html = httpUtils.downloadString(pageUrl);
+
+				// Extract all hrefs from the page
+				List<String> hrefs = HtmlUtils.extractHrefs(html);
+
+				// Find download links
+				List<String> downloadLinks = new ArrayList<>();
+				for (String href : hrefs) {
+					if (href.startsWith(DOWNLOAD_PREFIX)) {
+						downloadLinks.add(href);
+					}
 				}
 
-				try {
-					JdkMetadata metadata = processFile(filename, url);
-					if (metadata != null) {
-						saveMetadataFile(metadata);
-						allMetadata.add(metadata);
-						success(filename);
+				// Check stop criteria:
+				// 1. No download links found on this page
+				if (downloadLinks.isEmpty()) {
+					log("No download links found on page " + page + ", stopping");
+					hasMore = false;
+					break;
+				}
+
+				// 2. Check if "last" page link is missing (indicating we're on the last page)
+				boolean hasLastPageLink = false;
+				for (String href : hrefs) {
+					if (href.startsWith("?page=")) {
+						// Check if this anchor tag has "last" in its class
+						// We need to check the HTML more carefully
+						Pattern lastLinkPattern = Pattern.compile(
+								"<a[^>]*class=\"[^\"]*last[^\"]*\"[^>]*href=\"\\?page=[^\"]*\"",
+								Pattern.CASE_INSENSITIVE);
+						if (lastLinkPattern.matcher(html).find()) {
+							hasLastPageLink = true;
+							break;
+						}
 					}
-				} catch (InterruptedProgressException | TooManyFailuresException e) {
-					throw e;
-				} catch (Exception e) {
-					fail(filename, e);
+				}
+
+				log("Found " + downloadLinks.size() + " download links on page " + page);
+
+				// Process download links
+				for (String url : downloadLinks) {
+					String filename = HtmlUtils.extractFilename(url);
+
+					if (metadataExists(filename)) {
+						log("Skipping " + filename + " (already exists)");
+						allMetadata.add(skipped(filename));
+						continue;
+					}
+
+					try {
+						JdkMetadata metadata = processFile(filename, url);
+						if (metadata != null) {
+							saveMetadataFile(metadata);
+							allMetadata.add(metadata);
+							success(filename);
+						}
+					} catch (InterruptedProgressException | TooManyFailuresException e) {
+						throw e;
+					} catch (Exception e) {
+						fail(filename, e);
+					}
+				}
+
+				// If there's no "last" page link, we're on the last page
+				if (!hasLastPageLink) {
+					log("No 'last' page link found, stopping");
+					hasMore = false;
+				} else {
+					page++;
+					// Add random delay between 2-6 seconds before next page
+					if (hasMore) {
+						int delaySeconds = 2 + random.nextInt(5); // 2 to 6 seconds
+						log("Waiting " + delaySeconds + " seconds before fetching next page...");
+						Thread.sleep(delaySeconds * 1000L);
+					}
 				}
 			}
 		} catch (InterruptedProgressException e) {
@@ -125,10 +179,7 @@ public class OpenLogic extends BaseScraper {
 
 		@Override
 		public When when() {
-			// Right now this scraper is not working as expected
-			// It needs to be converted to scraping a website instead
-			// of relying on a Foojay properties file
-			return When.NEVER;
+			return When.ALWAYS;
 		}
 
 		@Override
