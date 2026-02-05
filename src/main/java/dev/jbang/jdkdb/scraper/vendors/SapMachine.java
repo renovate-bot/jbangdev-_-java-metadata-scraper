@@ -16,7 +16,7 @@ public class SapMachine extends GitHubReleaseScraper {
 	private static final Pattern RPM_PATTERN =
 			Pattern.compile("^sapmachine-(jdk|jre)-([0-9].+)\\.(aarch64|ppc64le|x86_64)\\.rpm$");
 	private static final Pattern BIN_PATTERN = Pattern.compile(
-			"^sapmachine-(jdk|jre)-([0-9].+)_(aix|linux|macos|osx|windows)-(x64|aarch64|ppc64|ppc64le|x64)-?(.*)_bin\\.(.+)$");
+			"^sapmachine-(jdk|jre)-([0-9].+)_(aix|linux|macos|osx|windows)-(x64|aarch64|ppc64|ppc64le|x64)-?(.*)_bin\\.(tar\\.gz|zip|msi|dmg)$");
 
 	public SapMachine(ScraperConfig config) {
 		super(config);

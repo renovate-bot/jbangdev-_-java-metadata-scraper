@@ -12,6 +12,11 @@ import java.util.regex.Pattern;
 
 /** Base class for IBM Semeru scrapers (both Open and Certified editions) */
 public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
+	// Parse filename patterns for both open and certified releases
+	protected Pattern rpmPattern = Pattern.compile(
+			"ibm-semeru-(?:open|certified)-[0-9]+-(jre|jdk)-(.+)\\.(x86_64|s390x|ppc64|ppc64le|aarch64)\\.rpm$");
+	protected Pattern tarPattern = Pattern.compile(
+			"ibm-semeru-(?:open|certified)-(jre|jdk)_(x64|x86-32|s390x|ppc64|ppc64le|aarch64)_(aix|linux|mac|windows)_.+_openj9-.+\\.(tar\\.gz|zip|msi)$");
 
 	public SemeruBaseScraper(ScraperConfig config) {
 		super(config);
@@ -68,12 +73,6 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 			throws Exception {
 		String filename = asset.get("name").asText();
 		String url = asset.get("browser_download_url").asText();
-
-		// Parse filename patterns for both open and certified releases
-		Pattern rpmPattern = Pattern.compile(
-				"ibm-semeru-(?:open|certified)-[0-9]+-(jre|jdk)-(.+)\\.(x86_64|s390x|ppc64|ppc64le|aarch64)\\.rpm$");
-		Pattern tarPattern = Pattern.compile(
-				"ibm-semeru-(?:open|certified)-(jre|jdk)_(x64|x86-32|s390x|ppc64|ppc64le|aarch64)_(aix|linux|mac|windows)_.+_openj9-.+\\.(tar\\.gz|zip|msi)$");
 
 		String imageType = null;
 		String arch = null;

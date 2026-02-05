@@ -19,7 +19,7 @@ public class Ibm extends BaseScraper {
 
 	private static final Pattern VERSION_PATTERN = Pattern.compile("<a href=\"([8]\\.[01]\\.[0-9]+\\.[0-9]+)/\">");
 	private static final Pattern ARCH_PATTERN = Pattern.compile("<a href=\"([a-z0-9_]+)/\">");
-	private static final Pattern FILE_PATTERN = Pattern.compile("<a href=\"(.*\\.tgz)\">");
+	private static final Pattern FILE_PATTERN = Pattern.compile("<a href=\"(.*\\.(tgz|rpm))\">");
 
 	public Ibm(ScraperConfig config) {
 		super(config);
@@ -103,6 +103,15 @@ public class Ibm extends BaseScraper {
 	private JdkMetadata processFile(
 			String ibmFile, String jdkVersion, String architecture, List<JdkMetadata> allMetadata) throws Exception {
 
+		String fileType;
+		if (ibmFile.endsWith(".tgz")) {
+			fileType = "tar.gz";
+		} else if (ibmFile.endsWith(".rpm")) {
+			fileType = "rpm";
+		} else {
+			return null;
+		}
+
 		String imageType = ibmFile.contains("sdk") ? "jdk" : "jre";
 		String url = BASE_URL + jdkVersion + "/linux/" + architecture + "/" + ibmFile;
 
@@ -118,7 +127,7 @@ public class Ibm extends BaseScraper {
 				.jvmImpl("openj9")
 				.os("linux")
 				.arch(normalizeArch(architecture))
-				.fileType("tgz")
+				.fileType(fileType)
 				.imageType(imageType)
 				.url(url)
 				.download(ibmFile, download)

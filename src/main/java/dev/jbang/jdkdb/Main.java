@@ -164,10 +164,11 @@ public class Main implements Callable<Integer> {
 				}
 
 				// Wait for all scrapers to complete and collect results
-				var results = new ArrayList<ScraperResult>();
-				for (var future : futures) {
+				var results = new HashMap<String, ScraperResult>();
+				var scraperNames = new ArrayList<>(scrapers.keySet());
+				for (int i = 0; i < futures.size(); i++) {
 					try {
-						results.add(future.get());
+						results.put(scraperNames.get(i), futures.get(i).get());
 					} catch (ExecutionException e) {
 						System.err.println(
 								"Scraper execution failed: " + e.getCause().getMessage());
@@ -175,6 +176,17 @@ public class Main implements Callable<Integer> {
 						Thread.currentThread().interrupt();
 						System.err.println("Scraper execution interrupted");
 					}
+				}
+
+				// Generate all.json files for affected vendor directories only
+				System.out.println();
+				System.out.println("Generating all.json files for affected vendor directories...");
+				try {
+					generateAllJsonFiles(metadataDir, affectedVendors);
+					System.out.println("Successfully generated all.json files");
+				} catch (Exception e) {
+					System.err.println("Failed to generate all.json files: " + e.getMessage());
+					e.printStackTrace();
 				}
 
 				// Allow time for async logging to flush before printing summary
@@ -192,12 +204,14 @@ public class Main implements Callable<Integer> {
 				var successful = 0;
 				var failed = 0;
 				var totalItems = 0;
+				var totalSkipped = 0;
 
-				for (var result : results) {
+				for (var result : results.values()) {
 					System.out.println(result);
 					if (result.success()) {
 						successful++;
 						totalItems += result.itemsProcessed();
+						totalSkipped += result.itemsSkipped();
 					} else {
 						failed++;
 					}
@@ -208,22 +222,29 @@ public class Main implements Callable<Integer> {
 				System.out.println("Successful: " + successful);
 				System.out.println("Failed: " + failed);
 				System.out.println("Total items processed: " + totalItems);
+				System.out.println("Total items skipped: " + totalSkipped);
 
+				// Per-scraper breakdown
+				System.out.println();
+				System.out.println("Per-Scraper Breakdown");
+				System.out.println("=====================");
+				for (var entry : results.entrySet()) {
+					var scraperName = entry.getKey();
+					var result = entry.getValue();
+					System.out.printf("  %s:%n", scraperName);
+					System.out.printf("    Status: %s%n", result.success() ? "SUCCESS" : "FAILED");
+					System.out.printf("    Processed: %d%n", result.itemsProcessed());
+					System.out.printf("    Skipped: %d%n", result.itemsSkipped());
+					if (!result.success()) {
+						System.out.printf(
+								"    Error: %s%n",
+								result.error() != null ? result.error().getMessage() : "Unknown error");
+					}
+				}
 				var endTime = System.currentTimeMillis();
 				var duration = (endTime - startTime) / 1000.0;
 				System.out.println();
 				System.out.println("All scrapers completed in " + duration + " seconds");
-
-				// Generate all.json files for affected vendor directories only
-				System.out.println();
-				System.out.println("Generating all.json files for affected vendor directories...");
-				try {
-					generateAllJsonFiles(metadataDir, affectedVendors);
-					System.out.println("Successfully generated all.json files");
-				} catch (Exception e) {
-					System.err.println("Failed to generate all.json files: " + e.getMessage());
-					e.printStackTrace();
-				}
 
 				return failed > 0 ? 1 : 0;
 			}
