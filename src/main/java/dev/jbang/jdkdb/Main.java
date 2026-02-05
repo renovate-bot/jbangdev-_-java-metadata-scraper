@@ -294,6 +294,11 @@ public class Main implements Callable<Integer> {
 	private boolean shouldRunScraper(Scraper.Discovery discovery, Path metadataDir) {
 		Scraper.When when = discovery.when();
 
+		// NEVER scrapers should never run
+		if (when == Scraper.When.NEVER) {
+			return false;
+		}
+
 		// ALWAYS scrapers should always run
 		if (when == Scraper.When.ALWAYS) {
 			return true;
@@ -309,8 +314,8 @@ public class Main implements Callable<Integer> {
 			return true;
 		}
 
-		// NEVER scrapers should never run (if their all.json exists at least)
-		if (when == Scraper.When.NEVER) {
+		// IF_MISSING scrapers should only run if their all.json does not exist
+		if (when == Scraper.When.IF_MISSING) {
 			return false;
 		}
 

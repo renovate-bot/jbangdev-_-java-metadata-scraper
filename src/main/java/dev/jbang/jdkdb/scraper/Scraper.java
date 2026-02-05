@@ -13,6 +13,7 @@ public interface Scraper extends Callable<ScraperResult> {
 		ONCE_A_DAY,
 		ONCE_A_WEEK,
 		ONCE_A_MONTH,
+		IF_MISSING,
 		NEVER
 	}
 

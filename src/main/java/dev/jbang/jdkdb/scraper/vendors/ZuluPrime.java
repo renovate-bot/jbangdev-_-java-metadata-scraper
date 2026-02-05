@@ -135,6 +135,14 @@ public class ZuluPrime extends BaseScraper {
 		}
 
 		@Override
+		public When when() {
+			// Right now this scraper is not working as expected
+			// It needs to be converted to using an API or scraping
+			// a website insteado f relying on Foojay properties
+			return When.NEVER;
+		}
+
+		@Override
 		public Scraper create(ScraperConfig config) {
 			return new ZuluPrime(config);
 		}

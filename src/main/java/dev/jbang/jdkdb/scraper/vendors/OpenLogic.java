@@ -124,6 +124,14 @@ public class OpenLogic extends BaseScraper {
 		}
 
 		@Override
+		public When when() {
+			// Right now this scraper is not working as expected
+			// It needs to be converted to scraping a website instead
+			// of relying on a Foojay properties file
+			return When.NEVER;
+		}
+
+		@Override
 		public Scraper create(ScraperConfig config) {
 			return new OpenLogic(config);
 		}

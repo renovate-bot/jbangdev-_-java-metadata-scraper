@@ -71,7 +71,7 @@ public class TravaJdk11 extends TravaBaseScraper {
 		@Override
 		public When when() {
 			// Trava is no longer maintained, last release was in 2023
-			return When.NEVER;
+			return When.IF_MISSING;
 		}
 
 		@Override
