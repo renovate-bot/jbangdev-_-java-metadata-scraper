@@ -63,7 +63,7 @@ public abstract class BaseScraper implements Scraper {
 					}
 				}
 			}
-			log("Completed successfully. Processed " + processed + " items, skipped " + skipped + " items");
+			log("Completed successfully. Processed " + processed + " items, skipped " + skipped + " existing items");
 
 			return ScraperResult.success(processed, skipped);
 		} catch (Exception e) {
