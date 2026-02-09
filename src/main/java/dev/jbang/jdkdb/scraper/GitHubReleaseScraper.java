@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -48,7 +49,7 @@ public abstract class GitHubReleaseScraper extends BaseScraper {
 
 		JsonNode assets = release.get("assets");
 		if (assets == null || !assets.isArray()) {
-			return null;
+			return Collections.emptyList();
 		}
 
 		for (JsonNode asset : assets) {

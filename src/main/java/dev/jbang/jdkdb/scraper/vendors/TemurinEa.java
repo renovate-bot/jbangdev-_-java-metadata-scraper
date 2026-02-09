@@ -7,6 +7,7 @@ import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,7 +40,7 @@ public class TemurinEa extends GitHubReleaseScraper {
 		// Only process prereleases (EA releases)
 		boolean isPrerelease = release.path("prerelease").asBoolean(false);
 		if (!isPrerelease) {
-			return null;
+			return Collections.emptyList();
 		}
 
 		return processReleaseAssets(release, this::processAsset);

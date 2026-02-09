@@ -6,6 +6,7 @@ import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -55,7 +56,7 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 		String tagName = release.get("tag_name").asText();
 		Matcher versionMatcher = versionPattern.matcher(tagName);
 		if (!versionMatcher.matches()) {
-			return null;
+			return Collections.emptyList();
 		}
 		String parsedJavaVersion = versionMatcher.group(1);
 		String openj9Version = versionMatcher.group(2);

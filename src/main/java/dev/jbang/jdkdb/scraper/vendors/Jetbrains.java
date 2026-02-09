@@ -53,7 +53,7 @@ public class Jetbrains extends GitHubReleaseScraper {
 			String url = matcher.group("url");
 
 			if (!shouldProcessAsset(file)) {
-				return null;
+				continue;
 			}
 
 			if (metadataExists(file)) {
