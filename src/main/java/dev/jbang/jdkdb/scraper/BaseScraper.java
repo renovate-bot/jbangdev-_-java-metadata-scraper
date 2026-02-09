@@ -194,7 +194,7 @@ public abstract class BaseScraper implements Scraper {
 		return switch (lower) {
 			case String s when s.matches("amd64|x64|x86_64|x86-64") -> "x86_64";
 			case String s when s.matches("x32|x86|x86_32|x86-32|i386|i586|i686") -> "i686";
-			case String s when s.matches("aarch64|arm64") -> "aarch64";
+			case String s when s.matches("aarch64|arm64|m\\d") -> "aarch64";
 			case String s when s.matches("arm|arm32|armv7|aarch32sf") -> "arm32";
 			case String s when s.matches("arm32-vfp-hflt|aarch32hf") -> "arm32-vfp-hflt";
 			case "ppc" -> "ppc32";

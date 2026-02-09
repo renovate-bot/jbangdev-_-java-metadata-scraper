@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 public class GluonGraalVm extends GitHubReleaseScraper {
 	private static final String VENDOR = "gluon-graalvm";
 	private static final Pattern FILENAME_PATTERN = Pattern.compile(
-			"^graalvm-svm-java([0-9]+)-(linux|darwin|windows)-(aarch64|x86_64|amd64)-([0-9.]+(?:-dev)?)\\.(zip|tar\\.gz)$");
+			"^graalvm-svm(?:-java([0-9]+))?-(linux|darwin|windows)(?:-(aarch64|x86_64|amd64|m\\d))?-gluon-([0-9.+]+(?:-dev|-[Ff]inal)?)\\.(zip|tar\\.gz)$");
 
 	public GluonGraalVm(ScraperConfig config) {
 		super(config);
@@ -58,6 +58,13 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 		String arch = matcher.group(3);
 		String version = matcher.group(4);
 		String ext = matcher.group(5);
+
+		if (javaVersion == null) {
+			javaVersion = "11";
+		}
+		if (arch == null) {
+			arch = "x86_64";
+		}
 
 		String url = String.format("https://github.com/gluonhq/graal/releases/download/%s/%s", tagName, assetName);
 
