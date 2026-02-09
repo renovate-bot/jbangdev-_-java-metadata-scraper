@@ -32,7 +32,7 @@ public class Redhat extends AdoptiumMarketplaceScraper {
 
 	@Override
 	protected String getAssetsPathTemplate() {
-		return "/assets/feature_releases/redhat/%d";
+		return "/assets/feature_releases/redhat/%d?";
 	}
 
 	@Override

@@ -32,7 +32,7 @@ public class Bisheng extends AdoptiumMarketplaceScraper {
 
 	@Override
 	protected String getAssetsPathTemplate() {
-		return "/assets/feature_releases/huawei/%d";
+		return "/assets/feature_releases/huawei/%d?";
 	}
 
 	@Override

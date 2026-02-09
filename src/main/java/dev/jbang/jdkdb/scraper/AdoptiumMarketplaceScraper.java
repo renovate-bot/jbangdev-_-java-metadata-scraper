@@ -64,8 +64,9 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 		// Get list of available releases
 		String releasesJson;
 		try {
-			log("Fetching available releases");
-			releasesJson = httpUtils.downloadString(getApiBase() + getAvailableReleasesPath());
+			String url = getApiBase() + getAvailableReleasesPath();
+			log("Fetching available releases: " + url);
+			releasesJson = httpUtils.downloadString(url);
 		} catch (Exception e) {
 			fail("Could not download list of available releases", e);
 			throw e;
@@ -90,7 +91,7 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 
 				while (hasMore) {
 					String assetsUrl = String.format(
-							"%s%s?page=%d&page_size=20&sort_order=ASC",
+							"%s%s&page=%d&page_size=20&sort_order=ASC",
 							getApiBase(), String.format(getAssetsPathTemplate(), release), page);
 
 					JsonNode assets;
@@ -98,13 +99,22 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 						String assetsJson = httpUtils.downloadString(assetsUrl);
 						assets = readJson(assetsJson);
 					} catch (Exception e) {
-						fail("Could not download list of assets", e);
-						continue;
+						if (page == 0) {
+							fail("Could not download list of assets for release " + release, e);
+						} else {
+							log("Could not download page " + page + " of assets for release " + release
+									+ ", assuming no more pages (" + e.getMessage() + ")");
+						}
+						break;
 					}
 
 					if (assets.isArray() && assets.size() > 0) {
 						processAssets(assets, allMetadata);
 						page++;
+						if (page >= 25) { // Safety limit to prevent infinite pagination
+							log("Reached page limit for release " + release + ", moving to next release");
+							break;
+						}
 					} else {
 						hasMore = false;
 					}

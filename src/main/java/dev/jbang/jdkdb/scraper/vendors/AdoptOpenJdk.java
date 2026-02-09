@@ -33,7 +33,7 @@ public class AdoptOpenJdk extends AdoptiumMarketplaceScraper {
 
 	@Override
 	protected String getAssetsPathTemplate() {
-		return "/assets/feature_releases/%d/ga&project=jdk&vendor=adoptopenjdk";
+		return "/assets/feature_releases/%d/ga?project=jdk&vendor=adoptopenjdk";
 	}
 
 	@Override
