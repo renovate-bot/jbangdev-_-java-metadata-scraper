@@ -16,9 +16,7 @@ import java.util.regex.Pattern;
 /** Scraper for BellSoft Liberica Native Image Kit releases */
 public class LibericaNative extends BaseScraper {
 	private static final String VENDOR = "liberica-native";
-	private static final String API_BASE_URL = "https://api.bell-sw.com/v1/liberica/releases";
-	private static final Pattern FILENAME_PATTERN = Pattern.compile(
-			"^bellsoft-liberica-vm-(?:openjdk|core)([0-9]+(?:u[0-9]+)?(?:\\.[0-9]+)?)-([0-9.]+(?:-[0-9]+)?)-(?:(glibc|musl)-)?(linux|windows|macos)-(amd64|aarch64|arm32-vfp-hflt)\\.(tar\\.gz|zip)$");
+	private static final String API_BASE_URL = "https://api.bell-sw.com/v1/nik/releases";
 
 	public LibericaNative(ScraperConfig config) {
 		super(config);
@@ -29,45 +27,32 @@ public class LibericaNative extends BaseScraper {
 		List<JdkMetadata> allMetadata = new ArrayList<>();
 
 		// Query Liberica API for native image releases
-		String apiUrl = API_BASE_URL + "?bundle-type=nik&release-type=all&page-size=1000";
+		String apiUrl = API_BASE_URL + "?bundle-type=full&components=liberica&components=nik";
 
-		JsonNode releases;
+		JsonNode assets;
 		try {
-			log("Fetching releases from " + apiUrl);
+			log("Fetching assets from " + apiUrl);
 			String json = httpUtils.downloadString(apiUrl);
-			releases = readJson(json);
+			assets = readJson(json);
 		} catch (Exception e) {
-			fail("Failed to fetch releases from API", e);
+			fail("Failed to fetch assets from API", e);
 			throw e;
 		}
 
-		if (!releases.isArray()) {
-			log("No releases found");
+		if (!assets.isArray()) {
+			log("No assets found");
 			return allMetadata;
 		}
 
-		log("Found " + releases.size() + " potential releases");
-
+		log("Found " + assets.size() + " assets");
 		try {
-			for (JsonNode release : releases) {
-				JsonNode downloadUrl = release.get("downloadUrl");
-				if (downloadUrl == null || !downloadUrl.isTextual()) {
+			for (JsonNode asset : assets) {
+				JsonNode filenameNode = asset.get("filename");
+				if (filenameNode == null || !filenameNode.isTextual()) {
+					log("Skipping asset with missing or invalid filename");
 					continue;
 				}
-
-				String url = downloadUrl.asText();
-
-				// Get additional info from API response
-				JsonNode releaseTypeNode = release.get("releaseType");
-				String apiReleaseType = releaseTypeNode != null ? releaseTypeNode.asText() : "GA";
-				String releaseType = apiReleaseType.equalsIgnoreCase("EA") ? "ea" : "ga";
-
-				String filename = url.substring(url.lastIndexOf('/') + 1);
-
-				// Skip if not a native image kit file
-				if (!filename.startsWith("bellsoft-liberica-vm-")) {
-					continue;
-				}
+				String filename = filenameNode.asText();
 
 				if (metadataExists(filename)) {
 					allMetadata.add(skipped(filename));
@@ -76,7 +61,7 @@ public class LibericaNative extends BaseScraper {
 				}
 
 				try {
-					JdkMetadata metadata = processFile(url, releaseType);
+					JdkMetadata metadata = processAsset(asset, filename);
 					if (metadata != null) {
 						saveMetadataFile(metadata);
 						allMetadata.add(metadata);
@@ -95,21 +80,84 @@ public class LibericaNative extends BaseScraper {
 		return allMetadata;
 	}
 
-	private JdkMetadata processFile(String url, String releaseType) throws Exception {
-		String filename = url.substring(url.lastIndexOf('/') + 1);
-
-		Matcher matcher = FILENAME_PATTERN.matcher(filename);
-		if (!matcher.matches()) {
-			log("Filename doesn't match pattern: " + filename);
+	private JdkMetadata processAsset(JsonNode asset, String filename) throws Exception {
+		JsonNode downloadUrlNode = asset.get("downloadUrl");
+		if (downloadUrlNode == null
+				|| !downloadUrlNode.isTextual()
+				|| downloadUrlNode.asText().isEmpty()) {
+			log("Skipping asset with missing or invalid downloadUrl");
 			return null;
 		}
+		String downloadUrl = downloadUrlNode.asText();
 
-		String javaVersion = matcher.group(1);
-		String version = matcher.group(2);
-		String libcType = matcher.group(3); // null, "glibc", or "musl"
-		String os = matcher.group(4);
-		String arch = matcher.group(5);
-		String ext = matcher.group(6);
+		// Determine release type (GA vs EA) based on "GA" field (default to GA if missing)
+		JsonNode gaNode = asset.get("GA");
+		String isGa = gaNode != null ? gaNode.asText() : "true";
+		String releaseType = isGa.equalsIgnoreCase("true") ? "ga" : "ea";
+
+		// Extract version from "version" field
+		JsonNode versionNode = asset.get("version");
+		if (versionNode == null
+				|| !versionNode.isTextual()
+				|| versionNode.asText().isEmpty()) {
+			log("Skipping asset with missing or invalid version");
+			return null;
+		}
+		String version = versionNode.asText();
+
+		// Extract Java version from "components" node
+		JsonNode componentsNode = asset.get("components");
+		if (componentsNode == null || !componentsNode.isArray() || componentsNode.size() == 0) {
+			log("Skipping asset with missing or invalid 'components' object");
+			return null;
+		}
+		JsonNode compNode = componentsNode.get(0);
+		JsonNode javaVersionNode = compNode.get("version");
+		if (javaVersionNode == null
+				|| !javaVersionNode.isTextual()
+				|| javaVersionNode.asText().isEmpty()) {
+			log("Skipping asset with missing or invalid javaVersion");
+			return null;
+		}
+		String javaVersion = javaVersionNode.asText();
+
+		// Determine OS and possibly glibc type from "os" field
+		JsonNode osNode = asset.get("os");
+		String os = osNode != null ? osNode.asText() : "unknown";
+		String libcType = null;
+		if (os.endsWith("-musl")) {
+			os = os.replace("-musl", "");
+			libcType = "musl";
+		}
+
+		// Determine architecture from "architecture" field
+		JsonNode archNode = asset.get("architecture");
+		String arch = archNode != null ? archNode.asText() : "unknown";
+
+		// Determine file extension from package type (default to .tar.gz)
+		String ext = "";
+		JsonNode pkgTypeNode = asset.get("packageType");
+		if (pkgTypeNode != null
+				&& pkgTypeNode.isTextual()
+				&& !pkgTypeNode.asText().isEmpty()) {
+			ext = pkgTypeNode.asText();
+		} else {
+			// extension not provided, try to infer from filename
+			Pattern extPattern = Pattern.compile("\\.(tar\\.gz|zip|msi|rpm|deb|apk)$");
+			Matcher matcher = extPattern.matcher(filename);
+			if (matcher.find()) {
+				ext = matcher.group(1);
+			}
+		}
+
+		if (ext.isEmpty()) {
+			log("Skipping asset with unknown file extension");
+			return null;
+		}
+		if (ext.equals("src.tar.gz")) {
+			log("Skipping source asset");
+			return null;
+		}
 
 		// Build features list
 		List<String> features = new ArrayList<>();
@@ -119,7 +167,7 @@ public class LibericaNative extends BaseScraper {
 		}
 
 		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
+		DownloadResult download = downloadFile(downloadUrl, filename);
 
 		// Create metadata using builder
 		return JdkMetadata.builder()
@@ -133,7 +181,7 @@ public class LibericaNative extends BaseScraper {
 				.fileType(ext)
 				.imageType("jdk")
 				.features(features)
-				.url(url)
+				.url(downloadUrl)
 				.download(filename, download)
 				.build();
 	}
