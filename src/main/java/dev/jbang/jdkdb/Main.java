@@ -26,7 +26,7 @@ import picocli.CommandLine.Option;
 
 /** Main application class with CLI support */
 @Command(
-		name = "java-metadata-scraper",
+		name = "jdkdb-scraper",
 		version = "1.0.0",
 		description = "Scrapes JDK metadata from various vendors",
 		mixinStandardHelpOptions = true)

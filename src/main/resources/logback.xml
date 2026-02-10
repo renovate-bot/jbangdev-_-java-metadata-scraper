@@ -9,9 +9,9 @@
 
     <!-- File appender -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/java-metadata-scraper.log</file>
+        <file>logs/jdkdb-scraper.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/java-metadata-scraper.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/jdkdb-scraper.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>7</maxHistory>
         </rollingPolicy>
         <encoder>
