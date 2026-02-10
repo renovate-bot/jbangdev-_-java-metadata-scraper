@@ -77,18 +77,22 @@ public class Jetbrains extends GitHubReleaseScraper {
 
 	protected boolean shouldProcessAsset(String assetName) {
 		// Only process files ending in tar.gz, zip, or pkg
-		return assetName.matches(".+\\.(tar\\.gz|zip|pkg)$");
+		if (!assetName.matches(".+\\.(tar\\.gz|zip|pkg)$")) {
+			fine("Skipping " + assetName + " (unsupported file type)");
+			return false;
+		}
+		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
+		if (!matcher.matches()) {
+			warn("Skipping " + assetName + " (does not match pattern)");
+			return false;
+		}
+		return true;
 	}
 
 	private JdkMetadata processAsset(String assetName, String url, String releaseType, String description)
 			throws Exception {
-
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
-		if (!matcher.matches()) {
-			warn("Skipping " + assetName + " (does not match pattern)");
-			return null;
-		}
-
+		matcher.matches();
 		String sdkMarker = matcher.group(1);
 		String versionPart = matcher.group(2).replace("_", ".");
 		String os = matcher.group(3);

@@ -84,9 +84,7 @@ public class Debian extends BaseScraper {
 
 		for (String href : hrefs) {
 			String filename = HtmlUtils.extractFilename(href);
-
-			// Only process hrefs that looks okay
-			if (!filename.startsWith("openjdk") || !filename.endsWith(".deb")) {
+			if (!shouldProcessAsset(filename)) {
 				continue;
 			}
 
@@ -113,7 +111,7 @@ public class Debian extends BaseScraper {
 		return allMetadata;
 	}
 
-	private JdkMetadata processDebianPackage(String filename, String cdnUrl) throws Exception {
+	protected boolean shouldProcessAsset(String filename) {
 		Matcher matcher = DEB_PKG_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			if (!filename.contains("-dbg_")
@@ -123,10 +121,15 @@ public class Debian extends BaseScraper {
 					&& !filename.contains("-testsupport_")) {
 				warn("Skipping " + filename + " (does not match pattern)");
 			}
-			return null;
+			return false;
 		}
+		return true;
+	}
 
+	private JdkMetadata processDebianPackage(String filename, String cdnUrl) throws Exception {
 		// Extract information from the filename
+		Matcher matcher = DEB_PKG_PATTERN.matcher(filename);
+		matcher.matches();
 		String imageType = matcher.group(1); // jre or jdk
 		String pkgfeat = matcher.group(2); // headless or zero (if present)
 		String version = matcher.group(3); // Java version string

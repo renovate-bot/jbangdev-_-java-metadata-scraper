@@ -40,7 +40,15 @@ public abstract class TravaBaseScraper extends GitHubReleaseScraper {
 			return false;
 		}
 		String contentType = asset.path("content_type").asText("");
-		return contentType.startsWith("application");
+		if (!contentType.startsWith("application")) {
+			return false;
+		}
+		Matcher matcher = getFilenamePattern().matcher(assetName);
+		if (!matcher.matches()) {
+			warn("Skipping " + assetName + " (does not match pattern)");
+			return false;
+		}
+		return true;
 	}
 
 	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
@@ -49,11 +57,6 @@ public abstract class TravaBaseScraper extends GitHubReleaseScraper {
 		String assetName = asset.get("name").asText();
 
 		Matcher filenameMatcher = getFilenamePattern().matcher(assetName);
-		if (!filenameMatcher.matches()) {
-			warn("Skipping " + assetName + " (does not match pattern)");
-			return null;
-		}
-
 		String os = filenameMatcher.group(1);
 		String arch = extractArch(filenameMatcher);
 		String ext = extractExtension(filenameMatcher);

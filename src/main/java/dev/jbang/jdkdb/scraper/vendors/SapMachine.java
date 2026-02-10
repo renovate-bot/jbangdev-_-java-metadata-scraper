@@ -37,6 +37,22 @@ public class SapMachine extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
+	@Override
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+		String assetName = asset.get("name").asText();
+		// Try RPM pattern first
+		Matcher rpmMatcher = RPM_PATTERN.matcher(assetName);
+		if (!rpmMatcher.matches()) {
+			// Try BIN pattern
+			Matcher binMatcher = BIN_PATTERN.matcher(assetName);
+			if (!binMatcher.matches()) {
+				warn("Skipping " + assetName + " (does not match pattern)");
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
 		String assetName = asset.get("name").asText();
 		String downloadUrl = asset.get("browser_download_url").asText();
@@ -67,11 +83,6 @@ public class SapMachine extends GitHubReleaseScraper {
 				features = binMatcher.group(5) != null ? binMatcher.group(5) : "";
 				ext = binMatcher.group(6);
 			}
-		}
-
-		if (imageType == null) {
-			warn("Skipping " + assetName + " (does not match pattern)");
-			return null;
 		}
 
 		// Download and compute hashes

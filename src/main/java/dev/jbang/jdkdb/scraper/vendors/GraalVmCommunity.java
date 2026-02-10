@@ -48,7 +48,17 @@ public class GraalVmCommunity extends GitHubReleaseScraper {
 	@Override
 	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
 		String assetName = asset.get("name").asText();
-		return assetName.startsWith("graalvm-community") && (assetName.endsWith("tar.gz") || assetName.endsWith("zip"));
+		if (!assetName.startsWith("graalvm-community")
+				|| !(assetName.endsWith("tar.gz") || assetName.endsWith("zip"))) {
+			fine("Skipping " + assetName + " (non-GraalVM Community asset)");
+			return false;
+		}
+		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
+		if (!matcher.matches()) {
+			warn("Skipping " + assetName + " (does not match pattern)");
+			return false;
+		}
+		return true;
 	}
 
 	protected JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
@@ -56,11 +66,7 @@ public class GraalVmCommunity extends GitHubReleaseScraper {
 		String assetName = asset.get("name").asText();
 
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
-		if (!matcher.matches()) {
-			warn("Skipping " + assetName + " (does not match pattern)");
-			return null;
-		}
-
+		matcher.matches();
 		String javaVersion = matcher.group(1);
 		String os = matcher.group(2);
 		String arch = matcher.group(3);

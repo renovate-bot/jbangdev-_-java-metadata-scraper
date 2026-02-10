@@ -49,6 +49,10 @@ public class Corretto extends GitHubReleaseScraper {
 			String url = matcher.group(1);
 			String filename = matcher.group(3);
 
+			if (!shouldProcessAsset(filename)) {
+				continue;
+			}
+
 			if (metadataExists(filename)) {
 				allMetadata.add(skipped(filename));
 				skip(filename);
@@ -70,6 +74,19 @@ public class Corretto extends GitHubReleaseScraper {
 		}
 	}
 
+	protected boolean shouldProcessAsset(String filename) {
+		String os = extractOs(filename);
+		String arch = extractArch(filename);
+		String ext = extractExtension(filename);
+
+		if (os == null || arch == null || ext == null) {
+			warn("Could not parse OS/arch/extension from filename: " + filename);
+			return false;
+		}
+
+		return true;
+	}
+
 	private JdkMetadata processAsset(String filename, String url, String version) throws Exception {
 		// Parse filename to extract OS, architecture, extension, and image type
 		// Examples:
@@ -82,11 +99,6 @@ public class Corretto extends GitHubReleaseScraper {
 		String arch = extractArch(filename);
 		String ext = extractExtension(filename);
 		String imageType = extractImageType(filename);
-
-		if (os == null || arch == null || ext == null) {
-			warn("Could not parse OS/arch/extension from filename: " + filename);
-			return null;
-		}
 
 		// Download and compute hashes (we need sha1 and sha512 which aren't in the HTML)
 		DownloadResult download = downloadFile(url, filename);

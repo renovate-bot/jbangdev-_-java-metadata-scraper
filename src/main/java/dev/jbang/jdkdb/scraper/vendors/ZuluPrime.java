@@ -50,6 +50,10 @@ public class ZuluPrime extends BaseScraper {
 				String url = props.getProperty(key);
 				String filename = url.substring(url.lastIndexOf('/') + 1);
 
+				if (!shouldProcessAsset(filename)) {
+					continue;
+				}
+
 				if (metadataExists(filename)) {
 					allMetadata.add(skipped(filename));
 					skip(filename);
@@ -76,13 +80,17 @@ public class ZuluPrime extends BaseScraper {
 		return allMetadata;
 	}
 
-	private JdkMetadata processFile(String filename, String url) throws Exception {
+	protected boolean shouldProcessAsset(String filename) {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			warn("Skipping " + filename + " (does not match pattern)");
-			return null;
+			return false;
 		}
+		return true;
+	}
 
+	private JdkMetadata processFile(String filename, String url) throws Exception {
+		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		String version = matcher.group(1);
 		String buildNumber = matcher.group(2);
 		String os = matcher.group(3);

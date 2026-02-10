@@ -50,7 +50,21 @@ public class GraalVmLegacy extends GitHubReleaseScraper {
 	@Override
 	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
 		String assetName = asset.get("name").asText();
-		return assetName.startsWith("graalvm-ce");
+		if (!assetName.startsWith("graalvm-ce")) {
+			fine("Skipping " + assetName + " (non-GraalVM CE asset)");
+			return false;
+		}
+		// Try RC pattern first
+		Matcher rcMatcher = RC_PATTERN.matcher(assetName);
+		if (!rcMatcher.matches()) {
+			// Try regular pattern
+			Matcher regularMatcher = REGULAR_PATTERN.matcher(assetName);
+			if (!regularMatcher.matches()) {
+				warn("Skipping " + assetName + " (does not match pattern)");
+				return false;
+			}
+		}
+		return true;
 	}
 
 	protected JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
@@ -74,11 +88,6 @@ public class GraalVmLegacy extends GitHubReleaseScraper {
 		} else {
 			// Try regular pattern
 			Matcher regularMatcher = REGULAR_PATTERN.matcher(assetName);
-			if (!regularMatcher.matches()) {
-				warn("Skipping " + assetName + " (does not match pattern)");
-				return null;
-			}
-
 			// Check if it's a dev build
 			releaseType = assetName.contains("dev-b") ? "ea" : "ga";
 			os = regularMatcher.group(1);

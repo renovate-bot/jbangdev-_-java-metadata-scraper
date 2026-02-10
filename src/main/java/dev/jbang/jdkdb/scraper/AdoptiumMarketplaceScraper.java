@@ -135,6 +135,10 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 			JsonNode binaries = asset.get("binaries");
 			if (binaries != null && binaries.isArray()) {
 				for (JsonNode binary : binaries) {
+					if (!shouldProcessAsset(binary)) {
+						continue;
+					}
+
 					String filename =
 							binary.has("package") && binary.get("package").has("name")
 									? binary.get("package").get("name").asText()
@@ -175,6 +179,24 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 		return version;
 	}
 
+	protected boolean shouldProcessAsset(JsonNode binary) {
+		String imageType = binary.path("image_type").asText();
+
+		// Only process JDK and JRE
+		if (!imageType.equals("jdk") && !imageType.equals("jre")) {
+			fine("Skipping non-JRE, non-JDK image: " + imageType);
+			return false;
+		}
+
+		JsonNode packageNode = binary.get("package");
+		if (packageNode == null) {
+			fine("Skipping asset with no package information");
+			return false;
+		}
+
+		return true;
+	}
+
 	/** Helper to create standard metadata from binary JSON */
 	protected JdkMetadata createStandardMetadata(
 			JsonNode binary,
@@ -186,17 +208,7 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 
 		String imageType = binary.path("image_type").asText();
 
-		// Only process JDK and JRE
-		if (!imageType.equals("jdk") && !imageType.equals("jre")) {
-			log("Skipping non-JRE, non-JDK image: " + imageType);
-			return null;
-		}
-
 		JsonNode packageNode = binary.get("package");
-		if (packageNode == null) {
-			return null;
-		}
-
 		String filename = packageNode.path("name").asText();
 		String url = packageNode.path("link").asText();
 

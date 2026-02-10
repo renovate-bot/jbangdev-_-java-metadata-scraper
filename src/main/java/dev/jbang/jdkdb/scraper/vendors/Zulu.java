@@ -51,6 +51,10 @@ public class Zulu extends BaseScraper {
 
 		try {
 			for (String filename : files) {
+				if (!shouldProcessAsset(filename)) {
+					continue;
+				}
+
 				if (metadataExists(filename)) {
 					allMetadata.add(skipped(filename));
 					skip(filename);
@@ -77,13 +81,17 @@ public class Zulu extends BaseScraper {
 		return allMetadata;
 	}
 
-	private JdkMetadata processFile(String filename) throws Exception {
+	protected boolean shouldProcessAsset(String filename) {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			warn("Skipping " + filename + " (does not match pattern)");
-			return null;
+			return false;
 		}
+		return true;
+	}
 
+	private JdkMetadata processFile(String filename) throws Exception {
+		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		String version = matcher.group(1);
 		String releaseTypeStr = matcher.group(2) != null ? matcher.group(2) : "";
 		String imageType = matcher.group(3);

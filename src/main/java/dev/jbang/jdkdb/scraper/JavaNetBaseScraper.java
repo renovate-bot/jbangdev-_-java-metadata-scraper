@@ -69,6 +69,11 @@ public abstract class JavaNetBaseScraper extends BaseScraper {
 			for (String url : downloadUrls) {
 				String filename = extractFilename(url);
 				if (filename == null) {
+					fine("Could not extract filename from URL: " + url);
+					continue;
+				}
+
+				if (!shouldProcessAsset(filename)) {
 					continue;
 				}
 
@@ -79,7 +84,7 @@ public abstract class JavaNetBaseScraper extends BaseScraper {
 				}
 
 				try {
-					JdkMetadata metadata = processFile(filename, url);
+					JdkMetadata metadata = processAsset(filename, url);
 					if (metadata != null) {
 						saveMetadataFile(metadata);
 						allMetadata.add(metadata);
@@ -116,13 +121,18 @@ public abstract class JavaNetBaseScraper extends BaseScraper {
 		return null;
 	}
 
-	private JdkMetadata processFile(String filename, String url) throws Exception {
+	protected boolean shouldProcessAsset(String filename) {
 		Matcher matcher = getFilenamePattern().matcher(filename);
 		if (!matcher.matches()) {
 			warn("Skipping " + filename + " (does not match pattern)");
-			return null;
+			return false;
 		}
+		return true;
+	}
 
+	private JdkMetadata processAsset(String filename, String url) throws Exception {
+		Matcher matcher = getFilenamePattern().matcher(filename);
+		matcher.matches();
 		String version = matcher.group(1);
 		String os = matcher.group(2);
 		String archStr = matcher.group(3);

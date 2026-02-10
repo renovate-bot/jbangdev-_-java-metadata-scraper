@@ -39,7 +39,16 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
 		// Skip non-matching files
 		String assetName = asset.get("name").asText();
-		return assetName.startsWith("graalvm-svm-") && !assetName.endsWith(".sha256");
+		if (!assetName.startsWith("graalvm-svm-") || assetName.endsWith(".sha256")) {
+			fine("Skipping " + assetName + " (non-GraalVM asset)");
+			return false;
+		}
+		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
+		if (!matcher.matches()) {
+			warn("Skipping " + assetName + " (does not match pattern)");
+			return false;
+		}
+		return true;
 	}
 
 	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
@@ -48,11 +57,7 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 		String assetName = asset.get("name").asText();
 
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
-		if (!matcher.matches()) {
-			warn("Skipping " + assetName + " (does not match pattern)");
-			return null;
-		}
-
+		matcher.matches();
 		String javaVersion = matcher.group(1);
 		String os = matcher.group(2);
 		String arch = matcher.group(3);

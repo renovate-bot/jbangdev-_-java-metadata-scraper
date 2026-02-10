@@ -47,11 +47,11 @@ public class LibericaNative extends BaseScraper {
 		log("Found " + assets.size() + " assets");
 		try {
 			for (JsonNode asset : assets) {
-				JsonNode filenameNode = asset.get("filename");
-				if (filenameNode == null || !filenameNode.isTextual()) {
-					warn("Skipping asset with missing or invalid filename");
+				if (!shouldProcessAsset(asset)) {
 					continue;
 				}
+
+				JsonNode filenameNode = asset.get("filename");
 				String filename = filenameNode.asText();
 
 				if (metadataExists(filename)) {
@@ -80,14 +80,45 @@ public class LibericaNative extends BaseScraper {
 		return allMetadata;
 	}
 
-	private JdkMetadata processAsset(JsonNode asset, String filename) throws Exception {
+	private boolean shouldProcessAsset(JsonNode asset) throws Exception {
+		JsonNode filenameNode = asset.get("filename");
+		if (filenameNode == null || !filenameNode.isTextual()) {
+			warn("Skipping asset (missing or invalid filename)");
+			return false;
+		}
+		String filename = filenameNode.asText();
 		JsonNode downloadUrlNode = asset.get("downloadUrl");
 		if (downloadUrlNode == null
 				|| !downloadUrlNode.isTextual()
 				|| downloadUrlNode.asText().isEmpty()) {
-			warn("Skipping asset with missing or invalid downloadUrl");
-			return null;
+			warn("Skipping " + filename + " (missing or invalid downloadUrl)");
+			return false;
 		}
+		JsonNode versionNode = asset.get("version");
+		if (versionNode == null
+				|| !versionNode.isTextual()
+				|| versionNode.asText().isEmpty()) {
+			warn("Skipping " + filename + " (missing or invalid version)");
+			return false;
+		}
+		JsonNode componentsNode = asset.get("components");
+		if (componentsNode == null || !componentsNode.isArray() || componentsNode.size() == 0) {
+			warn("Skipping asset with missing or invalid 'components' object");
+			return false;
+		}
+		JsonNode compNode = componentsNode.get(0);
+		JsonNode javaVersionNode = compNode.get("version");
+		if (javaVersionNode == null
+				|| !javaVersionNode.isTextual()
+				|| javaVersionNode.asText().isEmpty()) {
+			warn("Skipping asset with missing or invalid javaVersion");
+			return false;
+		}
+		return true;
+	}
+
+	private JdkMetadata processAsset(JsonNode asset, String filename) throws Exception {
+		JsonNode downloadUrlNode = asset.get("downloadUrl");
 		String downloadUrl = downloadUrlNode.asText();
 
 		// Determine release type (GA vs EA) based on "GA" field (default to GA if missing)
@@ -97,28 +128,12 @@ public class LibericaNative extends BaseScraper {
 
 		// Extract version from "version" field
 		JsonNode versionNode = asset.get("version");
-		if (versionNode == null
-				|| !versionNode.isTextual()
-				|| versionNode.asText().isEmpty()) {
-			warn("Skipping asset with missing or invalid version");
-			return null;
-		}
 		String version = versionNode.asText();
 
 		// Extract Java version from "components" node
 		JsonNode componentsNode = asset.get("components");
-		if (componentsNode == null || !componentsNode.isArray() || componentsNode.size() == 0) {
-			warn("Skipping asset with missing or invalid 'components' object");
-			return null;
-		}
 		JsonNode compNode = componentsNode.get(0);
 		JsonNode javaVersionNode = compNode.get("version");
-		if (javaVersionNode == null
-				|| !javaVersionNode.isTextual()
-				|| javaVersionNode.asText().isEmpty()) {
-			warn("Skipping asset with missing or invalid javaVersion");
-			return null;
-		}
 		String javaVersion = javaVersionNode.asText();
 
 		// Determine OS and possibly glibc type from "os" field

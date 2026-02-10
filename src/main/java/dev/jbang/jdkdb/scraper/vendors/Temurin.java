@@ -95,6 +95,10 @@ public class Temurin extends BaseScraper {
 									? binary.get("package").get("name").asText()
 									: "unknown";
 
+					if (!shouldProcessAsset(binary, filename)) {
+						continue;
+					}
+
 					if (metadataExists(filename)) {
 						allMetadata.add(skipped(filename));
 						skip(filename);
@@ -118,21 +122,25 @@ public class Temurin extends BaseScraper {
 		}
 	}
 
-	private JdkMetadata processBinary(
-			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception {
-
+	protected boolean shouldProcessAsset(JsonNode binary, String filename) {
 		String imageType = binary.path("image_type").asText();
-
 		// Only process JDK and JRE
 		if (!imageType.equals("jdk") && !imageType.equals("jre")) {
-			return null;
+			fine("Skipping " + filename + " (not JDK or JRE)");
+			return false;
 		}
-
 		JsonNode packageNode = binary.get("package");
 		if (packageNode == null) {
-			return null;
+			fine("Skipping " + filename + " (missing package information)");
+			return false;
 		}
+		return true;
+	}
 
+	private JdkMetadata processBinary(
+			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception {
+		String imageType = binary.path("image_type").asText();
+		JsonNode packageNode = binary.get("package");
 		String filename = packageNode.path("name").asText();
 		String url = packageNode.path("link").asText();
 

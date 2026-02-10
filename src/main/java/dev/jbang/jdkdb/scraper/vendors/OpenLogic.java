@@ -88,6 +88,10 @@ public class OpenLogic extends BaseScraper {
 				for (String url : downloadLinks) {
 					String filename = HtmlUtils.extractFilename(url);
 
+					if (!shouldProcessAsset(filename)) {
+						continue;
+					}
+
 					if (metadataExists(filename)) {
 						allMetadata.add(skipped(filename));
 						skip(filename);
@@ -95,7 +99,7 @@ public class OpenLogic extends BaseScraper {
 					}
 
 					try {
-						JdkMetadata metadata = processFile(filename, url);
+						JdkMetadata metadata = processAsset(filename, url);
 						if (metadata != null) {
 							saveMetadataFile(metadata);
 							allMetadata.add(metadata);
@@ -129,7 +133,16 @@ public class OpenLogic extends BaseScraper {
 		return allMetadata;
 	}
 
-	private JdkMetadata processFile(String filename, String url) throws Exception {
+	protected boolean shouldProcessAsset(String filename) {
+		Matcher matcher = FILENAME_PATTERN.matcher(filename);
+		if (!matcher.matches()) {
+			warn("Skipping " + filename + " (does not match pattern)");
+			return false;
+		}
+		return true;
+	}
+
+	private JdkMetadata processAsset(String filename, String url) throws Exception {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			warn("Skipping " + filename + " (does not match pattern)");

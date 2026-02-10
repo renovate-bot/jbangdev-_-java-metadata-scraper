@@ -85,12 +85,6 @@ public class Ibm extends BaseScraper {
 					while (fileMatcher.find()) {
 						String ibmFile = fileMatcher.group(1);
 
-						// Skip SFJ files
-						if (ibmFile.contains("sfj")) {
-							log("Ignoring " + ibmFile);
-							continue;
-						}
-
 						if (metadataExists(ibmFile)) {
 							allMetadata.add(skipped(ibmFile));
 							skip(ibmFile);
@@ -119,16 +113,30 @@ public class Ibm extends BaseScraper {
 		return allMetadata;
 	}
 
+	protected boolean shouldProcessAsset(String ibmFile) {
+		// Skip SFJ files
+		if (ibmFile.contains("sfj")) {
+			fine("Skipping " + ibmFile + " (sfj)");
+			return false;
+		}
+		if (ibmFile.endsWith(".tgz")) {
+			return true;
+		} else if (ibmFile.endsWith(".rpm")) {
+			return true;
+		} else {
+			fine("Skipping " + ibmFile + " (unsupported file type)");
+			return false;
+		}
+	}
+
 	private JdkMetadata processFile(
 			String ibmFile, String jdkVersion, String architecture, List<JdkMetadata> allMetadata) throws Exception {
 
 		String fileType;
 		if (ibmFile.endsWith(".tgz")) {
 			fileType = "tar.gz";
-		} else if (ibmFile.endsWith(".rpm")) {
-			fileType = "rpm";
 		} else {
-			return null;
+			fileType = "rpm";
 		}
 
 		String imageType = ibmFile.contains("sdk") ? "jdk" : "jre";

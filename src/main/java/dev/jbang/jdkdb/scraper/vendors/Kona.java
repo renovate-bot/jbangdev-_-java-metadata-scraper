@@ -50,15 +50,21 @@ public class Kona extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
-	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+	@Override
+	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
 		String assetName = asset.get("name").asText();
-		String downloadUrl = asset.get("browser_download_url").asText();
-
 		ParsedFilename parsed = parseFilename(assetName);
 		if (parsed == null || parsed.version == null) {
 			warn("Skipping " + assetName + " (does not match pattern)");
-			return null;
+			return false;
 		}
+		return true;
+	}
+
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String assetName = asset.get("name").asText();
+		String downloadUrl = asset.get("browser_download_url").asText();
+		ParsedFilename parsed = parseFilename(assetName);
 
 		// Build features list
 		List<String> features = new ArrayList<>();

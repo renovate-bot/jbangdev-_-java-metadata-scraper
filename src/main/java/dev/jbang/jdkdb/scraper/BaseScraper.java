@@ -68,6 +68,11 @@ public abstract class BaseScraper implements Scraper {
 		logger.info(message);
 	}
 
+	/** Log a informative message */
+	protected void fine(String message) {
+		logger.trace(message);
+	}
+
 	/** Log a warning message */
 	protected void warn(String message) {
 		logger.warn(message);

@@ -67,7 +67,32 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 	@Override
 	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
 		String assetName = asset.get("name").asText();
-		return assetName.startsWith(getFilenamePrefix());
+		if (!assetName.startsWith(getFilenamePrefix())) {
+			warn("Skipping " + assetName + " (does not start with expected prefix)");
+			return false;
+		}
+		String filename = asset.get("name").asText();
+		String imageType = null;
+		Matcher rpmMatcher = rpmPattern.matcher(filename);
+		if (rpmMatcher.matches()) {
+			imageType = rpmMatcher.group(1);
+		} else {
+			Matcher tarMatcher = tarPattern.matcher(filename);
+			if (tarMatcher.matches()) {
+				imageType = tarMatcher.group(1);
+			}
+		}
+		if (imageType == null) {
+			if (!filename.endsWith(".txt")
+					&& !filename.endsWith(".sig")
+					&& !filename.contains("-debugimage_")
+					&& !filename.contains("-testimage_")) {
+				// Only show message for unexpected files
+				warn("Skipping " + filename + " (does not match pattern)");
+			}
+			return false;
+		}
+		return true;
 	}
 
 	private JdkMetadata processAsset(JsonNode release, JsonNode asset, String version, String parsedJavaVersion)
@@ -94,17 +119,6 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 				os = tarMatcher.group(3);
 				extension = tarMatcher.group(4);
 			}
-		}
-
-		if (imageType == null) {
-			if (!filename.endsWith(".txt")
-					&& !filename.endsWith(".sig")
-					&& !filename.contains("-debugimage_")
-					&& !filename.contains("-testimage_")) {
-				// Only show message for unexpected files
-				warn("Skipping " + filename + " (does not match pattern)");
-			}
-			return null;
 		}
 
 		// Download and compute hashes

@@ -99,7 +99,7 @@ public class Oracle extends BaseScraper {
 					}
 
 					try {
-						JdkMetadata jdkMetadata = parseFilename(filename, downloadUrl);
+						JdkMetadata jdkMetadata = processAsset(filename, downloadUrl);
 						if (jdkMetadata != null) {
 							saveMetadataFile(jdkMetadata);
 							allMetadata.add(jdkMetadata);
@@ -138,6 +138,10 @@ public class Oracle extends BaseScraper {
 			String downloadUrl = matcher.group(1);
 			String filename = matcher.group(2);
 
+			if (!shouldProcessAsset(filename)) {
+				continue;
+			}
+
 			if (metadataExists(filename)) {
 				allMetadata.add(skipped(filename));
 				skip(filename);
@@ -145,7 +149,7 @@ public class Oracle extends BaseScraper {
 			}
 
 			try {
-				JdkMetadata jdkMetadata = parseFilename(filename, downloadUrl);
+				JdkMetadata jdkMetadata = processAsset(filename, downloadUrl);
 				if (jdkMetadata != null) {
 					saveMetadataFile(jdkMetadata);
 					allMetadata.add(jdkMetadata);
@@ -161,13 +165,17 @@ public class Oracle extends BaseScraper {
 		return allMetadata;
 	}
 
-	private JdkMetadata parseFilename(String filename, String downloadUrl) throws Exception {
+	protected boolean shouldProcessAsset(String filename) {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			warn("Skipping " + filename + " (does not match pattern)");
-			return null;
+			return false;
 		}
+		return true;
+	}
 
+	private JdkMetadata processAsset(String filename, String downloadUrl) throws Exception {
+		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		String version = matcher.group(1);
 		String os = matcher.group(2);
 		String arch = matcher.group(3);

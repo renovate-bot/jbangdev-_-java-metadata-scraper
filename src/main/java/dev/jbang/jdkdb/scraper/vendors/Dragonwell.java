@@ -53,7 +53,16 @@ public class Dragonwell extends GitHubReleaseScraper {
 	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
 		// Only process tar.gz and zip files
 		String assetName = asset.get("name").asText();
-		return assetName.endsWith(".tar.gz") || assetName.endsWith(".zip");
+		if (!assetName.endsWith(".tar.gz") && !assetName.endsWith(".zip")) {
+			fine("Skipping " + assetName + " (non-archive asset)");
+			return false;
+		}
+		ParsedFilename parsed = parseFilename(assetName);
+		if (parsed == null || parsed.version == null) {
+			warn("Skipping " + assetName + " (does not match pattern)");
+			return false;
+		}
+		return true;
 	}
 
 	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
@@ -61,10 +70,6 @@ public class Dragonwell extends GitHubReleaseScraper {
 		String downloadUrl = asset.get("browser_download_url").asText();
 
 		ParsedFilename parsed = parseFilename(assetName);
-		if (parsed == null || parsed.version == null) {
-			warn("Skipping " + assetName + " (does not match pattern)");
-			return null;
-		}
 
 		// Determine release type
 		String releaseType;

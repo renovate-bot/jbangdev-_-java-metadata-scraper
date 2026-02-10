@@ -49,6 +49,10 @@ public class Microsoft extends BaseScraper {
 
 		try {
 			for (var filename : files) {
+				if (!shouldProcessAsset(filename)) {
+					continue;
+				}
+
 				if (metadataExists(filename)) {
 					allMetadata.add(skipped(filename));
 					skip(filename);
@@ -75,13 +79,18 @@ public class Microsoft extends BaseScraper {
 		return allMetadata;
 	}
 
-	private JdkMetadata processFile(String filename) throws Exception {
+	protected boolean shouldProcessAsset(String filename) {
 		var matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			warn("Skipping " + filename + " (does not match pattern)");
-			return null;
+			return false;
 		}
+		return true;
+	}
 
+	private JdkMetadata processFile(String filename) throws Exception {
+		var matcher = FILENAME_PATTERN.matcher(filename);
+		matcher.matches();
 		var version = matcher.group(1);
 		var os = matcher.group(2);
 		var arch = matcher.group(3);

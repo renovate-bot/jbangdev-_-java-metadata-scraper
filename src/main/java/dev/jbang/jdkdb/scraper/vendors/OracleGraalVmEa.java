@@ -42,9 +42,13 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 
 	@Override
 	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
-		// Only process graalvm-jdk files with zip or tar.gz extension
 		String assetName = asset.get("name").asText();
-		return assetName.startsWith("graalvm-jdk") && (assetName.endsWith(".tar.gz") || assetName.endsWith(".zip"));
+		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
+		if (!matcher.matches()) {
+			warn("Skipping " + assetName + " (does not match pattern)");
+			return false;
+		}
+		return true;
 	}
 
 	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
