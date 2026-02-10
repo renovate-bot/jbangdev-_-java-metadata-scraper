@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 public class OracleGraalVmEa extends GitHubReleaseScraper {
 	private static final String VENDOR = "oracle-graalvm";
 	private static final Pattern FILENAME_PATTERN = Pattern.compile(
-			"^graalvm-jdk-([0-9]{1,2}\\.[0-9]{1}\\.[0-9]{1,3}-ea\\.[0-9]{1,2})_(linux|macos|windows)-(aarch64|x64)_bin(?:-(notarized))?\\.(?:zip|tar\\.gz)$");
+			"^graalvm-jdk(?:-[0-9]{1,2}e[0-9]{1})?-([0-9]{1,2}\\.[0-9]{1}\\.[0-9]{1,3}-ea\\.[0-9]{1,2})_(linux|macos|windows)-(aarch64|x64)_bin(?:-(notarized))?\\.(?:zip|tar\\.gz)$");
 
 	public OracleGraalVmEa(ScraperConfig config) {
 		super(config);
