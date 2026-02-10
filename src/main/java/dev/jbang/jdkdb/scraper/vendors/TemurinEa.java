@@ -61,7 +61,12 @@ public class TemurinEa extends GitHubReleaseScraper {
 
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {
-			log("Skipping " + assetName + " (does not match pattern)");
+			if (!assetName.endsWith(".txt")
+					&& !assetName.endsWith(".sig")
+					&& !assetName.contains("-debugimage_")
+					&& !assetName.contains("-testimage_")) {
+				log("Skipping " + assetName + " (does not match pattern)");
+			}
 			return null;
 		}
 
