@@ -20,7 +20,7 @@ public class Zulu extends BaseScraper {
 	private static final Pattern LINK_PATTERN = Pattern.compile(
 			"<a href=\"[^\"]*/(zulu[0-9]+[^\"]+-(linux|macosx|win|solaris)_(musl_x64|musl_aarch64|x64|i686|aarch32hf|aarch32sf|aarch64|ppc64|sparcv9)\\.(tar\\.gz|zip|msi|dmg))\">");
 	private static final Pattern FILENAME_PATTERN = Pattern.compile(
-			"^zulu([0-9+_.]{2,})-(?:(ca-crac|ca-fx-dbg|ca-fx|ca-hl|ca-dbg|ea-cp3|ca|ea|dbg|oem|beta)-)?(jdk|jre)(.*)-(linux|macosx|win|solaris)_(musl_aarch64|musl_x64|x64|i686|aarch32hf|aarch32sf|aarch64|ppc64|sparcv9)\\.(tar\\.gz|zip|msi|dmg)$");
+			"^zulu([0-9+_.]{2,})-(?:(ca-crac|ca-fx-dbg|ca-fx|ca-hl|ea-hl|ca-dbg|ca-cp\\d|ea-cp\\d|ca|ea|dbg|oem|beta)-)?(jdk|jre)(.*)-(linux|macosx|win|solaris)_(musl_aarch64|musl_x64|x64|i686|aarch32hf|aarch32sf|aarch64|ppc64|sparcv9)\\.(tar\\.gz|zip|msi|dmg)$");
 
 	public Zulu(ScraperConfig config) {
 		super(config);
@@ -84,7 +84,9 @@ public class Zulu extends BaseScraper {
 	protected boolean shouldProcessAsset(String filename) {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
-			warn("Skipping " + filename + " (does not match pattern)");
+			if (!filename.contains("-dbg-")) {
+				warn("Skipping " + filename + " (does not match pattern)");
+			}
 			return false;
 		}
 		return true;
@@ -92,6 +94,7 @@ public class Zulu extends BaseScraper {
 
 	private JdkMetadata processFile(String filename) throws Exception {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
+		matcher.matches();
 		String version = matcher.group(1);
 		String releaseTypeStr = matcher.group(2) != null ? matcher.group(2) : "";
 		String imageType = matcher.group(3);
@@ -141,12 +144,10 @@ public class Zulu extends BaseScraper {
 	}
 
 	private String normalizeZuluReleaseType(String releaseType) {
-		return switch (releaseType) {
-			case "ca", "ca-fx", "ca-crac", "" -> "ga";
-			case "ea", "beta" -> "ea";
-			case "ca-dbg", "ca-fx-dbg", "dbg" -> "debug";
-			default -> null; // Unknown type
-		};
+		if ("ea".equals(releaseType) || "beta".equals(releaseType)) {
+			return "ea";
+		}
+		return "ga";
 	}
 
 	private List<String> buildFeatures(String releaseType, String arch) {

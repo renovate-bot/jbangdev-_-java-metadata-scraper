@@ -66,11 +66,6 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 
 	@Override
 	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
-		String assetName = asset.get("name").asText();
-		if (!assetName.startsWith(getFilenamePrefix())) {
-			warn("Skipping " + assetName + " (does not start with expected prefix)");
-			return false;
-		}
 		String filename = asset.get("name").asText();
 		String imageType = null;
 		Matcher rpmMatcher = rpmPattern.matcher(filename);
@@ -84,12 +79,18 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 		}
 		if (imageType == null) {
 			if (!filename.endsWith(".txt")
+					&& !filename.endsWith(".json")
 					&& !filename.endsWith(".sig")
 					&& !filename.contains("-debugimage_")
 					&& !filename.contains("-testimage_")) {
 				// Only show message for unexpected files
 				warn("Skipping " + filename + " (does not match pattern)");
 			}
+			return false;
+		}
+		String assetName = asset.get("name").asText();
+		if (!assetName.startsWith(getFilenamePrefix())) {
+			warn("Skipping " + assetName + " (does not start with expected prefix)");
 			return false;
 		}
 		return true;

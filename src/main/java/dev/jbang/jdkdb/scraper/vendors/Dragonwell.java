@@ -17,17 +17,17 @@ public class Dragonwell extends GitHubReleaseScraper {
 
 	// Multiple patterns to handle different filename formats
 	private static final Pattern STANDARD_EXTENDED_PATTERN_8 = Pattern.compile(
-			"^Alibaba_Dragonwell_(?:Standard|Extended)[-_]([0-9.+]{1,}[^_]*)[-_](x64|aarch64)[-_](Linux|linux|Windows|windows)\\.(tar\\.gz|zip)$");
+			"^Alibaba_Dragonwell_(?:Standard|Extended)[-_]([0-9.+]{1,}[^_]*)[-_](x64|aarch64|riscv64)[-_](Linux|linux|Windows|windows)\\.(tar\\.gz|zip)$");
 	private static final Pattern ALIBABA_PATTERN_8 = Pattern.compile(
-			"^Alibaba_Dragonwell_([0-9.+]{1,}[^_]*)[-_](?:(GA|Experimental|GA_Experimental|FP1)_)?(Linux|linux|Windows|windows)_(x64|aarch64)\\.(tar\\.gz|zip)$");
+			"^Alibaba_Dragonwell_([0-9.+]{1,}[^_]*)[-_](?:(GA|Experimental|GA_Experimental|FP1)_)?(Linux|linux|Windows|windows)_(x64|aarch64|riscv64)\\.(tar\\.gz|zip)$");
 	private static final Pattern STANDARD_EXTENDED_PATTERN = Pattern.compile(
-			"^Alibaba_Dragonwell_(?:Standard|Extended)[–_]([0-9.+]{1,}[^_]*)_(aarch64|x64)(?:_alpine)?[-_](Linux|linux|Windows|windows)\\.(tar\\.gz|zip)$");
+			"^Alibaba_Dragonwell_(?:Standard|Extended)[–_]([0-9.+]{1,}[^_]*)_(aarch64|x64|riscv64)_(Linux|linux|alpine-linux|Windows|windows)\\.(tar\\.gz|zip)$");
 	private static final Pattern ALIBABA_PATTERN = Pattern.compile(
-			"^Alibaba_Dragonwell_([0-9.+]{1,}[^_]*)(?:_alpine)?[_-](?:(GA|Experimental|GA_Experimental|FP1)_)?(Linux|linux|Windows|windows)_(aarch64|x64)\\.(tar\\.gz|zip)$");
+			"^Alibaba_Dragonwell_([0-9.+]{1,}[^_]*)(?:_alpine)?[_-](?:(GA|Experimental|GA_Experimental|FP1)_)?(Linux|linux|Windows|windows)_(aarch64|x64|riscv64)\\.(tar\\.gz|zip)$");
 	private static final Pattern OPENJDK_PATTERN = Pattern.compile(
-			"^OpenJDK(?:[0-9.+]{1,})_(x64|aarch64)_(linux|windows)_dragonwell_dragonwell-([0-9.]+)(?:_jdk)?[-_]([0-9._]+)-?(ga|.*?)\\.(tar\\.gz|zip)$");
+			"^OpenJDK(?:[0-9.+]{1,})_(x64|aarch64|riscv64)_(linux|windows)_dragonwell_dragonwell-([0-9.]+)(?:_jdk)?[-_]([0-9._]+)-?(ga|.*?)\\.(tar\\.gz|zip)$");
 	private static final Pattern FALLBACK_PATTERN = Pattern.compile(
-			"^Alibaba_Dragonwell_([0-9.+]{1,}[^_]*)(?:_alpine)?_(aarch64|x64)_(Linux|linux|Windows|windows)\\.(tar\\.gz|zip)$");
+			"^Alibaba_Dragonwell_([0-9.+]{1,}[^_]*)(?:_alpine)?_(aarch64|x64|x86|riscv64)_(Linux|linux|alpine-linux|Windows|windows)\\.(tar\\.gz|zip)$");
 
 	public Dragonwell(ScraperConfig config) {
 		super(config);
@@ -59,7 +59,9 @@ public class Dragonwell extends GitHubReleaseScraper {
 		}
 		ParsedFilename parsed = parseFilename(assetName);
 		if (parsed == null || parsed.version == null) {
-			warn("Skipping " + assetName + " (does not match pattern)");
+			if (!assetName.contains("_source")) {
+				warn("Skipping " + assetName + " (does not match pattern)");
+			}
 			return false;
 		}
 		return true;

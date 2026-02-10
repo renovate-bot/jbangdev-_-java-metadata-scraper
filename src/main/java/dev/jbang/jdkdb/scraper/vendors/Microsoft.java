@@ -82,7 +82,9 @@ public class Microsoft extends BaseScraper {
 	protected boolean shouldProcessAsset(String filename) {
 		var matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
-			warn("Skipping " + filename + " (does not match pattern)");
+			if (!filename.contains("-debugsymbols-")) {
+				warn("Skipping " + filename + " (does not match pattern)");
+			}
 			return false;
 		}
 		return true;

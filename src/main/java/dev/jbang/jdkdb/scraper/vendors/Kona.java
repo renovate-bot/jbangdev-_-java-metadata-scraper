@@ -19,16 +19,16 @@ public class Kona extends GitHubReleaseScraper {
 	private static final Pattern KONA8_SIMPLE_PATTERN =
 			Pattern.compile("^TencentKona-([0-9.]{1,}-[0-9]+)\\.x86_64\\.tar\\.gz$");
 	private static final Pattern KONA8_PATTERN = Pattern.compile(
-			"^TencentKona([0-9b.]{1,})[-_]jdk[-_](fiber)?[-_]?(linux|macosx|windows)[-_](aarch64|x86_64)[-_](8u[0-9]+)(?:_(notarized|signed))?\\.(?:tar\\.gz|tgz|zip)$");
+			"^TencentKona([0-9b.]{1,})[-_](jdk|jre)[-_](fiber)?[-_]?(linux|linux-musl|macosx|windows)[-_](aarch64|x86_64)[-_](8u[0-9]+)(?:_(notarized|signed))?\\.(?:tar\\.gz|tgz|zip)$");
 
 	// Pattern for Kona 11
 	private static final Pattern KONA11_PATTERN = Pattern.compile(
-			"^TencentKona-([0-9b.]{1,})[-_]jdk_(fiber)?_?(linux|macosx|windows)-(aarch64|x86_64).*\\.(tar\\.gz|zip)$");
+			"^TencentKona-([0-9b.]{1,})[-_](jdk|jre)_(fiber)?_?(linux|macosx|windows)-(aarch64|x86_64).*\\.(tar\\.gz|zip)$");
 	private static final Pattern KONA11_SIMPLE_PATTERN = Pattern.compile("^TencentKona([0-9b.]+)\\.tgz$");
 
 	// Pattern for Kona 17 and 21
 	private static final Pattern KONA_STANDARD_PATTERN = Pattern.compile(
-			"^TencentKona-([0-9b.]{1,})(?:[_-](ea))?[-_]jdk_(linux|macosx|windows)-(aarch64|x86_64)(?:_(notarized|signed))?\\.(?:tar\\.gz|zip)$");
+			"^TencentKona-([0-9b.]{1,})(?:[_-](ea))?[-_](jdk|jre)_(linux|linux_musl|macosx|windows)-(aarch64|x86_64)(?:_(notarized|signed))?\\.(?:tar\\.gz|zip)$");
 
 	public Kona(ScraperConfig config) {
 		super(config);
@@ -55,7 +55,9 @@ public class Kona extends GitHubReleaseScraper {
 		String assetName = asset.get("name").asText();
 		ParsedFilename parsed = parseFilename(assetName);
 		if (parsed == null || parsed.version == null) {
-			warn("Skipping " + assetName + " (does not match pattern)");
+			if (!assetName.endsWith(".md5") && !assetName.contains("_javadoc.")) {
+				warn("Skipping " + assetName + " (does not match pattern)");
+			}
 			return false;
 		}
 		return true;
@@ -93,7 +95,7 @@ public class Kona extends GitHubReleaseScraper {
 				.os(normalizeOs(parsed.os))
 				.arch(normalizeArch(parsed.arch))
 				.fileType(parsed.ext)
-				.imageType("jdk")
+				.imageType(parsed.imageType)
 				.features(features)
 				.url(downloadUrl)
 				.download(assetName, download)
@@ -112,6 +114,7 @@ public class Kona extends GitHubReleaseScraper {
 			result.os = "linux";
 			result.arch = "x86_64";
 			result.ext = "tar.gz";
+			result.imageType = "jdk";
 			return result;
 		}
 
@@ -119,13 +122,18 @@ public class Kona extends GitHubReleaseScraper {
 		matcher = KONA8_PATTERN.matcher(filename);
 		if (matcher.matches()) {
 			result.version = matcher.group(1);
-			result.features = matcher.group(2);
-			result.os = matcher.group(3);
-			result.arch = matcher.group(4);
-			result.javaVersion = matcher.group(5);
-			String extraFeatures = matcher.group(6);
+			result.imageType = matcher.group(2);
+			result.features = matcher.group(3);
+			result.os = matcher.group(4);
+			result.arch = matcher.group(5);
+			result.javaVersion = matcher.group(6);
+			String extraFeatures = matcher.group(7);
 			if (extraFeatures != null) {
 				result.features = (result.features != null ? result.features + " " : "") + extraFeatures;
+			}
+			if (result.os.equals("linux-musl")) {
+				result.os = "linux";
+				result.features = (result.features != null ? result.features + " " : "") + "musl";
 			}
 			result.ext = filename.substring(filename.lastIndexOf('.') + 1);
 			if (filename.endsWith(".tar.gz")) {
@@ -138,11 +146,12 @@ public class Kona extends GitHubReleaseScraper {
 		matcher = KONA11_PATTERN.matcher(filename);
 		if (matcher.matches()) {
 			result.version = matcher.group(1);
-			result.features = matcher.group(2);
-			result.os = matcher.group(3);
-			result.arch = matcher.group(4);
+			result.imageType = matcher.group(2);
+			result.features = matcher.group(3);
+			result.os = matcher.group(4);
+			result.arch = matcher.group(5);
 			result.javaVersion = result.version;
-			result.ext = matcher.group(5);
+			result.ext = matcher.group(6);
 			return result;
 		}
 
@@ -154,6 +163,7 @@ public class Kona extends GitHubReleaseScraper {
 			result.os = "linux";
 			result.arch = "x86_64";
 			result.ext = "tgz";
+			result.imageType = "jdk";
 			return result;
 		}
 
@@ -162,9 +172,14 @@ public class Kona extends GitHubReleaseScraper {
 		if (matcher.matches()) {
 			result.version = matcher.group(1);
 			result.releaseType = matcher.group(2);
-			result.os = matcher.group(3);
-			result.arch = matcher.group(4);
-			result.features = matcher.group(5);
+			result.imageType = matcher.group(3);
+			result.os = matcher.group(4);
+			result.arch = matcher.group(5);
+			result.features = matcher.group(6);
+			if (result.os.equals("linux_musl")) {
+				result.os = "linux";
+				result.features = (result.features != null ? result.features + " " : "") + "musl";
+			}
 			result.javaVersion = result.version;
 			result.ext = filename.substring(filename.lastIndexOf('.') + 1);
 			if (filename.endsWith(".tar.gz")) {
@@ -178,12 +193,13 @@ public class Kona extends GitHubReleaseScraper {
 
 	private static class ParsedFilename {
 		String version;
-		String javaVersion;
-		String releaseType;
+		String imageType;
 		String os;
 		String arch;
-		String ext;
+		String javaVersion;
+		String releaseType;
 		String features;
+		String ext;
 	}
 
 	public static class Discovery implements Scraper.Discovery {
