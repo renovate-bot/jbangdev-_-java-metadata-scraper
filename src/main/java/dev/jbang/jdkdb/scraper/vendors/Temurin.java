@@ -62,8 +62,13 @@ public class Temurin extends BaseScraper {
 						String assetsJson = httpUtils.downloadString(assetsUrl);
 						assets = readJson(assetsJson);
 					} catch (Exception e) {
-						fail("Could not download list of assets", e);
-						continue;
+						if (page == 0) {
+							fail("Could not download list of assets for release " + release, e);
+						} else {
+							log("Could not download page " + page + " of assets for release " + release
+									+ ", assuming no more pages (" + e.getMessage() + ")");
+						}
+						break;
 					}
 
 					if (assets.isArray() && assets.size() > 0) {

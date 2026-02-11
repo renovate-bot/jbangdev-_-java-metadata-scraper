@@ -114,7 +114,8 @@ public class Debian extends BaseScraper {
 	protected boolean shouldProcessAsset(String filename) {
 		Matcher matcher = DEB_PKG_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
-			if (!filename.contains("-dbg_")
+			if (!filename.startsWith("openjdk-")
+					&& !filename.contains("-dbg_")
 					&& !filename.contains("-demo_")
 					&& !filename.contains("-doc_")
 					&& !filename.contains("-source_")
