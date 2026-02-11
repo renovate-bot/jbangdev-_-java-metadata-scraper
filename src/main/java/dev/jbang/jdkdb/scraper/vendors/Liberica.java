@@ -159,8 +159,8 @@ public class Liberica extends BaseScraper {
 			features.add("lite");
 		}
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType(releaseType)
 				.version(version)
@@ -172,8 +172,7 @@ public class Liberica extends BaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(downloadUrl)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

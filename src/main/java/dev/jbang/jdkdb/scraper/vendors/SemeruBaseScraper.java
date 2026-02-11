@@ -114,8 +114,8 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 		// Build features list
 		List<String> features = new ArrayList<>(getAdditionalFeatures());
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(getVendor())
 				.releaseType("ga")
 				.version(version)
@@ -127,7 +127,6 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 }

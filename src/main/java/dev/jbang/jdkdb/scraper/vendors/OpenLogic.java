@@ -141,8 +141,8 @@ public class OpenLogic extends BaseScraper {
 		// All OpenLogic releases are GA
 		String releaseType = "ga";
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType(releaseType)
 				.version(version)
@@ -153,8 +153,7 @@ public class OpenLogic extends BaseScraper {
 				.fileType(ext)
 				.imageType(imageType)
 				.url(url)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

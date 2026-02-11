@@ -153,8 +153,8 @@ public class Temurin extends BaseScraper {
 			features.add("musl");
 		}
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType("ga")
 				.version(normalizedVersion)
@@ -166,8 +166,7 @@ public class Temurin extends BaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

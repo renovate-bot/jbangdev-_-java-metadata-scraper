@@ -95,7 +95,7 @@ class MetadataUtilsTest {
 		Files.createDirectories(vendorDir);
 
 		DownloadResult download1 = new DownloadResult("md5-1", "sha1-1", "sha256-1", "sha512-1", 100_000_000L);
-		JdkMetadata metadata1 = JdkMetadata.builder()
+		JdkMetadata metadata1 = JdkMetadata.create()
 				.vendor("test-vendor")
 				.filename("test-jdk-1")
 				.releaseType("ga")
@@ -106,11 +106,10 @@ class MetadataUtilsTest {
 				.fileType("tar.gz")
 				.imageType("jdk")
 				.url("https://example.com/jdk-1.tar.gz")
-				.download("test-jdk-1", download1)
-				.build();
+				.download(download1);
 
 		DownloadResult download2 = new DownloadResult("md5-2", "sha1-2", "sha256-2", "sha512-2", 100_000_001L);
-		JdkMetadata metadata2 = JdkMetadata.builder()
+		JdkMetadata metadata2 = JdkMetadata.create()
 				.vendor("test-vendor")
 				.filename("test-jdk-2")
 				.releaseType("ga")
@@ -121,13 +120,12 @@ class MetadataUtilsTest {
 				.fileType("zip")
 				.imageType("jdk")
 				.url("https://example.com/jdk-2.zip")
-				.download("test-jdk-2", download2)
-				.metadataFilename("custom-metadata-filename.json")
-				.build();
+				.download(download2)
+				.metadataFilename("custom-metadata-filename.json");
 
 		// Save individual metadata files
-		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata1.getMetadataFilename()), metadata1);
-		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata2.getMetadataFilename()), metadata2);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata1.metadataFilename()), metadata1);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata2.metadataFilename()), metadata2);
 
 		// Verify individual files exist
 		assertThat(vendorDir.resolve("test-jdk-1.json")).exists();
@@ -155,7 +153,7 @@ class MetadataUtilsTest {
 		Files.createDirectories(vendorDir);
 
 		DownloadResult download = new DownloadResult(null, null, null, null, 100_000_000L);
-		JdkMetadata metadata = JdkMetadata.builder()
+		JdkMetadata metadata = JdkMetadata.create()
 				.filename("test-jdk")
 				.vendor("test-vendor")
 				.version("17.0.1")
@@ -166,10 +164,9 @@ class MetadataUtilsTest {
 				.imageType("jdk")
 				.releaseType("ga")
 				.url("https://example.com/jdk.tar.gz")
-				.download("test-jdk", download)
-				.build();
+				.download(download);
 
-		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata.getMetadataFilename()), metadata);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata.metadataFilename()), metadata);
 
 		// Create an old all.json with different content
 		Files.writeString(vendorDir.resolve("all.json"), "[{\"old\": \"data\"}]");
@@ -197,7 +194,7 @@ class MetadataUtilsTest {
 	void testSaveMetadataSortsByVersionThenFilename() throws Exception {
 		// Given - metadata with various versions and filenames
 		DownloadResult download1 = new DownloadResult(null, null, null, null, 100_000_000L);
-		JdkMetadata metadata1 = JdkMetadata.builder()
+		JdkMetadata metadata1 = JdkMetadata.create()
 				.filename("zulu-jdk-11.0.10")
 				.vendor("zulu")
 				.version("11.0.10")
@@ -208,11 +205,10 @@ class MetadataUtilsTest {
 				.imageType("jdk")
 				.releaseType("ga")
 				.url("https://example.com/zulu-11.0.10.tar.gz")
-				.download("zulu-jdk-11.0.10", download1)
-				.build();
+				.download(download1);
 
 		DownloadResult download2 = new DownloadResult(null, null, null, null, 100_000_000L);
-		JdkMetadata metadata2 = JdkMetadata.builder()
+		JdkMetadata metadata2 = JdkMetadata.create()
 				.filename("abc-jdk-11.0.10")
 				.vendor("abc")
 				.version("11.0.10")
@@ -223,11 +219,10 @@ class MetadataUtilsTest {
 				.imageType("jdk")
 				.releaseType("ga")
 				.url("https://example.com/abc-11.0.10.tar.gz")
-				.download("abc-jdk-11.0.10", download2)
-				.build();
+				.download(download2);
 
 		DownloadResult download3 = new DownloadResult(null, null, null, null, 100_000_000L);
-		JdkMetadata metadata3 = JdkMetadata.builder()
+		JdkMetadata metadata3 = JdkMetadata.create()
 				.filename("temurin-jdk-17.0.5")
 				.vendor("temurin")
 				.version("17.0.5")
@@ -238,11 +233,10 @@ class MetadataUtilsTest {
 				.imageType("jdk")
 				.releaseType("ga")
 				.url("https://example.com/temurin-17.0.5.tar.gz")
-				.download("temurin-jdk-17.0.5", download3)
-				.build();
+				.download(download3);
 
 		DownloadResult download4 = new DownloadResult(null, null, null, null, 100_000_000L);
-		JdkMetadata metadata4 = JdkMetadata.builder()
+		JdkMetadata metadata4 = JdkMetadata.create()
 				.filename("oracle-jdk-8.0.202")
 				.vendor("oracle")
 				.version("8.0.202")
@@ -253,11 +247,10 @@ class MetadataUtilsTest {
 				.imageType("jdk")
 				.releaseType("ga")
 				.url("https://example.com/oracle-8.0.202.tar.gz")
-				.download("oracle-jdk-8.0.202", download4)
-				.build();
+				.download(download4);
 
 		DownloadResult download5 = new DownloadResult(null, null, null, null, 100_000_000L);
-		JdkMetadata metadata5 = JdkMetadata.builder()
+		JdkMetadata metadata5 = JdkMetadata.create()
 				.filename("oracle-jdk-11.0.2")
 				.vendor("oracle")
 				.version("11.0.2")
@@ -268,8 +261,7 @@ class MetadataUtilsTest {
 				.imageType("jdk")
 				.releaseType("ga")
 				.url("https://example.com/oracle-11.0.2.tar.gz")
-				.download("oracle-jdk-11.0.2", download5)
-				.build();
+				.download(download5);
 
 		// When - save in random order
 		Path metadataDir = tempDir.resolve("metadata");
@@ -286,19 +278,19 @@ class MetadataUtilsTest {
 
 		// Verify sorted order: 8.0.202, 11.0.2, 11.0.10 (abc before zulu), 17.0.5
 		assertThat(result).hasSize(5);
-		assertThat(result[0].getVersion()).isEqualTo("8.0.202");
-		assertThat(result[0].getFilename()).isEqualTo("oracle-jdk-8.0.202");
+		assertThat(result[0].version()).isEqualTo("8.0.202");
+		assertThat(result[0].filename()).isEqualTo("oracle-jdk-8.0.202");
 
-		assertThat(result[1].getVersion()).isEqualTo("11.0.2");
-		assertThat(result[1].getFilename()).isEqualTo("oracle-jdk-11.0.2");
+		assertThat(result[1].version()).isEqualTo("11.0.2");
+		assertThat(result[1].filename()).isEqualTo("oracle-jdk-11.0.2");
 
-		assertThat(result[2].getVersion()).isEqualTo("11.0.10");
-		assertThat(result[2].getFilename()).isEqualTo("abc-jdk-11.0.10"); // abc comes before zulu
+		assertThat(result[2].version()).isEqualTo("11.0.10");
+		assertThat(result[2].filename()).isEqualTo("abc-jdk-11.0.10"); // abc comes before zulu
 
-		assertThat(result[3].getVersion()).isEqualTo("11.0.10");
-		assertThat(result[3].getFilename()).isEqualTo("zulu-jdk-11.0.10");
+		assertThat(result[3].version()).isEqualTo("11.0.10");
+		assertThat(result[3].filename()).isEqualTo("zulu-jdk-11.0.10");
 
-		assertThat(result[4].getVersion()).isEqualTo("17.0.5");
-		assertThat(result[4].getFilename()).isEqualTo("temurin-jdk-17.0.5");
+		assertThat(result[4].version()).isEqualTo("17.0.5");
+		assertThat(result[4].filename()).isEqualTo("temurin-jdk-17.0.5");
 	}
 }

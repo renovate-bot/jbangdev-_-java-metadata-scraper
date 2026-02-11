@@ -7,6 +7,9 @@ public class VersionComparator implements Comparator<String> {
 
 	@Override
 	public int compare(String v1, String v2) {
+		if (v1 == null && v2 == null) return 0;
+		if (v1 == null) return -1;
+		if (v2 == null) return 1;
 		String[] parts1 = v1.split("[.+-]");
 		String[] parts2 = v2.split("[.+-]");
 

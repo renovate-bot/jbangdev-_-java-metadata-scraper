@@ -102,8 +102,8 @@ public class Zulu extends BaseScraper {
 			arch = "x64";
 		}
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType(releaseType)
 				.version(version)
@@ -115,8 +115,7 @@ public class Zulu extends BaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 
 	private String normalizeZuluReleaseType(String releaseType) {

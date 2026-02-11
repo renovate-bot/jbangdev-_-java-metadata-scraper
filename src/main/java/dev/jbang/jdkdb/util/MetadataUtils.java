@@ -115,7 +115,7 @@ public class MetadataUtils {
 
 	public static JdkMetadata readMetadataFile(Path metadataFile) throws IOException {
 		JdkMetadata md = readMapper.readValue(metadataFile.toFile(), JdkMetadata.class);
-		md.setMetadataFilename(metadataFile.getFileName().toString());
+		md.metadataFilename(metadataFile.getFileName().toString());
 		return md;
 	}
 
@@ -131,8 +131,8 @@ public class MetadataUtils {
 	public static void saveMetadata(Path metadataDir, List<JdkMetadata> metadataList) throws IOException {
 		// Sort by version first (using VersionComparator) and filename second
 		List<JdkMetadata> sortedList = metadataList.stream()
-				.sorted(Comparator.comparing(JdkMetadata::getVersion, VersionComparator.INSTANCE)
-						.thenComparing(JdkMetadata::getMetadataFilename))
+				.sorted(Comparator.<JdkMetadata, String>comparing(md -> md.version(), VersionComparator.INSTANCE)
+						.thenComparing(md -> md.metadataFilename()))
 				.toList();
 
 		// Create all.json

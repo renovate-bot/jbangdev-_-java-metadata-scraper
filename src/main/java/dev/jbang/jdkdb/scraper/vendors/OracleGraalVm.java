@@ -146,8 +146,8 @@ public class OracleGraalVm extends BaseScraper {
 		String arch = matcher.group(3);
 		String extension = matcher.group(4);
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType("ga")
 				.version(version)
@@ -158,8 +158,7 @@ public class OracleGraalVm extends BaseScraper {
 				.fileType(extension)
 				.imageType("jdk")
 				.url(downloadUrl)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

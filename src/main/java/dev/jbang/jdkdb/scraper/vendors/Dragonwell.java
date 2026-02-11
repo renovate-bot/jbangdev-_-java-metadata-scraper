@@ -90,7 +90,7 @@ public class Dragonwell extends GitHubReleaseScraper {
 		}
 
 		// Create metadata using builder
-		return JdkMetadata.builder()
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType(releaseType)
 				.version(parsed.version)
@@ -102,8 +102,7 @@ public class Dragonwell extends GitHubReleaseScraper {
 				.imageType("jdk")
 				.features(features)
 				.url(downloadUrl)
-				.filename(assetName)
-				.build();
+				.filename(assetName);
 	}
 
 	private ParsedFilename parseFilename(String filename) {

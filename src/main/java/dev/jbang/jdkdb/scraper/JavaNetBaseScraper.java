@@ -137,7 +137,7 @@ public abstract class JavaNetBaseScraper extends BaseScraper {
 		String releaseType = determineReleaseType(version);
 
 		// Create metadata using builder
-		return JdkMetadata.builder()
+		return JdkMetadata.create()
 				.vendor(getVendor())
 				.releaseType(releaseType)
 				.version(version)
@@ -149,8 +149,7 @@ public abstract class JavaNetBaseScraper extends BaseScraper {
 				.imageType("jdk")
 				.features(features)
 				.url(url)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 
 	protected String determineReleaseType(String version) {

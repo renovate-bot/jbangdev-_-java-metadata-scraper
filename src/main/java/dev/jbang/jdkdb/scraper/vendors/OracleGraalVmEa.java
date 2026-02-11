@@ -62,8 +62,8 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 		String features = matcher.group(4) != null ? matcher.group(4) : "";
 		String extension = assetName.endsWith(".zip") ? "zip" : "tar.gz";
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType("ea")
 				.version(javaVersion)
@@ -75,8 +75,7 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 				.imageType("jdk")
 				.features(features.isEmpty() ? null : List.of(features))
 				.url(downloadUrl)
-				.filename(assetName)
-				.build();
+				.filename(assetName);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

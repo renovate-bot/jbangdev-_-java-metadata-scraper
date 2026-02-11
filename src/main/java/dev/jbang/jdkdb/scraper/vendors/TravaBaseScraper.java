@@ -63,8 +63,8 @@ public abstract class TravaBaseScraper extends GitHubReleaseScraper {
 		String url = String.format(
 				"https://github.com/%s/%s/releases/download/%s/%s", getGitHubOrg(), getRepo(), tagName, assetName);
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType("ga")
 				.version(version)
@@ -75,8 +75,7 @@ public abstract class TravaBaseScraper extends GitHubReleaseScraper {
 				.fileType(ext)
 				.imageType("jdk")
 				.url(url)
-				.filename(metadataFilename)
-				.build();
+				.filename(metadataFilename);
 	}
 
 	@Override

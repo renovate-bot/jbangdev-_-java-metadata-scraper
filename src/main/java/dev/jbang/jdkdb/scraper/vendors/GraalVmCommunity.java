@@ -74,7 +74,7 @@ public class GraalVmCommunity extends GitHubReleaseScraper {
 				"https://github.com/%s/%s/releases/download/%s/%s", GITHUB_ORG, GITHUB_REPO, tagName, assetName);
 
 		// Create metadata
-		return JdkMetadata.builder()
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType("ga")
 				.version(javaVersion)
@@ -85,8 +85,7 @@ public class GraalVmCommunity extends GitHubReleaseScraper {
 				.fileType(ext)
 				.imageType("jdk")
 				.url(url)
-				.filename(assetName)
-				.build();
+				.filename(assetName);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

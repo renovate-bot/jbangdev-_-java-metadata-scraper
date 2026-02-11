@@ -83,8 +83,8 @@ public class Microsoft extends BaseScraper {
 		// Determine release type (aarch64 is EA for Microsoft)
 		var releaseType = arch.equals("aarch64") ? "ea" : "ga";
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType(normalizeReleaseType(releaseType))
 				.version(version)
@@ -95,8 +95,7 @@ public class Microsoft extends BaseScraper {
 				.fileType(extension)
 				.imageType("jdk")
 				.url(url)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

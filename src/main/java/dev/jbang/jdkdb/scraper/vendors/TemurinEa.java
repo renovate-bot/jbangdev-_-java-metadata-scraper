@@ -86,8 +86,8 @@ public class TemurinEa extends GitHubReleaseScraper {
 			features.add("musl");
 		}
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType("ea")
 				.version(version)
@@ -99,8 +99,7 @@ public class TemurinEa extends GitHubReleaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(downloadUrl)
-				.filename(assetName)
-				.build();
+				.filename(assetName);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

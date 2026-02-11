@@ -82,7 +82,7 @@ public class Corretto extends GitHubReleaseScraper {
 		}
 
 		// Create metadata using builder
-		return JdkMetadata.builder()
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType("ga")
 				.version(version)
@@ -94,8 +94,7 @@ public class Corretto extends GitHubReleaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 
 	private String extractOs(String filename) {

@@ -123,7 +123,7 @@ class DummyScraperTest {
 				// Simulate processing with success() calls
 				// Note: the exception is thrown when processedCount reaches limitProgress
 				for (JdkMetadata md : metadataToReturn) {
-					success(md.getMetadataFilename());
+					success(md.metadataFilename());
 				}
 				return metadataToReturn;
 			}
@@ -230,7 +230,7 @@ class DummyScraperTest {
 			// Create a mock DownloadResult for testing
 			DownloadResult download =
 					new DownloadResult("md5-" + i, "sha1-" + i, "sha256-" + i, "sha512-" + i, 100_000_000L + i);
-			JdkMetadata metadata = JdkMetadata.builder()
+			JdkMetadata metadata = JdkMetadata.create()
 					.vendor("test-vendor")
 					.releaseType("ga")
 					.version("17.0." + i)
@@ -240,8 +240,8 @@ class DummyScraperTest {
 					.fileType("tar.gz")
 					.imageType("jdk")
 					.url("https://example.com/jdk-" + i + ".tar.gz")
-					.download("test-jdk-" + i, download)
-					.build();
+					.filename("test-jdk-" + i + ".tar.gz")
+					.download(download);
 			result.add(metadata);
 		}
 		return result;

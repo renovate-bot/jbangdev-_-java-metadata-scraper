@@ -56,21 +56,20 @@ public abstract class BaseScraper implements Scraper {
 			// Process each metadata: download files, save metadata, track progress
 			for (JdkMetadata metadata : allMetadata) {
 				// Skip if this is a skipped placeholder (no filename set)
-				if (metadata.getFilename() == null || metadata.getUrl() == null) {
+				if (metadata.filename() == null || metadata.url() == null) {
 					continue;
 				}
 
-				String filename = metadata.getFilename();
-
+				String filename = metadata.filename();
 				// If already processed (has checksums), just call skip()
-				if (metadata.getMd5() != null) {
+				if (metadata.md5() != null) {
 					skip(filename);
 					continue;
 				}
 
 				// Download and process the file
 				try {
-					String url = metadata.getUrl();
+					String url = metadata.url();
 					if (url != null) {
 						DownloadResult download = downloadFile(url, filename);
 						metadata.download(download);
@@ -153,7 +152,7 @@ public abstract class BaseScraper implements Scraper {
 
 	/** Save individual metadata to file */
 	protected void saveMetadataFile(JdkMetadata metadata) throws IOException {
-		Path metadataFile = metadataDir.resolve(metadata.getMetadataFilename());
+		Path metadataFile = metadataDir.resolve(metadata.metadataFilename());
 		MetadataUtils.saveMetadataFile(metadataFile, metadata);
 	}
 
@@ -161,7 +160,7 @@ public abstract class BaseScraper implements Scraper {
 		if (!metadataFilename.endsWith(".json")) {
 			metadataFilename += ".json";
 		}
-		return JdkMetadata.builder().metadataFilename(metadataFilename).build();
+		return JdkMetadata.create().metadataFilename(metadataFilename);
 	}
 
 	/** Download a file and compute its hashes */

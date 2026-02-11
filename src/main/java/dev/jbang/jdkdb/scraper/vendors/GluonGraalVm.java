@@ -72,7 +72,7 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 		String url = String.format("https://github.com/gluonhq/graal/releases/download/%s/%s", tagName, assetName);
 
 		// Create metadata using builder
-		return JdkMetadata.builder()
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType(determineReleaseType(version, isPrerelease))
 				.version(version)
@@ -84,8 +84,7 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 				.imageType("jdk")
 				.features(List.of("native-image", "substrate-vm"))
 				.url(url)
-				.filename(assetName)
-				.build();
+				.filename(assetName);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

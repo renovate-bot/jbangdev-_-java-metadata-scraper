@@ -79,8 +79,8 @@ public class SapMachine extends GitHubReleaseScraper {
 
 		String downloadUrl = asset.get("browser_download_url").asText();
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType(determineReleaseType(version))
 				.version(version)
@@ -92,8 +92,7 @@ public class SapMachine extends GitHubReleaseScraper {
 				.imageType(imageType)
 				.features(features.isEmpty() ? null : List.of(features.split(",")))
 				.url(downloadUrl)
-				.filename(assetName)
-				.build();
+				.filename(assetName);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

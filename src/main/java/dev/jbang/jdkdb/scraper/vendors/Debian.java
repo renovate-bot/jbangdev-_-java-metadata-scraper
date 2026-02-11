@@ -133,8 +133,7 @@ public class Debian extends BaseScraper {
 			features.add("hard-float");
 		}
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType("ga") // Debian only packages GA releases
 				.version(version + extraVersion) // Combine version and extra version for full version string
@@ -146,8 +145,7 @@ public class Debian extends BaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 
 	/** Discovery for creating Debian scraper instances */

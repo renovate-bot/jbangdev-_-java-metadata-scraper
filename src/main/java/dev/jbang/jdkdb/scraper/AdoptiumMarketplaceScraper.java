@@ -193,7 +193,7 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 		List<String> features = new ArrayList<>(additionalFeatures);
 
 		// Create metadata using builder
-		return JdkMetadata.builder()
+		return JdkMetadata.create()
 				.vendor(getVendorName())
 				.releaseType("ga")
 				.version(normalizedVersion)
@@ -205,8 +205,7 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 
 	/** Helper to normalize version for OpenJ9 */

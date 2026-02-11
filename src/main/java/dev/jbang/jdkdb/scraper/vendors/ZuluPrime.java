@@ -98,8 +98,8 @@ public class ZuluPrime extends BaseScraper {
 			}
 		}
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType(releaseType)
 				.version(fullVersion)
@@ -111,8 +111,7 @@ public class ZuluPrime extends BaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.filename(filename)
-				.build();
+				.filename(filename);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

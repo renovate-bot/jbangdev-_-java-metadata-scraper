@@ -79,8 +79,8 @@ public class Kona extends GitHubReleaseScraper {
 		// Determine release type
 		String releaseType = parsed.releaseType != null && parsed.releaseType.equals("ea") ? "ea" : "ga";
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType(releaseType)
 				.version(parsed.version)
@@ -92,8 +92,7 @@ public class Kona extends GitHubReleaseScraper {
 				.imageType(parsed.imageType)
 				.features(features)
 				.url(downloadUrl)
-				.filename(assetName)
-				.build();
+				.filename(assetName);
 	}
 
 	private ParsedFilename parseFilename(String filename) {

@@ -79,8 +79,8 @@ public class GraalVmCeEa extends GitHubReleaseScraper {
 				"https://github.com/%s/%s/releases/download/%s/%s",
 				getGitHubOrg(), getGitHubRepos().get(0), tagName, assetName);
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType("ea")
 				.version(version + "+java" + javaVersion)
@@ -91,8 +91,7 @@ public class GraalVmCeEa extends GitHubReleaseScraper {
 				.fileType(ext)
 				.imageType("jdk")
 				.url(url)
-				.filename(assetName)
-				.build();
+				.filename(assetName);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

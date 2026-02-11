@@ -125,7 +125,7 @@ public class Ibm extends BaseScraper {
 		String url = BASE_URL + jdkVersion + "/linux/" + architecture + "/" + ibmFile;
 
 		// Create metadata using builder
-		return JdkMetadata.builder()
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType("ga")
 				.version(jdkVersion)
@@ -136,8 +136,7 @@ public class Ibm extends BaseScraper {
 				.fileType(fileType)
 				.imageType(imageType)
 				.url(url)
-				.filename(ibmFile)
-				.build();
+				.filename(ibmFile);
 	}
 
 	public static class Discovery implements Scraper.Discovery {

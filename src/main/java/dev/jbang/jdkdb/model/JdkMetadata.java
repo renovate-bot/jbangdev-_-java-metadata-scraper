@@ -33,12 +33,16 @@ import java.util.Objects;
 	"size"
 })
 public class JdkMetadata {
+	@JsonProperty("vendor")
 	private String vendor;
+
+	@JsonProperty("filename")
 	private String filename;
 
 	@JsonProperty("release_type")
 	private String releaseType;
 
+	@JsonProperty("version")
 	private String version;
 
 	@JsonProperty("java_version")
@@ -47,7 +51,10 @@ public class JdkMetadata {
 	@JsonProperty("jvm_impl")
 	private String jvmImpl;
 
+	@JsonProperty("os")
 	private String os;
+
+	@JsonProperty("architecture")
 	private String architecture;
 
 	@JsonProperty("file_type")
@@ -56,128 +63,218 @@ public class JdkMetadata {
 	@JsonProperty("image_type")
 	private String imageType;
 
+	@JsonProperty("features")
 	private List<String> features;
+
+	@JsonProperty("url")
 	private String url;
 
+	@JsonProperty("md5")
 	private String md5;
 
 	@JsonProperty("md5_file")
 	private String md5File;
 
+	@JsonProperty("sha1")
 	private String sha1;
 
 	@JsonProperty("sha1_file")
 	private String sha1File;
 
+	@JsonProperty("sha256")
 	private String sha256;
 
 	@JsonProperty("sha256_file")
 	private String sha256File;
 
+	@JsonProperty("sha512")
 	private String sha512;
 
 	@JsonProperty("sha512_file")
 	private String sha512File;
 
+	@JsonProperty("size")
 	private long size;
 
 	@JsonIgnore
 	private transient String metadataFilename;
 
 	// Constructors
-	public JdkMetadata() {}
+	public JdkMetadata() {
+		releaseType = "ga";
+		jvmImpl = "hotspot";
+		imageType = "jdk";
+		features = new ArrayList<>();
+	}
 
 	// Getters and Setters
-	public String getVendor() {
+	public String vendor() {
 		return vendor;
 	}
 
-	public String getFilename() {
+	public JdkMetadata vendor(String vendor) {
+		this.vendor = vendor;
+		return this;
+	}
+
+	public String filename() {
 		return filename;
 	}
 
-	public String getReleaseType() {
+	public JdkMetadata filename(String filename) {
+		this.filename = filename;
+		return this;
+	}
+
+	public String releaseType() {
 		return releaseType;
 	}
 
-	public String getVersion() {
+	public JdkMetadata releaseType(String releaseType) {
+		this.releaseType = releaseType;
+		return this;
+	}
+
+	public String version() {
 		return version;
 	}
 
-	public String getJavaVersion() {
+	public JdkMetadata version(String version) {
+		this.version = version;
+		return this;
+	}
+
+	public String javaVersion() {
 		return javaVersion;
 	}
 
-	public String getJvmImpl() {
+	public JdkMetadata javaVersion(String javaVersion) {
+		this.javaVersion = javaVersion;
+		return this;
+	}
+
+	public String jvmImpl() {
 		return jvmImpl;
 	}
 
-	public String getOs() {
+	public JdkMetadata jvmImpl(String jvmImpl) {
+		this.jvmImpl = jvmImpl;
+		return this;
+	}
+
+	public String os() {
 		return os;
 	}
 
-	public String getArchitecture() {
+	public JdkMetadata os(String os) {
+		this.os = os;
+		return this;
+	}
+
+	public String arch() {
 		return architecture;
 	}
 
-	public String getFileType() {
+	public JdkMetadata arch(String architecture) {
+		this.architecture = architecture;
+		return this;
+	}
+
+	public String fileType() {
 		return fileType;
 	}
 
-	public String getImageType() {
+	public JdkMetadata fileType(String fileType) {
+		this.fileType = fileType;
+		return this;
+	}
+
+	public String imageType() {
 		return imageType;
 	}
 
-	public List<String> getFeatures() {
+	public JdkMetadata imageType(String imageType) {
+		this.imageType = imageType;
+		return this;
+	}
+
+	public List<String> features() {
 		return features;
 	}
 
-	public String getUrl() {
+	public JdkMetadata features(List<String> features) {
+		this.features = features;
+		return this;
+	}
+
+	public String url() {
 		return url;
 	}
 
-	public String getMd5() {
+	public JdkMetadata url(String url) {
+		this.url = url;
+		return this;
+	}
+
+	public String md5() {
 		return md5;
 	}
 
-	public String getMd5File() {
+	public String md5File() {
 		return md5File;
 	}
 
-	public String getSha1() {
+	public String sha1() {
 		return sha1;
 	}
 
-	public String getSha1File() {
+	public String sha1File() {
 		return sha1File;
 	}
 
-	public String getSha256() {
+	public String sha256() {
 		return sha256;
 	}
 
-	public String getSha256File() {
+	public String sha256File() {
 		return sha256File;
 	}
 
-	public String getSha512() {
+	public String sha512() {
 		return sha512;
 	}
 
-	public String getSha512File() {
+	public String sha512File() {
 		return sha512File;
 	}
 
-	public long getSize() {
+	public long size() {
 		return size;
 	}
 
-	public String getMetadataFilename() {
+	public String metadataFilename() {
 		if (metadataFilename == null) {
-			throw new IllegalStateException(
-					"Trying to access ignored value 'metadataFilename' with data read from file");
+			return filename + ".json";
 		}
 		return metadataFilename;
+	}
+
+	public JdkMetadata metadataFilename(String metadataFilename) {
+		this.metadataFilename = metadataFilename;
+		return this;
+	}
+
+	public JdkMetadata download(DownloadResult download) {
+		this.md5 = download.md5();
+		this.md5File = filename + ".md5";
+		this.sha1 = download.sha1();
+		this.sha1File = filename + ".sha1";
+		this.sha256 = download.sha256();
+		this.sha256File = filename + ".sha256";
+		this.sha512 = download.sha512();
+		this.sha512File = filename + ".sha512";
+		this.size = download.size();
+		return this;
 	}
 
 	@Override
@@ -195,211 +292,7 @@ public class JdkMetadata {
 		return Objects.hash(vendor, filename, version);
 	}
 
-	public static Builder builder() {
-		return new Builder();
-	}
-
-	/**
-	 * Builder class for JdkMetadata to reduce parameter count and improve readability
-	 */
-	public static class Builder {
-		public String vendor;
-		public String filename;
-		public String releaseType;
-		public String version;
-		public String javaVersion;
-		public String jvmImpl;
-		public String os;
-		public String arch;
-		public String fileType;
-		public String imageType;
-		public List<String> features;
-		public String url;
-		public String md5;
-		public String md5File;
-		public String sha1;
-		public String sha1File;
-		public String sha256;
-		public String sha256File;
-		public String sha512;
-		public String sha512File;
-		public long size;
-		public String metadataFilename;
-
-		private Builder() {}
-
-		public Builder vendor(String vendor) {
-			this.vendor = vendor;
-			return this;
-		}
-
-		public Builder filename(String filename) {
-			this.filename = filename;
-			return this;
-		}
-
-		public Builder releaseType(String releaseType) {
-			this.releaseType = releaseType;
-			return this;
-		}
-
-		public Builder version(String version) {
-			this.version = version;
-			return this;
-		}
-
-		public Builder javaVersion(String javaVersion) {
-			this.javaVersion = javaVersion;
-			return this;
-		}
-
-		public Builder jvmImpl(String jvmImpl) {
-			this.jvmImpl = jvmImpl;
-			return this;
-		}
-
-		public Builder os(String os) {
-			this.os = os;
-			return this;
-		}
-
-		public Builder arch(String arch) {
-			this.arch = arch;
-			return this;
-		}
-
-		public Builder fileType(String fileType) {
-			this.fileType = fileType;
-			return this;
-		}
-
-		public Builder imageType(String imageType) {
-			this.imageType = imageType;
-			return this;
-		}
-
-		public Builder features(List<String> features) {
-			this.features = features;
-			return this;
-		}
-
-		public Builder url(String url) {
-			this.url = url;
-			return this;
-		}
-
-		public Builder md5(String md5) {
-			this.md5 = md5;
-			return this;
-		}
-
-		public Builder md5File(String md5File) {
-			this.md5File = md5File;
-			return this;
-		}
-
-		public Builder sha1(String sha1) {
-			this.sha1 = sha1;
-			return this;
-		}
-
-		public Builder sha1File(String sha1File) {
-			this.sha1File = sha1File;
-			return this;
-		}
-
-		public Builder sha256(String sha256) {
-			this.sha256 = sha256;
-			return this;
-		}
-
-		public Builder sha256File(String sha256File) {
-			this.sha256File = sha256File;
-			return this;
-		}
-
-		public Builder sha512(String sha512) {
-			this.sha512 = sha512;
-			return this;
-		}
-
-		public Builder sha512File(String sha512File) {
-			this.sha512File = sha512File;
-			return this;
-		}
-
-		public Builder size(long size) {
-			this.size = size;
-			return this;
-		}
-
-		public Builder metadataFilename(String metadataFilename) {
-			this.metadataFilename = metadataFilename;
-			return this;
-		}
-
-		public Builder download(String filename, DownloadResult download) {
-			this.filename = filename;
-			this.md5 = download.md5();
-			this.md5File = filename + ".md5";
-			this.sha1 = download.sha1();
-			this.sha1File = filename + ".sha1";
-			this.sha256 = download.sha256();
-			this.sha256File = filename + ".sha256";
-			this.sha512 = download.sha512();
-			this.sha512File = filename + ".sha512";
-			this.size = download.size();
-			return this;
-		}
-
-		public JdkMetadata build() {
-			JdkMetadata metadata = new JdkMetadata();
-			metadata.vendor = vendor;
-			metadata.filename = filename;
-			metadata.releaseType = releaseType != null ? releaseType : "ga";
-			metadata.version = version;
-			metadata.javaVersion = javaVersion;
-			metadata.jvmImpl = jvmImpl != null ? jvmImpl : "hotspot";
-			metadata.os = os;
-			metadata.architecture = arch;
-			metadata.fileType = fileType;
-			metadata.imageType = imageType != null ? imageType : "jdk";
-			metadata.features = features != null ? features : new ArrayList<>();
-			metadata.url = url;
-			metadata.md5 = md5;
-			metadata.md5File = md5File;
-			metadata.sha1 = sha1;
-			metadata.sha1File = sha1File;
-			metadata.sha256 = sha256;
-			metadata.sha256File = sha256File;
-			metadata.sha512 = sha512;
-			metadata.sha512File = sha512File;
-			metadata.size = size;
-			metadata.metadataFilename = metadataFilename != null ? metadataFilename : filename + ".json";
-			return metadata;
-		}
-	}
-
-	public void setMetadataFilename(String metadataFilename) {
-		this.metadataFilename = metadataFilename;
-	}
-
-	/**
-	 * Update this metadata with download information (checksums and size)
-	 *
-	 * @param downloadResult the download result containing checksums and size
-	 * @return this metadata instance for chaining
-	 */
-	public JdkMetadata download(DownloadResult downloadResult) {
-		this.md5 = downloadResult.md5();
-		this.md5File = this.filename + ".md5";
-		this.sha1 = downloadResult.sha1();
-		this.sha1File = this.filename + ".sha1";
-		this.sha256 = downloadResult.sha256();
-		this.sha256File = this.filename + ".sha256";
-		this.sha512 = downloadResult.sha512();
-		this.sha512File = this.filename + ".sha512";
-		this.size = downloadResult.size();
-		return this;
+	public static JdkMetadata create() {
+		return new JdkMetadata();
 	}
 }

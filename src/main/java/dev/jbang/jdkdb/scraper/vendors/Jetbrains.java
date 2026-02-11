@@ -98,8 +98,8 @@ public class Jetbrains extends GitHubReleaseScraper {
 			os = "linux";
 		}
 
-		// Create metadata using builder
-		return JdkMetadata.builder()
+		// Create metadata
+		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType(releaseType)
 				.version(version)
@@ -111,8 +111,7 @@ public class Jetbrains extends GitHubReleaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.filename(assetName)
-				.build();
+				.filename(assetName);
 	}
 
 	public static class Discovery implements Scraper.Discovery {
