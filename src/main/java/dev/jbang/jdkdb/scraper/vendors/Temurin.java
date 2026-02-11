@@ -3,11 +3,9 @@ package dev.jbang.jdkdb.scraper.vendors;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
 import dev.jbang.jdkdb.scraper.BaseScraper;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -86,7 +84,7 @@ public class Temurin extends BaseScraper {
 		return allMetadata;
 	}
 
-	private void processAssets(JsonNode assets, List<JdkMetadata> allMetadata) throws Exception {
+	private void processAssets(JsonNode assets, List<JdkMetadata> allMetadata) {
 		for (JsonNode asset : assets) {
 			String javaVersion =
 					asset.path("version_data").path("openjdk_version").asText();
@@ -95,58 +93,37 @@ public class Temurin extends BaseScraper {
 			JsonNode binaries = asset.get("binaries");
 			if (binaries != null && binaries.isArray()) {
 				for (JsonNode binary : binaries) {
-					String filename =
-							binary.has("package") && binary.get("package").has("name")
-									? binary.get("package").get("name").asText()
-									: "unknown";
-
-					if (!shouldProcessAsset(binary, filename)) {
-						continue;
-					}
-
-					if (metadataExists(filename)) {
-						allMetadata.add(skipped(filename));
-						skip(filename);
-						continue;
-					}
-
-					try {
-						JdkMetadata metadata = processAsset(binary, version, javaVersion, allMetadata);
-						if (metadata != null) {
-							saveMetadataFile(metadata);
-							allMetadata.add(metadata);
-							success(filename);
-						}
-					} catch (InterruptedProgressException | TooManyFailuresException e) {
-						throw e;
-					} catch (Exception e) {
-						fail(filename, e);
+					JdkMetadata metadata = processAsset(binary, version, javaVersion, allMetadata);
+					if (metadata != null) {
+						allMetadata.add(metadata);
 					}
 				}
 			}
 		}
 	}
 
-	protected boolean shouldProcessAsset(JsonNode binary, String filename) {
+	private JdkMetadata processAsset(
+			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) {
+		String filename = binary.has("package") && binary.get("package").has("name")
+				? binary.get("package").get("name").asText()
+				: "unknown";
+
 		String imageType = binary.path("image_type").asText();
 		// Only process JDK and JRE
 		if (!imageType.equals("jdk") && !imageType.equals("jre")) {
 			fine("Skipping " + filename + " (not JDK or JRE)");
-			return false;
+			return null;
 		}
 		JsonNode packageNode = binary.get("package");
 		if (packageNode == null) {
 			fine("Skipping " + filename + " (missing package information)");
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata)
-			throws Exception {
-		String imageType = binary.path("image_type").asText();
-		JsonNode packageNode = binary.get("package");
-		String filename = packageNode.path("name").asText();
+		if (metadataExists(filename)) {
+			return skipped(filename);
+		}
+
 		String url = packageNode.path("link").asText();
 
 		String os = binary.path("os").asText();
@@ -176,9 +153,6 @@ public class Temurin extends BaseScraper {
 			features.add("musl");
 		}
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(VENDOR)
@@ -192,7 +166,7 @@ public class Temurin extends BaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 

@@ -2,11 +2,9 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import dev.jbang.jdkdb.model.JdkMetadata;
 import dev.jbang.jdkdb.scraper.BaseScraper;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,27 +48,9 @@ public class ZuluPrime extends BaseScraper {
 				String url = props.getProperty(key);
 				String filename = url.substring(url.lastIndexOf('/') + 1);
 
-				if (!shouldProcessAsset(filename)) {
-					continue;
-				}
-
-				if (metadataExists(filename)) {
-					allMetadata.add(skipped(filename));
-					skip(filename);
-					continue;
-				}
-
-				try {
-					JdkMetadata metadata = processAsset(filename, url);
-					if (metadata != null) {
-						saveMetadataFile(metadata);
-						allMetadata.add(metadata);
-						success(filename);
-					}
-				} catch (InterruptedProgressException | TooManyFailuresException e) {
-					throw e;
-				} catch (Exception e) {
-					fail(filename, e);
+				JdkMetadata metadata = processAsset(filename, url);
+				if (metadata != null) {
+					allMetadata.add(metadata);
 				}
 			}
 		} catch (InterruptedProgressException e) {
@@ -80,17 +60,17 @@ public class ZuluPrime extends BaseScraper {
 		return allMetadata;
 	}
 
-	protected boolean shouldProcessAsset(String filename) {
+	private JdkMetadata processAsset(String filename, String url) {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			warn("Skipping " + filename + " (does not match pattern)");
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(String filename, String url) throws Exception {
-		Matcher matcher = FILENAME_PATTERN.matcher(filename);
+		if (metadataExists(filename)) {
+			return skipped(filename);
+		}
+
 		String version = matcher.group(1);
 		String buildNumber = matcher.group(2);
 		String os = matcher.group(3);
@@ -118,9 +98,6 @@ public class ZuluPrime extends BaseScraper {
 			}
 		}
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(VENDOR)
@@ -134,7 +111,7 @@ public class ZuluPrime extends BaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 

@@ -2,11 +2,9 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import dev.jbang.jdkdb.model.JdkMetadata;
 import dev.jbang.jdkdb.scraper.BaseScraper;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import dev.jbang.jdkdb.util.HtmlUtils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -84,34 +82,16 @@ public class Debian extends BaseScraper {
 
 		for (String href : hrefs) {
 			String filename = HtmlUtils.extractFilename(href);
-			if (!shouldProcessAsset(filename)) {
-				continue;
-			}
-
-			if (metadataExists(filename)) {
-				allMetadata.add(skipped(filename));
-				skip(filename);
-				continue;
-			}
-
-			try {
-				JdkMetadata metadata = processAsset(filename, cdnUrl);
-				if (metadata != null) {
-					saveMetadataFile(metadata);
-					allMetadata.add(metadata);
-					success(filename);
-				}
-			} catch (InterruptedProgressException | TooManyFailuresException e) {
-				throw e;
-			} catch (Exception e) {
-				fail(filename, e);
+			JdkMetadata metadata = processAsset(filename, cdnUrl);
+			if (metadata != null) {
+				allMetadata.add(metadata);
 			}
 		}
 
 		return allMetadata;
 	}
 
-	protected boolean shouldProcessAsset(String filename) {
+	private JdkMetadata processAsset(String filename, String cdnUrl) {
 		Matcher matcher = DEB_PKG_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			if (!filename.startsWith("openjdk-")
@@ -122,15 +102,14 @@ public class Debian extends BaseScraper {
 					&& !filename.contains("-testsupport_")) {
 				warn("Skipping " + filename + " (does not match pattern)");
 			}
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(String filename, String cdnUrl) throws Exception {
+		if (metadataExists(filename)) {
+			return skipped(filename);
+		}
+
 		// Extract information from the filename
-		Matcher matcher = DEB_PKG_PATTERN.matcher(filename);
-		matcher.matches();
 		String imageType = matcher.group(1); // jre or jdk
 		String pkgfeat = matcher.group(2); // headless or zero (if present)
 		String version = matcher.group(3); // Java version string
@@ -139,12 +118,6 @@ public class Debian extends BaseScraper {
 
 		// Build the download URL
 		String url = cdnUrl + filename;
-
-		// Check if URL exists
-		if (!httpUtils.urlExists(url)) {
-			warn("URL does not exist: " + url);
-			return null;
-		}
 
 		// Build features list
 		List<String> features = new ArrayList<>();
@@ -160,9 +133,6 @@ public class Debian extends BaseScraper {
 			features.add("hard-float");
 		}
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(VENDOR)
@@ -176,7 +146,7 @@ public class Debian extends BaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 

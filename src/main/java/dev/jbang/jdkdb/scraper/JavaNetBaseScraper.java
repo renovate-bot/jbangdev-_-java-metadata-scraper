@@ -73,27 +73,9 @@ public abstract class JavaNetBaseScraper extends BaseScraper {
 					continue;
 				}
 
-				if (!shouldProcessAsset(filename)) {
-					continue;
-				}
-
-				if (metadataExists(filename)) {
-					allMetadata.add(skipped(filename));
-					skip(filename);
-					continue;
-				}
-
-				try {
-					JdkMetadata metadata = processAsset(filename, url);
-					if (metadata != null) {
-						saveMetadataFile(metadata);
-						allMetadata.add(metadata);
-						success(filename);
-					}
-				} catch (InterruptedProgressException | TooManyFailuresException e) {
-					throw e;
-				} catch (Exception e) {
-					fail(filename, e);
+				JdkMetadata metadata = processAsset(filename, url);
+				if (metadata != null) {
+					allMetadata.add(metadata);
 				}
 			}
 		} catch (InterruptedProgressException e) {
@@ -121,18 +103,17 @@ public abstract class JavaNetBaseScraper extends BaseScraper {
 		return null;
 	}
 
-	protected boolean shouldProcessAsset(String filename) {
+	private JdkMetadata processAsset(String filename, String url) {
 		Matcher matcher = getFilenamePattern().matcher(filename);
 		if (!matcher.matches()) {
 			warn("Skipping " + filename + " (does not match pattern)");
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(String filename, String url) throws Exception {
-		Matcher matcher = getFilenamePattern().matcher(filename);
-		matcher.matches();
+		if (metadataExists(filename)) {
+			return skipped(filename);
+		}
+
 		String version = matcher.group(1);
 		String os = matcher.group(2);
 		String archStr = matcher.group(3);
@@ -155,9 +136,6 @@ public abstract class JavaNetBaseScraper extends BaseScraper {
 		// Determine release type
 		String releaseType = determineReleaseType(version);
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(getVendor())
@@ -171,7 +149,7 @@ public abstract class JavaNetBaseScraper extends BaseScraper {
 				.imageType("jdk")
 				.features(features)
 				.url(url)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 

@@ -2,11 +2,9 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import dev.jbang.jdkdb.model.JdkMetadata;
 import dev.jbang.jdkdb.scraper.BaseScraper;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import dev.jbang.jdkdb.util.HtmlUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,27 +86,9 @@ public class OpenLogic extends BaseScraper {
 				for (String url : downloadLinks) {
 					String filename = HtmlUtils.extractFilename(url);
 
-					if (!shouldProcessAsset(filename)) {
-						continue;
-					}
-
-					if (metadataExists(filename)) {
-						allMetadata.add(skipped(filename));
-						skip(filename);
-						continue;
-					}
-
-					try {
-						JdkMetadata metadata = processAsset(filename, url);
-						if (metadata != null) {
-							saveMetadataFile(metadata);
-							allMetadata.add(metadata);
-							success(filename);
-						}
-					} catch (InterruptedProgressException | TooManyFailuresException e) {
-						throw e;
-					} catch (Exception e) {
-						fail(filename, e);
+					JdkMetadata metadata = processAsset(filename, url);
+					if (metadata != null) {
+						allMetadata.add(metadata);
 					}
 				}
 
@@ -133,20 +113,15 @@ public class OpenLogic extends BaseScraper {
 		return allMetadata;
 	}
 
-	protected boolean shouldProcessAsset(String filename) {
-		Matcher matcher = FILENAME_PATTERN.matcher(filename);
-		if (!matcher.matches()) {
-			warn("Skipping " + filename + " (does not match pattern)");
-			return false;
-		}
-		return true;
-	}
-
-	private JdkMetadata processAsset(String filename, String url) throws Exception {
+	private JdkMetadata processAsset(String filename, String url) {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			warn("Skipping " + filename + " (does not match pattern)");
 			return null;
+		}
+
+		if (metadataExists(filename)) {
+			return skipped(filename);
 		}
 
 		String imageType = matcher.group(1);
@@ -166,9 +141,6 @@ public class OpenLogic extends BaseScraper {
 		// All OpenLogic releases are GA
 		String releaseType = "ga";
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(VENDOR)
@@ -181,7 +153,7 @@ public class OpenLogic extends BaseScraper {
 				.fileType(ext)
 				.imageType(imageType)
 				.url(url)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 

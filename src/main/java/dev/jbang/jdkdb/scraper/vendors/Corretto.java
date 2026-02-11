@@ -2,12 +2,9 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
-import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -49,59 +46,34 @@ public class Corretto extends GitHubReleaseScraper {
 			String url = matcher.group(1);
 			String filename = matcher.group(3);
 
-			if (!shouldProcessAsset(filename)) {
-				continue;
-			}
-
-			if (metadataExists(filename)) {
-				allMetadata.add(skipped(filename));
-				skip(filename);
-				continue;
-			}
-
-			try {
-				JdkMetadata metadata = processAsset(filename, url, version);
-				if (metadata != null) {
-					saveMetadataFile(metadata);
-					allMetadata.add(metadata);
-					success(filename);
-				}
-			} catch (InterruptedProgressException | TooManyFailuresException e) {
-				throw e;
-			} catch (Exception e) {
-				fail(filename, e);
+			JdkMetadata metadata = processAsset(filename, url, version);
+			if (metadata != null) {
+				allMetadata.add(metadata);
 			}
 		}
 	}
 
-	protected boolean shouldProcessAsset(String filename) {
-		String os = extractOs(filename);
-		String arch = extractArch(filename);
-		String ext = extractExtension(filename);
-
-		if (os == null || arch == null || ext == null) {
-			warn("Could not parse OS/arch/extension from filename: " + filename);
-			return false;
-		}
-
-		return true;
-	}
-
-	private JdkMetadata processAsset(String filename, String url, String version) throws Exception {
+	private JdkMetadata processAsset(String filename, String url, String version) {
 		// Parse filename to extract OS, architecture, extension, and image type
 		// Examples:
 		// amazon-corretto-8.482.08.1-linux-x64.tar.gz
 		// amazon-corretto-8.482.08.1-windows-x64-jdk.zip
 		// java-1.8.0-amazon-corretto-jdk_8.482.08-1_amd64.deb
 		// java-1.8.0-amazon-corretto-devel-1.8.0_482.b08-1.x86_64.rpm
-
 		String os = extractOs(filename);
 		String arch = extractArch(filename);
 		String ext = extractExtension(filename);
-		String imageType = extractImageType(filename);
 
-		// Download and compute hashes (we need sha1 and sha512 which aren't in the HTML)
-		DownloadResult download = downloadFile(url, filename);
+		if (os == null || arch == null || ext == null) {
+			warn("Could not parse OS/arch/extension from filename: " + filename);
+			return null;
+		}
+
+		if (metadataExists(filename)) {
+			return skipped(filename);
+		}
+
+		String imageType = extractImageType(filename);
 
 		// Build features list
 		List<String> features = new ArrayList<>();
@@ -122,7 +94,7 @@ public class Corretto extends GitHubReleaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 

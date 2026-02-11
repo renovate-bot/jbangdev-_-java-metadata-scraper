@@ -2,11 +2,9 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import dev.jbang.jdkdb.model.JdkMetadata;
 import dev.jbang.jdkdb.scraper.BaseScraper;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -85,23 +83,9 @@ public class Ibm extends BaseScraper {
 					while (fileMatcher.find()) {
 						String ibmFile = fileMatcher.group(1);
 
-						if (metadataExists(ibmFile)) {
-							allMetadata.add(skipped(ibmFile));
-							skip(ibmFile);
-							continue;
-						}
-
-						try {
-							JdkMetadata metadata = processAsset(ibmFile, jdkVersion, architecture, allMetadata);
-							if (metadata != null) {
-								saveMetadataFile(metadata);
-								allMetadata.add(metadata);
-								success(ibmFile);
-							}
-						} catch (InterruptedProgressException | TooManyFailuresException e) {
-							throw e;
-						} catch (Exception e) {
-							warn("Failed to process " + ibmFile + ": " + e.getMessage());
+						JdkMetadata metadata = processAsset(ibmFile, jdkVersion, architecture, allMetadata);
+						if (metadata != null) {
+							allMetadata.add(metadata);
 						}
 					}
 				}
@@ -113,24 +97,22 @@ public class Ibm extends BaseScraper {
 		return allMetadata;
 	}
 
-	protected boolean shouldProcessAsset(String ibmFile) {
+	private JdkMetadata processAsset(
+			String ibmFile, String jdkVersion, String architecture, List<JdkMetadata> allMetadata) {
+
 		// Skip SFJ files
 		if (ibmFile.contains("sfj")) {
 			fine("Skipping " + ibmFile + " (sfj)");
-			return false;
+			return null;
 		}
-		if (ibmFile.endsWith(".tgz")) {
-			return true;
-		} else if (ibmFile.endsWith(".rpm")) {
-			return true;
-		} else {
+		if (!ibmFile.endsWith(".tgz") && !ibmFile.endsWith(".rpm")) {
 			fine("Skipping " + ibmFile + " (unsupported file type)");
-			return false;
+			return null;
 		}
-	}
 
-	private JdkMetadata processAsset(
-			String ibmFile, String jdkVersion, String architecture, List<JdkMetadata> allMetadata) throws Exception {
+		if (metadataExists(ibmFile)) {
+			return skipped(ibmFile);
+		}
 
 		String fileType;
 		if (ibmFile.endsWith(".tgz")) {
@@ -141,9 +123,6 @@ public class Ibm extends BaseScraper {
 
 		String imageType = ibmFile.contains("sdk") ? "jdk" : "jre";
 		String url = BASE_URL + jdkVersion + "/linux/" + architecture + "/" + ibmFile;
-
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, ibmFile);
 
 		// Create metadata using builder
 		return JdkMetadata.builder()
@@ -157,7 +136,7 @@ public class Ibm extends BaseScraper {
 				.fileType(fileType)
 				.imageType(imageType)
 				.url(url)
-				.download(ibmFile, download)
+				.filename(ibmFile)
 				.build();
 	}
 

@@ -3,11 +3,9 @@ package dev.jbang.jdkdb.scraper.vendors;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
 import dev.jbang.jdkdb.scraper.BaseScraper;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -47,30 +45,9 @@ public class LibericaNative extends BaseScraper {
 		log("Found " + assets.size() + " assets");
 		try {
 			for (JsonNode asset : assets) {
-				if (!shouldProcessAsset(asset)) {
-					continue;
-				}
-
-				JsonNode filenameNode = asset.get("filename");
-				String filename = filenameNode.asText();
-
-				if (metadataExists(filename)) {
-					allMetadata.add(skipped(filename));
-					skip(filename);
-					continue;
-				}
-
-				try {
-					JdkMetadata metadata = processAsset(asset, filename);
-					if (metadata != null) {
-						saveMetadataFile(metadata);
-						allMetadata.add(metadata);
-						success(filename);
-					}
-				} catch (InterruptedProgressException | TooManyFailuresException e) {
-					throw e;
-				} catch (Exception e) {
-					fail(filename, e);
+				JdkMetadata metadata = processAsset(asset);
+				if (metadata != null) {
+					allMetadata.add(metadata);
 				}
 			}
 		} catch (InterruptedProgressException e) {
@@ -80,11 +57,11 @@ public class LibericaNative extends BaseScraper {
 		return allMetadata;
 	}
 
-	private boolean shouldProcessAsset(JsonNode asset) throws Exception {
+	private JdkMetadata processAsset(JsonNode asset) {
 		JsonNode filenameNode = asset.get("filename");
 		if (filenameNode == null || !filenameNode.isTextual()) {
 			warn("Skipping asset (missing or invalid filename)");
-			return false;
+			return null;
 		}
 		String filename = filenameNode.asText();
 		JsonNode downloadUrlNode = asset.get("downloadUrl");
@@ -92,19 +69,19 @@ public class LibericaNative extends BaseScraper {
 				|| !downloadUrlNode.isTextual()
 				|| downloadUrlNode.asText().isEmpty()) {
 			warn("Skipping " + filename + " (missing or invalid downloadUrl)");
-			return false;
+			return null;
 		}
 		JsonNode versionNode = asset.get("version");
 		if (versionNode == null
 				|| !versionNode.isTextual()
 				|| versionNode.asText().isEmpty()) {
 			warn("Skipping " + filename + " (missing or invalid version)");
-			return false;
+			return null;
 		}
 		JsonNode componentsNode = asset.get("components");
 		if (componentsNode == null || !componentsNode.isArray() || componentsNode.size() == 0) {
 			warn("Skipping asset with missing or invalid 'components' object");
-			return false;
+			return null;
 		}
 		JsonNode compNode = componentsNode.get(0);
 		JsonNode javaVersionNode = compNode.get("version");
@@ -112,13 +89,13 @@ public class LibericaNative extends BaseScraper {
 				|| !javaVersionNode.isTextual()
 				|| javaVersionNode.asText().isEmpty()) {
 			warn("Skipping asset with missing or invalid javaVersion");
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(JsonNode asset, String filename) throws Exception {
-		JsonNode downloadUrlNode = asset.get("downloadUrl");
+		if (metadataExists(filename)) {
+			return skipped(filename);
+		}
+
 		String downloadUrl = downloadUrlNode.asText();
 
 		// Determine release type (GA vs EA) based on "GA" field (default to GA if missing)
@@ -127,13 +104,9 @@ public class LibericaNative extends BaseScraper {
 		String releaseType = isGa.equalsIgnoreCase("true") ? "ga" : "ea";
 
 		// Extract version from "version" field
-		JsonNode versionNode = asset.get("version");
 		String version = versionNode.asText();
 
 		// Extract Java version from "components" node
-		JsonNode componentsNode = asset.get("components");
-		JsonNode compNode = componentsNode.get(0);
-		JsonNode javaVersionNode = compNode.get("version");
 		String javaVersion = javaVersionNode.asText();
 
 		// Determine OS and possibly glibc type from "os" field
@@ -181,9 +154,6 @@ public class LibericaNative extends BaseScraper {
 			features.add(libcType);
 		}
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(downloadUrl, filename);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(VENDOR)
@@ -197,7 +167,7 @@ public class LibericaNative extends BaseScraper {
 				.imageType("jdk")
 				.features(features)
 				.url(downloadUrl)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 

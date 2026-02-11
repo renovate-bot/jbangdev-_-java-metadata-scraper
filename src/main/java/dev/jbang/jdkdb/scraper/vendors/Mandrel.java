@@ -2,7 +2,6 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
@@ -36,28 +35,27 @@ public class Mandrel extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
-	@Override
-	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) {
 		// Only process mandrel-java files with tar.gz extension
 		String assetName = asset.get("name").asText();
 		if (!assetName.startsWith("mandrel-java") || !assetName.endsWith(".tar.gz")) {
 			fine("Skipping " + assetName + " (non-Mandrel Java tar.gz asset)");
-			return false;
+			return null;
 		}
 
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {
 			warn("Skipping " + assetName + " (does not match pattern)");
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String metadataFilename = toMetadataFilename(release, asset);
+		if (metadataExists(metadataFilename)) {
+			return skipped(metadataFilename);
+		}
+
 		String tagName = release.get("tag_name").asText();
-		String assetName = asset.get("name").asText();
 
-		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		matcher.matches();
 		String javaVersion = matcher.group(1);
 		String os = matcher.group(2);
@@ -78,9 +76,6 @@ public class Mandrel extends GitHubReleaseScraper {
 				"https://github.com/%s/%s/releases/download/%s/%s",
 				getGitHubOrg(), getGitHubRepos().get(0), tagName, assetName);
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, assetName);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(VENDOR)
@@ -93,7 +88,7 @@ public class Mandrel extends GitHubReleaseScraper {
 				.fileType("tar.gz")
 				.imageType("jdk")
 				.url(url)
-				.download(assetName, download)
+				.filename(assetName)
 				.build();
 	}
 

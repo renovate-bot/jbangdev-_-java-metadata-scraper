@@ -2,7 +2,6 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
@@ -44,28 +43,26 @@ public class GraalVmCe extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
-	@Override
-	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+	protected JdkMetadata processAsset(JsonNode release, JsonNode asset) {
+		String tagName = release.get("tag_name").asText();
 		String assetName = asset.get("name").asText();
+
 		if (!assetName.startsWith("graalvm-ce") || !(assetName.endsWith("tar.gz") || assetName.endsWith("zip"))) {
 			fine("Skipping " + assetName + " (non-GraalVM CE asset)");
-			return false;
+			return null;
 		}
 
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {
 			warn("Skipping " + assetName + " (does not match pattern)");
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	protected JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
-		String tagName = release.get("tag_name").asText();
-		String assetName = asset.get("name").asText();
+		String metadataFilename = toMetadataFilename(release, asset);
+		if (metadataExists(metadataFilename)) {
+			return skipped(metadataFilename);
+		}
 
-		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
-		matcher.matches();
 		String javaVersion = matcher.group(1);
 		String os = matcher.group(2);
 		String arch = matcher.group(3);
@@ -74,9 +71,6 @@ public class GraalVmCe extends GitHubReleaseScraper {
 
 		String url = String.format(
 				"https://github.com/%s/%s/releases/download/%s/%s", GITHUB_ORG, GITHUB_REPO, tagName, assetName);
-
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, assetName);
 
 		// Create metadata
 		return JdkMetadata.builder()
@@ -90,7 +84,7 @@ public class GraalVmCe extends GitHubReleaseScraper {
 				.fileType(ext)
 				.imageType("jdk")
 				.url(url)
-				.download(assetName, download)
+				.filename(assetName)
 				.build();
 	}
 

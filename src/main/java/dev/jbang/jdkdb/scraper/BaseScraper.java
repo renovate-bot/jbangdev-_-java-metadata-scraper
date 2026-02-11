@@ -51,7 +51,37 @@ public abstract class BaseScraper implements Scraper {
 			log("Starting scraper");
 
 			// Execute the scraping logic
-			scrape();
+			List<JdkMetadata> allMetadata = scrape();
+
+			// Process each metadata: download files, save metadata, track progress
+			for (JdkMetadata metadata : allMetadata) {
+				// Skip if this is a skipped placeholder (no filename set)
+				if (metadata.getFilename() == null || metadata.getUrl() == null) {
+					continue;
+				}
+
+				String filename = metadata.getFilename();
+
+				// If already processed (has checksums), just call skip()
+				if (metadata.getMd5() != null) {
+					skip(filename);
+					continue;
+				}
+
+				// Download and process the file
+				try {
+					String url = metadata.getUrl();
+					if (url != null) {
+						DownloadResult download = downloadFile(url, filename);
+						metadata.download(download);
+						saveMetadataFile(metadata);
+						success(filename);
+					}
+				} catch (Exception e) {
+					fail("Failed to download " + filename, e);
+					// Continue with other files
+				}
+			}
 
 			log("Completed successfully. Processed " + processedCount + " items, skipped " + skippedCount
 					+ " existing items");

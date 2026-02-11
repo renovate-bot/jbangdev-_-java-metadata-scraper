@@ -2,7 +2,6 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
@@ -37,34 +36,15 @@ public class SapMachine extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
-	@Override
-	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) {
 		String assetName = asset.get("name").asText();
-		// Try RPM pattern first
-		Matcher rpmMatcher = RPM_PATTERN.matcher(assetName);
-		if (!rpmMatcher.matches()) {
-			// Try BIN pattern
-			Matcher binMatcher = BIN_PATTERN.matcher(assetName);
-			if (!binMatcher.matches()) {
-				if (!assetName.endsWith(".txt") && !assetName.contains("-symbols.")) {
-					warn("Skipping " + assetName + " (does not match pattern)");
-				}
-				return false;
-			}
-		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
-		String assetName = asset.get("name").asText();
-		String downloadUrl = asset.get("browser_download_url").asText();
-
-		String imageType = null;
-		String version = null;
-		String os = null;
-		String arch = null;
-		String features = "";
-		String ext = null;
+		String imageType;
+		String version;
+		String os;
+		String arch;
+		String features;
+		String ext;
 
 		// Try RPM pattern first
 		Matcher rpmMatcher = RPM_PATTERN.matcher(assetName);
@@ -73,22 +53,31 @@ public class SapMachine extends GitHubReleaseScraper {
 			version = rpmMatcher.group(2);
 			os = "linux";
 			arch = rpmMatcher.group(3);
+			features = "";
 			ext = "rpm";
 		} else {
 			// Try BIN pattern
 			Matcher binMatcher = BIN_PATTERN.matcher(assetName);
-			if (binMatcher.matches()) {
-				imageType = binMatcher.group(1);
-				version = binMatcher.group(2);
-				os = binMatcher.group(3);
-				arch = binMatcher.group(4);
-				features = binMatcher.group(5) != null ? binMatcher.group(5) : "";
-				ext = binMatcher.group(6);
+			if (!binMatcher.matches()) {
+				if (!assetName.endsWith(".txt") && !assetName.contains("-symbols.")) {
+					warn("Skipping " + assetName + " (does not match pattern)");
+				}
+				return null;
 			}
+			imageType = binMatcher.group(1);
+			version = binMatcher.group(2);
+			os = binMatcher.group(3);
+			arch = binMatcher.group(4);
+			features = binMatcher.group(5) != null ? binMatcher.group(5) : "";
+			ext = binMatcher.group(6);
 		}
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(downloadUrl, assetName);
+		String metadataFilename = toMetadataFilename(release, asset);
+		if (metadataExists(metadataFilename)) {
+			return skipped(metadataFilename);
+		}
+
+		String downloadUrl = asset.get("browser_download_url").asText();
 
 		// Create metadata using builder
 		return JdkMetadata.builder()
@@ -103,7 +92,7 @@ public class SapMachine extends GitHubReleaseScraper {
 				.imageType(imageType)
 				.features(features.isEmpty() ? null : List.of(features.split(",")))
 				.url(downloadUrl)
-				.download(assetName, download)
+				.filename(assetName)
 				.build();
 	}
 

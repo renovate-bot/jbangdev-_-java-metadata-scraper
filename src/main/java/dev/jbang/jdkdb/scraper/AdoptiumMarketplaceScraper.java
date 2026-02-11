@@ -55,7 +55,7 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 	 * @throws Exception on processing errors
 	 */
 	protected abstract JdkMetadata processAsset(
-			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception;
+			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata);
 
 	@Override
 	protected List<JdkMetadata> scrape() throws Exception {
@@ -135,66 +135,13 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 			JsonNode binaries = asset.get("binaries");
 			if (binaries != null && binaries.isArray()) {
 				for (JsonNode binary : binaries) {
-					if (!shouldProcessAsset(binary)) {
-						continue;
-					}
-
-					String filename =
-							binary.has("package") && binary.get("package").has("name")
-									? binary.get("package").get("name").asText()
-									: "unknown";
-
-					if (metadataExists(filename)) {
-						allMetadata.add(skipped(filename));
-						skip(filename);
-						continue;
-					}
-
-					try {
-						JdkMetadata metadata = processAsset(binary, version, javaVersion, allMetadata);
-						if (metadata != null) {
-							saveMetadataFile(metadata);
-							allMetadata.add(metadata);
-							success(filename);
-						}
-					} catch (InterruptedProgressException | TooManyFailuresException e) {
-						throw e;
-					} catch (Exception e) {
-						fail(filename, e);
+					JdkMetadata metadata = processAsset(binary, version, javaVersion, allMetadata);
+					if (metadata != null) {
+						allMetadata.add(metadata);
 					}
 				}
 			}
 		}
-	}
-
-	/** Helper to normalize version for OpenJ9 */
-	protected String normalizeVersionForOpenJ9(String jvmImpl, String filename, String version) {
-		if (jvmImpl.equals("openj9") && filename.contains("openj9") && !version.contains("openj9")) {
-			// Extract OpenJ9 version from filename if present
-			if (filename.matches(".*[_-]openj9[-_]\\d+\\.\\d+\\.\\d+[a-z]?.*")) {
-				String openj9Part = filename.replaceAll(".*([_-]openj9[-_]\\d+\\.\\d+\\.\\d+[a-z]?).*", "$1");
-				return version + "." + openj9Part.replace("_", "-");
-			}
-		}
-		return version;
-	}
-
-	protected boolean shouldProcessAsset(JsonNode binary) {
-		String imageType = binary.path("image_type").asText();
-
-		// Only process JDK and JRE
-		if (!imageType.equals("jdk") && !imageType.equals("jre")) {
-			fine("Skipping non-JRE, non-JDK image: " + imageType);
-			return false;
-		}
-
-		JsonNode packageNode = binary.get("package");
-		if (packageNode == null) {
-			fine("Skipping asset with no package information");
-			return false;
-		}
-
-		return true;
 	}
 
 	/** Helper to create standard metadata from binary JSON */
@@ -203,13 +150,26 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 			String version,
 			String javaVersion,
 			List<JdkMetadata> allMetadata,
-			List<String> additionalFeatures)
-			throws Exception {
-
+			List<String> additionalFeatures) {
+		// Only process JDK and JRE
 		String imageType = binary.path("image_type").asText();
+		if (!imageType.equals("jdk") && !imageType.equals("jre")) {
+			fine("Skipping non-JRE, non-JDK image: " + imageType);
+			return null;
+		}
 
 		JsonNode packageNode = binary.get("package");
+		if (packageNode == null) {
+			fine("Skipping asset with no package information");
+			return null;
+		}
+
 		String filename = packageNode.path("name").asText();
+
+		if (metadataExists(filename)) {
+			return skipped(filename);
+		}
+
 		String url = packageNode.path("link").asText();
 
 		String os = binary.path("os").asText();
@@ -232,9 +192,6 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 		// Build features list
 		List<String> features = new ArrayList<>(additionalFeatures);
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(getVendorName())
@@ -248,7 +205,19 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.download(filename, download)
+				.filename(filename)
 				.build();
+	}
+
+	/** Helper to normalize version for OpenJ9 */
+	protected String normalizeVersionForOpenJ9(String jvmImpl, String filename, String version) {
+		if (jvmImpl.equals("openj9") && filename.contains("openj9") && !version.contains("openj9")) {
+			// Extract OpenJ9 version from filename if present
+			if (filename.matches(".*[_-]openj9[-_]\\d+\\.\\d+\\.\\d+[a-z]?.*")) {
+				String openj9Part = filename.replaceAll(".*([_-]openj9[-_]\\d+\\.\\d+\\.\\d+[a-z]?).*", "$1");
+				return version + "." + openj9Part.replace("_", "-");
+			}
+		}
+		return version;
 	}
 }

@@ -2,7 +2,6 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
@@ -45,16 +44,8 @@ public class TemurinEa extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
-	protected boolean shouldProcessAsset(JsonNode asset) {
-		// Only process OpenJDK files with known extensions
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) {
 		String assetName = asset.get("name").asText();
-		if (!assetName.startsWith("OpenJDK")
-				|| !(assetName.endsWith(".tar.gz")
-						|| assetName.endsWith(".zip")
-						|| assetName.endsWith(".pkg")
-						|| assetName.endsWith(".msi"))) {
-			return false;
-		}
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {
 			if (!assetName.endsWith(".txt")
@@ -63,16 +54,16 @@ public class TemurinEa extends GitHubReleaseScraper {
 					&& !assetName.contains("-testimage_")) {
 				warn("Skipping " + assetName + " (does not match pattern)");
 			}
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
-		String assetName = asset.get("name").asText();
+		String metadataFilename = toMetadataFilename(release, asset);
+		if (metadataExists(metadataFilename)) {
+			return skipped(metadataFilename);
+		}
+
 		String downloadUrl = asset.get("browser_download_url").asText();
 
-		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		String versionStr = matcher.group(1);
 		String imageType = matcher.group(2);
 		String arch = matcher.group(3);
@@ -88,9 +79,6 @@ public class TemurinEa extends GitHubReleaseScraper {
 
 		// Extract Java version from filename
 		int javaVersion = Integer.parseInt(versionStr);
-
-		// Download and compute hashes
-		DownloadResult download = downloadFile(downloadUrl, assetName);
 
 		// Build features list
 		List<String> features = new ArrayList<>();
@@ -111,7 +99,7 @@ public class TemurinEa extends GitHubReleaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(downloadUrl)
-				.download(assetName, download)
+				.filename(assetName)
 				.build();
 	}
 

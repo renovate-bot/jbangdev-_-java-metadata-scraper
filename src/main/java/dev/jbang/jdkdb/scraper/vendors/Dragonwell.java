@@ -2,7 +2,6 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
@@ -49,29 +48,28 @@ public class Dragonwell extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
-	@Override
-	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
-		// Only process tar.gz and zip files
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) {
 		String assetName = asset.get("name").asText();
+		String downloadUrl = asset.get("browser_download_url").asText();
+
+		// Only process tar.gz and zip files
 		if (!assetName.endsWith(".tar.gz") && !assetName.endsWith(".zip")) {
 			fine("Skipping " + assetName + " (non-archive asset)");
-			return false;
+			return null;
 		}
+
 		ParsedFilename parsed = parseFilename(assetName);
 		if (parsed == null || parsed.version == null) {
 			if (!assetName.contains("_source")) {
 				warn("Skipping " + assetName + " (does not match pattern)");
 			}
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
-		String assetName = asset.get("name").asText();
-		String downloadUrl = asset.get("browser_download_url").asText();
-
-		ParsedFilename parsed = parseFilename(assetName);
+		String metadataFilename = toMetadataFilename(release, asset);
+		if (metadataExists(metadataFilename)) {
+			return skipped(metadataFilename);
+		}
 
 		// Determine release type
 		String releaseType;
@@ -91,9 +89,6 @@ public class Dragonwell extends GitHubReleaseScraper {
 			features.add("musl");
 		}
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(downloadUrl, assetName);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(VENDOR)
@@ -107,7 +102,7 @@ public class Dragonwell extends GitHubReleaseScraper {
 				.imageType("jdk")
 				.features(features)
 				.url(downloadUrl)
-				.download(assetName, download)
+				.filename(assetName)
 				.build();
 	}
 

@@ -2,12 +2,9 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
-import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -50,48 +47,24 @@ public class Jetbrains extends GitHubReleaseScraper {
 			String file = matcher.group("file");
 			String url = matcher.group("url");
 
-			if (!shouldProcessAsset(file)) {
-				continue;
-			}
-
-			if (metadataExists(file)) {
-				allMetadata.add(skipped(file));
-				skip(file);
-				continue;
-			}
-
-			try {
-				JdkMetadata metadata = processAsset(file, url, releaseType, description);
-				if (metadata != null) {
-					saveMetadataFile(metadata);
-					allMetadata.add(metadata);
-					success(file);
-				}
-			} catch (InterruptedProgressException | TooManyFailuresException e) {
-				throw e;
-			} catch (Exception e) {
-				warn("Failed to process " + file + ": " + e.getMessage());
+			JdkMetadata metadata = processAsset(file, url, releaseType, description);
+			if (metadata != null) {
+				allMetadata.add(metadata);
 			}
 		}
 	}
 
-	protected boolean shouldProcessAsset(String assetName) {
-		// Only process files ending in tar.gz, zip, or pkg
-		if (!assetName.matches(".+\\.(tar\\.gz|zip|pkg)$")) {
-			fine("Skipping " + assetName + " (unsupported file type)");
-			return false;
-		}
+	private JdkMetadata processAsset(String assetName, String url, String releaseType, String description) {
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {
 			warn("Skipping " + assetName + " (does not match pattern)");
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(String assetName, String url, String releaseType, String description)
-			throws Exception {
-		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
+		if (metadataExists(assetName)) {
+			return skipped(assetName);
+		}
+
 		matcher.matches();
 		String sdkMarker = matcher.group(1);
 		String versionPart = matcher.group(2).replace("_", ".");
@@ -125,9 +98,6 @@ public class Jetbrains extends GitHubReleaseScraper {
 			os = "linux";
 		}
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, assetName);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(VENDOR)
@@ -141,7 +111,7 @@ public class Jetbrains extends GitHubReleaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.download(assetName, download)
+				.filename(assetName)
 				.build();
 	}
 

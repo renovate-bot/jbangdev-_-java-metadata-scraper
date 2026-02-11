@@ -2,7 +2,6 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
@@ -40,27 +39,21 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
-	@Override
-	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
-		String assetName = asset.get("name").asText();
-		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
-		if (!matcher.matches()) {
-			if (!assetName.endsWith(".sha256") && !assetName.startsWith("maven-resource-bundle-")) {
-				warn("Skipping " + assetName + " (does not match pattern)");
-			}
-			return false;
-		}
-		return true;
-	}
-
-	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) {
 		String assetName = asset.get("name").asText();
 		String downloadUrl = asset.get("browser_download_url").asText();
 
 		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
 		if (!matcher.matches()) {
-			warn("Skipping " + assetName + " (does not match pattern)");
+			if (!assetName.endsWith(".sha256") && !assetName.startsWith("maven-resource-bundle-")) {
+				warn("Skipping " + assetName + " (does not match pattern)");
+			}
 			return null;
+		}
+
+		String metadataFilename = toMetadataFilename(release, asset);
+		if (metadataExists(metadataFilename)) {
+			return skipped(metadataFilename);
 		}
 
 		String javaVersion = matcher.group(1);
@@ -68,9 +61,6 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 		String arch = matcher.group(3);
 		String features = matcher.group(4) != null ? matcher.group(4) : "";
 		String extension = assetName.endsWith(".zip") ? "zip" : "tar.gz";
-
-		// Download and calculate checksums
-		DownloadResult download = downloadFile(downloadUrl, assetName);
 
 		// Create metadata using builder
 		return JdkMetadata.builder()
@@ -85,7 +75,7 @@ public class OracleGraalVmEa extends GitHubReleaseScraper {
 				.imageType("jdk")
 				.features(features.isEmpty() ? null : List.of(features))
 				.url(downloadUrl)
-				.download(assetName, download)
+				.filename(assetName)
 				.build();
 	}
 

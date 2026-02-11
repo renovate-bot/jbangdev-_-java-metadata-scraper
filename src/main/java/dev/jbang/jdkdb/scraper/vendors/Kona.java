@@ -2,7 +2,6 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
@@ -50,23 +49,21 @@ public class Kona extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
-	@Override
-	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) {
 		String assetName = asset.get("name").asText();
+		String downloadUrl = asset.get("browser_download_url").asText();
 		ParsedFilename parsed = parseFilename(assetName);
 		if (parsed == null || parsed.version == null) {
 			if (!assetName.endsWith(".md5") && !assetName.contains("_javadoc.")) {
 				warn("Skipping " + assetName + " (does not match pattern)");
 			}
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
-		String assetName = asset.get("name").asText();
-		String downloadUrl = asset.get("browser_download_url").asText();
-		ParsedFilename parsed = parseFilename(assetName);
+		String metadataFilename = toMetadataFilename(release, asset);
+		if (metadataExists(metadataFilename)) {
+			return skipped(metadataFilename);
+		}
 
 		// Build features list
 		List<String> features = new ArrayList<>();
@@ -82,9 +79,6 @@ public class Kona extends GitHubReleaseScraper {
 		// Determine release type
 		String releaseType = parsed.releaseType != null && parsed.releaseType.equals("ea") ? "ea" : "ga";
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(downloadUrl, assetName);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(VENDOR)
@@ -98,7 +92,7 @@ public class Kona extends GitHubReleaseScraper {
 				.imageType(parsed.imageType)
 				.features(features)
 				.url(downloadUrl)
-				.download(assetName, download)
+				.filename(assetName)
 				.build();
 	}
 

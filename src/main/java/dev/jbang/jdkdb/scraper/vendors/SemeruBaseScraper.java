@@ -2,7 +2,6 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
 import java.util.ArrayList;
@@ -54,62 +53,20 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
-	@Override
-	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+	protected JdkMetadata processAsset(JsonNode release, JsonNode asset) {
 		String tagName = release.get("tag_name").asText();
 		Matcher versionMatcher = versionPattern.matcher(tagName);
 		if (!versionMatcher.matches()) {
 			warn("Skipping release " + tagName + " (tag does not match expected pattern)");
-			return false;
+			return null;
 		}
-		String filename = asset.get("name").asText();
-		String imageType = null;
-		Matcher rpmMatcher = rpmPattern.matcher(filename);
-		if (rpmMatcher.matches()) {
-			imageType = rpmMatcher.group(1);
-		} else {
-			Matcher tarMatcher = tarPattern.matcher(filename);
-			if (tarMatcher.matches()) {
-				imageType = tarMatcher.group(1);
-			}
-		}
-		if (imageType == null) {
-			if (!filename.endsWith(".txt")
-					&& !filename.endsWith(".json")
-					&& !filename.endsWith(".sig")
-					&& !filename.endsWith(".tap.zip")
-					&& !filename.endsWith(".bin")
-					&& !filename.contains("-debugimage_")
-					&& !filename.contains("-testimage_")) {
-				// Only show message for unexpected files
-				warn("Skipping " + filename + " (does not match pattern)");
-			}
-			return false;
-		}
-		String assetName = asset.get("name").asText();
-		if (!assetName.startsWith(getFilenamePrefix())) {
-			warn("Skipping " + assetName + " (does not start with expected prefix)");
-			return false;
-		}
-		return true;
-	}
-
-	protected JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
-		String tagName = release.get("tag_name").asText();
-		Matcher versionMatcher = versionPattern.matcher(tagName);
-		versionMatcher.matches();
-		String parsedJavaVersion = versionMatcher.group(1);
-		String openj9Version = versionMatcher.group(2);
-		String version = parsedJavaVersion + "_openj9-" + openj9Version;
-
-		String filename = asset.get("name").asText();
-		String url = asset.get("browser_download_url").asText();
 
 		String imageType = null;
 		String arch = null;
 		String os = null;
 		String extension = null;
 
+		String filename = asset.get("name").asText();
 		Matcher rpmMatcher = rpmPattern.matcher(filename);
 		if (rpmMatcher.matches()) {
 			imageType = rpmMatcher.group(1);
@@ -118,16 +75,41 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 			extension = "rpm";
 		} else {
 			Matcher tarMatcher = tarPattern.matcher(filename);
-			if (tarMatcher.matches()) {
-				imageType = tarMatcher.group(1);
-				arch = tarMatcher.group(2);
-				os = tarMatcher.group(3);
-				extension = tarMatcher.group(4);
+			if (!tarMatcher.matches()) {
+				if (!filename.endsWith(".txt")
+						&& !filename.endsWith(".json")
+						&& !filename.endsWith(".sig")
+						&& !filename.endsWith(".tap.zip")
+						&& !filename.endsWith(".bin")
+						&& !filename.contains("-debugimage_")
+						&& !filename.contains("-testimage_")) {
+					// Only show message for unexpected files
+					warn("Skipping " + filename + " (does not match pattern)");
+				}
+				return null;
 			}
+			imageType = tarMatcher.group(1);
+			arch = tarMatcher.group(2);
+			os = tarMatcher.group(3);
+			extension = tarMatcher.group(4);
 		}
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
+		String assetName = asset.get("name").asText();
+		if (!assetName.startsWith(getFilenamePrefix())) {
+			warn("Skipping " + assetName + " (does not start with expected prefix)");
+			return null;
+		}
+
+		String metadataFilename = toMetadataFilename(release, asset);
+		if (metadataExists(metadataFilename)) {
+			return skipped(metadataFilename);
+		}
+
+		String parsedJavaVersion = versionMatcher.group(1);
+		String openj9Version = versionMatcher.group(2);
+		String version = parsedJavaVersion + "_openj9-" + openj9Version;
+
+		String url = asset.get("browser_download_url").asText();
 
 		// Build features list
 		List<String> features = new ArrayList<>(getAdditionalFeatures());
@@ -145,7 +127,7 @@ public abstract class SemeruBaseScraper extends GitHubReleaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 }

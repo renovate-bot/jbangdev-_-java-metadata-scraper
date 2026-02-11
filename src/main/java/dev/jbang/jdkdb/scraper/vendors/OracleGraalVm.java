@@ -2,11 +2,9 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import dev.jbang.jdkdb.model.JdkMetadata;
 import dev.jbang.jdkdb.scraper.BaseScraper;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -72,21 +70,12 @@ public class OracleGraalVm extends BaseScraper {
 
 			if (metadataExists(filename)) {
 				allMetadata.add(skipped(filename));
-				skip(filename);
 				continue;
 			}
 
-			try {
-				JdkMetadata jdkMetadata = processAsset(filename, downloadUrl);
-				if (jdkMetadata != null) {
-					saveMetadataFile(jdkMetadata);
-					allMetadata.add(jdkMetadata);
-					success(filename);
-				}
-			} catch (InterruptedProgressException | TooManyFailuresException e) {
-				throw e;
-			} catch (Exception e) {
-				fail(filename, e);
+			JdkMetadata jdkMetadata = processAsset(filename, downloadUrl);
+			if (jdkMetadata != null) {
+				allMetadata.add(jdkMetadata);
 			}
 		}
 
@@ -131,27 +120,9 @@ public class OracleGraalVm extends BaseScraper {
 				String downloadUrl =
 						String.format("https://download.oracle.com/graalvm/%d/archive/%s", majorVersion, filename);
 
-				if (!shouldProcessAsset(filename)) {
-					continue;
-				}
-
-				if (metadataExists(filename)) {
-					allMetadata.add(skipped(filename));
-					skip(filename);
-					continue;
-				}
-
-				try {
-					JdkMetadata jdkMetadata = processAsset(filename, downloadUrl);
-					if (jdkMetadata != null) {
-						saveMetadataFile(jdkMetadata);
-						allMetadata.add(jdkMetadata);
-						success(filename);
-					}
-				} catch (InterruptedProgressException | TooManyFailuresException e) {
-					throw e;
-				} catch (Exception e) {
-					fail(filename, e);
+				JdkMetadata jdkMetadata = processAsset(filename, downloadUrl);
+				if (jdkMetadata != null) {
+					allMetadata.add(jdkMetadata);
 				}
 			}
 		}
@@ -159,24 +130,21 @@ public class OracleGraalVm extends BaseScraper {
 		return allMetadata;
 	}
 
-	protected boolean shouldProcessAsset(String filename) {
+	private JdkMetadata processAsset(String filename, String downloadUrl) {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			warn("Skipping " + filename + " (does not match pattern)");
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(String filename, String downloadUrl) throws Exception {
-		Matcher matcher = FILENAME_PATTERN.matcher(filename);
+		if (metadataExists(filename)) {
+			return skipped(filename);
+		}
+
 		String version = matcher.group(1);
 		String os = matcher.group(2);
 		String arch = matcher.group(3);
 		String extension = matcher.group(4);
-
-		// Download and calculate checksums
-		DownloadResult download = downloadFile(downloadUrl, filename);
 
 		// Create metadata using builder
 		return JdkMetadata.builder()
@@ -190,7 +158,7 @@ public class OracleGraalVm extends BaseScraper {
 				.fileType(extension)
 				.imageType("jdk")
 				.url(downloadUrl)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 

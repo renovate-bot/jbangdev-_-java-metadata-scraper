@@ -49,7 +49,7 @@ public class Redhat extends AdoptiumMarketplaceScraper {
 
 	@Override
 	protected JdkMetadata processAsset(
-			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception {
+			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) {
 		return createStandardMetadata(binary, version, javaVersion, allMetadata, List.of());
 	}
 

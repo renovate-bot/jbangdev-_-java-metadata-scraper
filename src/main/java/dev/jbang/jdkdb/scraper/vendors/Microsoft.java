@@ -5,7 +5,6 @@ import dev.jbang.jdkdb.scraper.BaseScraper;
 import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -49,27 +48,9 @@ public class Microsoft extends BaseScraper {
 
 		try {
 			for (var filename : files) {
-				if (!shouldProcessAsset(filename)) {
-					continue;
-				}
-
-				if (metadataExists(filename)) {
-					allMetadata.add(skipped(filename));
-					skip(filename);
-					continue;
-				}
-
-				try {
-					var metadata = processAsset(filename);
-					if (metadata != null) {
-						saveMetadataFile(metadata);
-						allMetadata.add(metadata);
-						success(filename);
-					}
-				} catch (InterruptedProgressException | TooManyFailuresException e) {
-					throw e;
-				} catch (Exception e) {
-					fail(filename, e);
+				var metadata = processAsset(filename);
+				if (metadata != null) {
+					allMetadata.add(metadata);
 				}
 			}
 		} catch (InterruptedProgressException e) {
@@ -79,20 +60,19 @@ public class Microsoft extends BaseScraper {
 		return allMetadata;
 	}
 
-	protected boolean shouldProcessAsset(String filename) {
+	private JdkMetadata processAsset(String filename) {
 		var matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			if (!filename.contains("-debugsymbols-")) {
 				warn("Skipping " + filename + " (does not match pattern)");
 			}
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(String filename) throws Exception {
-		var matcher = FILENAME_PATTERN.matcher(filename);
-		matcher.matches();
+		if (metadataExists(filename)) {
+			return skipped(filename);
+		}
+
 		var version = matcher.group(1);
 		var os = matcher.group(2);
 		var arch = matcher.group(3);
@@ -102,9 +82,6 @@ public class Microsoft extends BaseScraper {
 
 		// Determine release type (aarch64 is EA for Microsoft)
 		var releaseType = arch.equals("aarch64") ? "ea" : "ga";
-
-		// Download file and compute hashes
-		var download = downloadFile(url, filename);
 
 		// Create metadata using builder
 		return JdkMetadata.builder()
@@ -118,7 +95,7 @@ public class Microsoft extends BaseScraper {
 				.fileType(extension)
 				.imageType("jdk")
 				.url(url)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 

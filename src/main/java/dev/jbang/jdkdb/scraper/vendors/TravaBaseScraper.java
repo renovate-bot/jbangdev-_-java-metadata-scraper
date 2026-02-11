@@ -2,7 +2,6 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
 import java.util.List;
@@ -32,42 +31,37 @@ public abstract class TravaBaseScraper extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
-	@Override
-	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset) {
 		// Skip source files and jar files
 		String assetName = asset.get("name").asText();
 		if (assetName.contains("_source") || assetName.endsWith(".jar")) {
-			return false;
+			return null;
 		}
 		String contentType = asset.path("content_type").asText("");
 		if (!contentType.startsWith("application")) {
-			return false;
+			return null;
 		}
 		Matcher matcher = getFilenamePattern().matcher(assetName);
 		if (!matcher.matches()) {
 			warn("Skipping " + assetName + " (does not match pattern)");
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+		String metadataFilename = toMetadataFilename(release, asset);
+		if (metadataExists(metadataFilename)) {
+			return skipped(metadataFilename);
+		}
+
 		String tagName = release.get("tag_name").asText();
 		String version = extractVersion(tagName);
-		String assetName = asset.get("name").asText();
 
 		Matcher filenameMatcher = getFilenamePattern().matcher(assetName);
 		String os = filenameMatcher.group(1);
 		String arch = extractArch(filenameMatcher);
 		String ext = extractExtension(filenameMatcher);
 
-		String metadataFilename = toMetadataFilename(release, asset);
-
 		String url = String.format(
 				"https://github.com/%s/%s/releases/download/%s/%s", getGitHubOrg(), getRepo(), tagName, assetName);
-
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, metadataFilename);
 
 		// Create metadata using builder
 		return JdkMetadata.builder()
@@ -81,7 +75,7 @@ public abstract class TravaBaseScraper extends GitHubReleaseScraper {
 				.fileType(ext)
 				.imageType("jdk")
 				.url(url)
-				.download(metadataFilename, download)
+				.filename(metadataFilename)
 				.build();
 	}
 

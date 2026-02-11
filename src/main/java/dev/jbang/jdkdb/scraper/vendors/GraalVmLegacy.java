@@ -2,7 +2,6 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
@@ -47,37 +46,23 @@ public class GraalVmLegacy extends GitHubReleaseScraper {
 		processReleaseAssets(allMetadata, release, this::processAsset);
 	}
 
-	@Override
-	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
-		String assetName = asset.get("name").asText();
-		if (!assetName.startsWith("graalvm-ce")) {
-			fine("Skipping " + assetName + " (non-GraalVM CE asset)");
-			return false;
-		}
-		// Try RC pattern first
-		Matcher rcMatcher = RC_PATTERN.matcher(assetName);
-		if (!rcMatcher.matches()) {
-			// Try regular pattern
-			Matcher regularMatcher = REGULAR_PATTERN.matcher(assetName);
-			if (!regularMatcher.matches()) {
-				warn("Skipping " + assetName + " (does not match pattern)");
-				return false;
-			}
-		}
-		return true;
-	}
-
-	protected JdkMetadata processAsset(JsonNode release, JsonNode asset) throws Exception {
+	protected JdkMetadata processAsset(JsonNode release, JsonNode asset) {
 		String assetName = asset.get("name").asText();
 		String tagName = release.get("tag_name").asText();
 
-		String releaseType;
+		if (!assetName.startsWith("graalvm-ce")) {
+			fine("Skipping " + assetName + " (non-GraalVM CE asset)");
+			return null;
+		}
+
+		// Try RC pattern first
+		String releaseType = null;
 		String os;
 		String arch;
 		String version;
 		String ext;
 
-		// Try RC pattern first
+		// Check RC pattern again for data extraction
 		Matcher rcMatcher = RC_PATTERN.matcher(assetName);
 		if (rcMatcher.matches()) {
 			releaseType = "ea";
@@ -88,6 +73,10 @@ public class GraalVmLegacy extends GitHubReleaseScraper {
 		} else {
 			// Try regular pattern
 			Matcher regularMatcher = REGULAR_PATTERN.matcher(assetName);
+			if (!regularMatcher.matches()) {
+				warn("Skipping " + assetName + " (does not match pattern)");
+				return null;
+			}
 			// Check if it's a dev build
 			releaseType = assetName.contains("dev-b") ? "ea" : "ga";
 			os = regularMatcher.group(1);
@@ -96,11 +85,13 @@ public class GraalVmLegacy extends GitHubReleaseScraper {
 			ext = regularMatcher.group(4);
 		}
 
+		String metadataFilename = toMetadataFilename(release, asset);
+		if (metadataExists(metadataFilename)) {
+			return skipped(metadataFilename);
+		}
+
 		String url = String.format(
 				"https://github.com/%s/%s/releases/download/%s/%s", GITHUB_ORG, GITHUB_REPO, tagName, assetName);
-
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, assetName);
 
 		// Create metadata
 		return JdkMetadata.builder()
@@ -114,7 +105,7 @@ public class GraalVmLegacy extends GitHubReleaseScraper {
 				.fileType(ext)
 				.imageType("jdk")
 				.url(url)
-				.download(assetName, download)
+				.filename(assetName)
 				.build();
 	}
 

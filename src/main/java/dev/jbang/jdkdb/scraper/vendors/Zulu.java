@@ -2,11 +2,9 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import dev.jbang.jdkdb.model.JdkMetadata;
 import dev.jbang.jdkdb.scraper.BaseScraper;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -51,27 +49,9 @@ public class Zulu extends BaseScraper {
 
 		try {
 			for (String filename : files) {
-				if (!shouldProcessAsset(filename)) {
-					continue;
-				}
-
-				if (metadataExists(filename)) {
-					allMetadata.add(skipped(filename));
-					skip(filename);
-					continue;
-				}
-
-				try {
-					JdkMetadata metadata = processAsset(filename);
-					if (metadata != null) {
-						saveMetadataFile(metadata);
-						allMetadata.add(metadata);
-						success(filename);
-					}
-				} catch (InterruptedProgressException | TooManyFailuresException e) {
-					throw e;
-				} catch (Exception e) {
-					fail(filename, e);
+				JdkMetadata metadata = processAsset(filename);
+				if (metadata != null) {
+					allMetadata.add(metadata);
 				}
 			}
 		} catch (InterruptedProgressException e) {
@@ -81,20 +61,19 @@ public class Zulu extends BaseScraper {
 		return allMetadata;
 	}
 
-	protected boolean shouldProcessAsset(String filename) {
+	private JdkMetadata processAsset(String filename) {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			if (!filename.contains("-dbg-")) {
 				warn("Skipping " + filename + " (does not match pattern)");
 			}
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(String filename) throws Exception {
-		Matcher matcher = FILENAME_PATTERN.matcher(filename);
-		matcher.matches();
+		if (metadataExists(filename)) {
+			return skipped(filename);
+		}
+
 		String version = matcher.group(1);
 		String releaseTypeStr = matcher.group(2) != null ? matcher.group(2) : "";
 		String imageType = matcher.group(3);
@@ -123,9 +102,6 @@ public class Zulu extends BaseScraper {
 			arch = "x64";
 		}
 
-		// Download and compute hashes
-		DownloadResult download = downloadFile(url, filename);
-
 		// Create metadata using builder
 		return JdkMetadata.builder()
 				.vendor(VENDOR)
@@ -139,7 +115,7 @@ public class Zulu extends BaseScraper {
 				.imageType(imageType)
 				.features(features)
 				.url(url)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 

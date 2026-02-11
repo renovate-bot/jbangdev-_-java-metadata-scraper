@@ -25,11 +25,6 @@ public abstract class GitHubReleaseScraper extends BaseScraper {
 	/** Process a single release and extract metadata */
 	protected abstract void processRelease(List<JdkMetadata> allMetadata, JsonNode release) throws Exception;
 
-	protected boolean shouldProcessAsset(JsonNode release, JsonNode asset) {
-		// By default, process all assets
-		return true;
-	}
-
 	/** Return metadata filename based on asset name */
 	protected String toMetadataFilename(JsonNode release, JsonNode asset) {
 		return asset.get("name").asText();
@@ -42,37 +37,17 @@ public abstract class GitHubReleaseScraper extends BaseScraper {
 	 * @param release The GitHub release JSON node
 	 * @param assetProcessor Function to process each asset, returns null to skip the asset
 	 */
-	protected void processReleaseAssets(List<JdkMetadata> allMetadata, JsonNode release, AssetProcessor assetProcessor)
-			throws Exception {
+	protected void processReleaseAssets(
+			List<JdkMetadata> allMetadata, JsonNode release, AssetProcessor assetProcessor) {
 		JsonNode assets = release.get("assets");
 		if (assets == null || !assets.isArray()) {
 			return;
 		}
 
 		for (JsonNode asset : assets) {
-			if (!shouldProcessAsset(release, asset)) {
-				continue;
-			}
-
-			String assetName = asset.get("name").asText();
-			String metadataFilename = toMetadataFilename(release, asset);
-			if (metadataExists(metadataFilename)) {
-				allMetadata.add(skipped(metadataFilename));
-				skip(metadataFilename);
-				continue;
-			}
-
-			try {
-				JdkMetadata metadata = assetProcessor.process(release, asset);
-				if (metadata != null) {
-					saveMetadataFile(metadata);
-					allMetadata.add(metadata);
-					success(assetName);
-				}
-			} catch (InterruptedProgressException | TooManyFailuresException e) {
-				throw e;
-			} catch (Exception e) {
-				fail(assetName, e);
+			JdkMetadata metadata = assetProcessor.process(release, asset);
+			if (metadata != null) {
+				allMetadata.add(metadata);
 			}
 		}
 	}
@@ -107,7 +82,7 @@ public abstract class GitHubReleaseScraper extends BaseScraper {
 	 */
 	@FunctionalInterface
 	protected interface AssetProcessor {
-		JdkMetadata process(JsonNode release, JsonNode asset) throws Exception;
+		JdkMetadata process(JsonNode release, JsonNode asset);
 	}
 
 	@Override

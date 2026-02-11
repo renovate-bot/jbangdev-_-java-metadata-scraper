@@ -48,7 +48,7 @@ public class AdoptOpenJdk extends AdoptiumMarketplaceScraper {
 
 	@Override
 	protected JdkMetadata processAsset(
-			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception {
+			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) {
 
 		String heapSize = binary.path("heap_size").asText();
 		String os = binary.path("os").asText();

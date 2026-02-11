@@ -3,11 +3,9 @@ package dev.jbang.jdkdb.scraper.vendors;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
 import dev.jbang.jdkdb.scraper.BaseScraper;
-import dev.jbang.jdkdb.scraper.DownloadResult;
 import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
-import dev.jbang.jdkdb.scraper.TooManyFailuresException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -92,23 +90,9 @@ public class Oracle extends BaseScraper {
 					String downloadUrl = artifact.get("downloadUrl").asText();
 					String filename = downloadUrl.substring(downloadUrl.lastIndexOf('/') + 1);
 
-					if (metadataExists(filename)) {
-						allMetadata.add(skipped(filename));
-						skip(filename);
-						continue;
-					}
-
-					try {
-						JdkMetadata jdkMetadata = processAsset(filename, downloadUrl);
-						if (jdkMetadata != null) {
-							saveMetadataFile(jdkMetadata);
-							allMetadata.add(jdkMetadata);
-							success(filename);
-						}
-					} catch (InterruptedProgressException | TooManyFailuresException e) {
-						throw e;
-					} catch (Exception e) {
-						fail(filename, e);
+					JdkMetadata jdkMetadata = processAsset(filename, downloadUrl);
+					if (jdkMetadata != null) {
+						allMetadata.add(jdkMetadata);
 					}
 				}
 			}
@@ -138,51 +122,30 @@ public class Oracle extends BaseScraper {
 			String downloadUrl = matcher.group(1);
 			String filename = matcher.group(2);
 
-			if (!shouldProcessAsset(filename)) {
-				continue;
-			}
-
-			if (metadataExists(filename)) {
-				allMetadata.add(skipped(filename));
-				skip(filename);
-				continue;
-			}
-
-			try {
-				JdkMetadata jdkMetadata = processAsset(filename, downloadUrl);
-				if (jdkMetadata != null) {
-					saveMetadataFile(jdkMetadata);
-					allMetadata.add(jdkMetadata);
-					success(filename);
-				}
-			} catch (InterruptedProgressException | TooManyFailuresException e) {
-				throw e;
-			} catch (Exception e) {
-				fail(filename, e);
+			JdkMetadata jdkMetadata = processAsset(filename, downloadUrl);
+			if (jdkMetadata != null) {
+				allMetadata.add(jdkMetadata);
 			}
 		}
 
 		return allMetadata;
 	}
 
-	protected boolean shouldProcessAsset(String filename) {
+	private JdkMetadata processAsset(String filename, String downloadUrl) {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		if (!matcher.matches()) {
 			warn("Skipping " + filename + " (does not match pattern)");
-			return false;
+			return null;
 		}
-		return true;
-	}
 
-	private JdkMetadata processAsset(String filename, String downloadUrl) throws Exception {
-		Matcher matcher = FILENAME_PATTERN.matcher(filename);
+		if (metadataExists(filename)) {
+			return skipped(filename);
+		}
+
 		String version = matcher.group(1);
 		String os = matcher.group(2);
 		String arch = matcher.group(3);
 		String extension = matcher.group(4);
-
-		// Download and calculate checksums
-		DownloadResult download = downloadFile(downloadUrl, filename);
 
 		// Create metadata using builder
 		return JdkMetadata.builder()
@@ -196,7 +159,7 @@ public class Oracle extends BaseScraper {
 				.fileType(extension)
 				.imageType("jdk")
 				.url(downloadUrl)
-				.download(filename, download)
+				.filename(filename)
 				.build();
 	}
 

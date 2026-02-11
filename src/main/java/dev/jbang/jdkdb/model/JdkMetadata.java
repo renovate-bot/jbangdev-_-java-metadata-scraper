@@ -383,4 +383,23 @@ public class JdkMetadata {
 	public void setMetadataFilename(String metadataFilename) {
 		this.metadataFilename = metadataFilename;
 	}
+
+	/**
+	 * Update this metadata with download information (checksums and size)
+	 *
+	 * @param downloadResult the download result containing checksums and size
+	 * @return this metadata instance for chaining
+	 */
+	public JdkMetadata download(DownloadResult downloadResult) {
+		this.md5 = downloadResult.md5();
+		this.md5File = this.filename + ".md5";
+		this.sha1 = downloadResult.sha1();
+		this.sha1File = this.filename + ".sha1";
+		this.sha256 = downloadResult.sha256();
+		this.sha256File = this.filename + ".sha256";
+		this.sha512 = downloadResult.sha512();
+		this.sha512File = this.filename + ".sha512";
+		this.size = downloadResult.size();
+		return this;
+	}
 }
