@@ -95,7 +95,7 @@ public class Debian extends BaseScraper {
 			}
 
 			try {
-				JdkMetadata metadata = processDebianPackage(filename, cdnUrl);
+				JdkMetadata metadata = processAsset(filename, cdnUrl);
 				if (metadata != null) {
 					saveMetadataFile(metadata);
 					allMetadata.add(metadata);
@@ -127,7 +127,7 @@ public class Debian extends BaseScraper {
 		return true;
 	}
 
-	private JdkMetadata processDebianPackage(String filename, String cdnUrl) throws Exception {
+	private JdkMetadata processAsset(String filename, String cdnUrl) throws Exception {
 		// Extract information from the filename
 		Matcher matcher = DEB_PKG_PATTERN.matcher(filename);
 		matcher.matches();

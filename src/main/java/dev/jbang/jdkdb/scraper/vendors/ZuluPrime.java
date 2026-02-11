@@ -61,7 +61,7 @@ public class ZuluPrime extends BaseScraper {
 				}
 
 				try {
-					JdkMetadata metadata = processFile(filename, url);
+					JdkMetadata metadata = processAsset(filename, url);
 					if (metadata != null) {
 						saveMetadataFile(metadata);
 						allMetadata.add(metadata);
@@ -89,7 +89,7 @@ public class ZuluPrime extends BaseScraper {
 		return true;
 	}
 
-	private JdkMetadata processFile(String filename, String url) throws Exception {
+	private JdkMetadata processAsset(String filename, String url) throws Exception {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		String version = matcher.group(1);
 		String buildNumber = matcher.group(2);

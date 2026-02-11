@@ -60,7 +60,7 @@ public class Microsoft extends BaseScraper {
 				}
 
 				try {
-					var metadata = processFile(filename);
+					var metadata = processAsset(filename);
 					if (metadata != null) {
 						saveMetadataFile(metadata);
 						allMetadata.add(metadata);
@@ -90,7 +90,7 @@ public class Microsoft extends BaseScraper {
 		return true;
 	}
 
-	private JdkMetadata processFile(String filename) throws Exception {
+	private JdkMetadata processAsset(String filename) throws Exception {
 		var matcher = FILENAME_PATTERN.matcher(filename);
 		matcher.matches();
 		var version = matcher.group(1);

@@ -48,7 +48,7 @@ public class Bisheng extends AdoptiumMarketplaceScraper {
 	}
 
 	@Override
-	protected JdkMetadata processBinary(
+	protected JdkMetadata processAsset(
 			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception {
 		return createStandardMetadata(binary, version, javaVersion, allMetadata, List.of());
 	}

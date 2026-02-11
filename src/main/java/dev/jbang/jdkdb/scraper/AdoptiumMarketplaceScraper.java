@@ -54,7 +54,7 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 	 * @return the JdkMetadata object, or null if not processed
 	 * @throws Exception on processing errors
 	 */
-	protected abstract JdkMetadata processBinary(
+	protected abstract JdkMetadata processAsset(
 			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception;
 
 	@Override
@@ -151,7 +151,7 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 					}
 
 					try {
-						JdkMetadata metadata = processBinary(binary, version, javaVersion, allMetadata);
+						JdkMetadata metadata = processAsset(binary, version, javaVersion, allMetadata);
 						if (metadata != null) {
 							saveMetadataFile(metadata);
 							allMetadata.add(metadata);

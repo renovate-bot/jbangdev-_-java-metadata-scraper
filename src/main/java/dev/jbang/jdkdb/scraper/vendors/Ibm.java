@@ -92,7 +92,7 @@ public class Ibm extends BaseScraper {
 						}
 
 						try {
-							JdkMetadata metadata = processFile(ibmFile, jdkVersion, architecture, allMetadata);
+							JdkMetadata metadata = processAsset(ibmFile, jdkVersion, architecture, allMetadata);
 							if (metadata != null) {
 								saveMetadataFile(metadata);
 								allMetadata.add(metadata);
@@ -129,7 +129,7 @@ public class Ibm extends BaseScraper {
 		}
 	}
 
-	private JdkMetadata processFile(
+	private JdkMetadata processAsset(
 			String ibmFile, String jdkVersion, String architecture, List<JdkMetadata> allMetadata) throws Exception {
 
 		String fileType;

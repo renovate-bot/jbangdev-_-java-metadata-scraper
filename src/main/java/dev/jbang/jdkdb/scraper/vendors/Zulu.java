@@ -62,7 +62,7 @@ public class Zulu extends BaseScraper {
 				}
 
 				try {
-					JdkMetadata metadata = processFile(filename);
+					JdkMetadata metadata = processAsset(filename);
 					if (metadata != null) {
 						saveMetadataFile(metadata);
 						allMetadata.add(metadata);
@@ -92,7 +92,7 @@ public class Zulu extends BaseScraper {
 		return true;
 	}
 
-	private JdkMetadata processFile(String filename) throws Exception {
+	private JdkMetadata processAsset(String filename) throws Exception {
 		Matcher matcher = FILENAME_PATTERN.matcher(filename);
 		matcher.matches();
 		String version = matcher.group(1);

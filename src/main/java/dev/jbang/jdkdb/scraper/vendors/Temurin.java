@@ -111,7 +111,7 @@ public class Temurin extends BaseScraper {
 					}
 
 					try {
-						JdkMetadata metadata = processBinary(binary, version, javaVersion, allMetadata);
+						JdkMetadata metadata = processAsset(binary, version, javaVersion, allMetadata);
 						if (metadata != null) {
 							saveMetadataFile(metadata);
 							allMetadata.add(metadata);
@@ -142,8 +142,8 @@ public class Temurin extends BaseScraper {
 		return true;
 	}
 
-	private JdkMetadata processBinary(
-			JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata) throws Exception {
+	private JdkMetadata processAsset(JsonNode binary, String version, String javaVersion, List<JdkMetadata> allMetadata)
+			throws Exception {
 		String imageType = binary.path("image_type").asText();
 		JsonNode packageNode = binary.get("package");
 		String filename = packageNode.path("name").asText();
