@@ -18,18 +18,21 @@ class ScraperFactoryTest {
 	private Path metadataDir;
 	private Path checksumDir;
 	private ProgressReporter reporter;
+	private DownloadManager downloadManager;
 
 	@BeforeEach
 	void setUp() {
 		metadataDir = tempDir.resolve("metadata");
 		checksumDir = tempDir.resolve("checksums");
 		reporter = new ProgressReporter();
+		downloadManager = new DummyDownloadManager();
 	}
 
 	@Test
 	void testCreateScraperFactory() {
 		// When
-		ScraperFactory factory = ScraperFactory.create(metadataDir, checksumDir, reporter, false, 10, 0);
+		ScraperFactory factory =
+				ScraperFactory.create(metadataDir, checksumDir, reporter, false, 10, 0, downloadManager);
 
 		// Then
 		assertThat(factory).isNotNull();
@@ -50,7 +53,8 @@ class ScraperFactoryTest {
 	@Test
 	void testCreateAllScrapers() {
 		// Given
-		ScraperFactory factory = ScraperFactory.create(metadataDir, checksumDir, reporter, false, 10, 0);
+		ScraperFactory factory =
+				ScraperFactory.create(metadataDir, checksumDir, reporter, false, 10, 0, downloadManager);
 
 		// When
 		List<Scraper> scrapers = factory.createAllScrapers();
@@ -65,7 +69,8 @@ class ScraperFactoryTest {
 	@Test
 	void testCreateSpecificScraper() {
 		// Given
-		ScraperFactory factory = ScraperFactory.create(metadataDir, checksumDir, reporter, false, 10, 0);
+		ScraperFactory factory =
+				ScraperFactory.create(metadataDir, checksumDir, reporter, false, 10, 0, downloadManager);
 
 		// When
 		Scraper scraper = factory.createScraper("dummy");
@@ -78,7 +83,8 @@ class ScraperFactoryTest {
 	@Test
 	void testCreateScraperWithInvalidName() {
 		// Given
-		ScraperFactory factory = ScraperFactory.create(metadataDir, checksumDir, reporter, false, 10, 0);
+		ScraperFactory factory =
+				ScraperFactory.create(metadataDir, checksumDir, reporter, false, 10, 0, downloadManager);
 
 		// When/Then
 		assertThatThrownBy(() -> factory.createScraper("non-existent-scraper"))
@@ -95,8 +101,8 @@ class ScraperFactoryTest {
 				reporter,
 				true, // fromStart
 				5, // maxFailureCount
-				100 // limitProgress
-				);
+				100, // limitProgress
+				downloadManager);
 
 		// When
 		Scraper scraper = factory.createScraper("dummy");
@@ -112,7 +118,8 @@ class ScraperFactoryTest {
 	@Test
 	void testFactoryCreatesScrapersWithVendorDirectories() throws Exception {
 		// Given
-		ScraperFactory factory = ScraperFactory.create(metadataDir, checksumDir, reporter, false, 10, 0);
+		ScraperFactory factory =
+				ScraperFactory.create(metadataDir, checksumDir, reporter, false, 10, 0, downloadManager);
 
 		// When
 		Scraper scraper = factory.createScraper("dummy");

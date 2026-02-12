@@ -219,6 +219,7 @@ class BaseScraperTest {
 			@Override
 			public void fail(String message, Exception error) {}
 		};
+		DownloadManager downloadManager = new DummyDownloadManager();
 		ScraperConfig config = new ScraperConfig(
 				tempDir.resolve("metadata"),
 				tempDir.resolve("checksums"),
@@ -226,7 +227,8 @@ class BaseScraperTest {
 				LoggerFactory.getLogger("test"),
 				false,
 				10,
-				0);
+				0,
+				downloadManager);
 		return new DummyScraper(config);
 	}
 }

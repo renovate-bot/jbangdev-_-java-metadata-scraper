@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 
 /**
  * Configuration record for scraper instances. Encapsulates the metadata directory, checksum
- * directory, logger, and whether to ignore existing metadata files.
+ * directory, logger, download manager, and whether to ignore existing metadata files.
  */
 public record ScraperConfig(
 		Path metadataDir,
@@ -14,4 +14,5 @@ public record ScraperConfig(
 		Logger logger,
 		boolean fromStart,
 		int maxFailureCount,
-		int limitProgress) {}
+		int limitProgress,
+		DownloadManager downloadManager) {}

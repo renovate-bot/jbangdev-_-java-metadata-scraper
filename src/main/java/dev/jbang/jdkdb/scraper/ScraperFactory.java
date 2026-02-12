@@ -13,6 +13,7 @@ public class ScraperFactory {
 	private final boolean fromStart;
 	private final int maxFailureCount;
 	private final int limitProgress;
+	private final DownloadManager downloadManager;
 
 	public static ScraperFactory create(
 			Path metadataDir,
@@ -20,8 +21,10 @@ public class ScraperFactory {
 			ProgressReporter reporter,
 			boolean fromStart,
 			int maxFailureCount,
-			int limitProgress) {
-		return new ScraperFactory(metadataDir, checksumDir, reporter, fromStart, maxFailureCount, limitProgress);
+			int limitProgress,
+			DownloadManager downloadManager) {
+		return new ScraperFactory(
+				metadataDir, checksumDir, reporter, fromStart, maxFailureCount, limitProgress, downloadManager);
 	}
 
 	private ScraperFactory(
@@ -30,13 +33,15 @@ public class ScraperFactory {
 			ProgressReporter reporter,
 			boolean fromStart,
 			int maxFailureCount,
-			int limitProgress) {
+			int limitProgress,
+			DownloadManager downloadManager) {
 		this.metadataDir = metadataDir;
 		this.checksumDir = checksumDir;
 		this.reporter = reporter;
 		this.fromStart = fromStart;
 		this.maxFailureCount = maxFailureCount;
 		this.limitProgress = limitProgress;
+		this.downloadManager = downloadManager;
 	}
 
 	/** Create all available scrapers using ServiceLoader */
@@ -57,7 +62,8 @@ public class ScraperFactory {
 					LoggerFactory.getLogger("vendors." + name),
 					fromStart,
 					maxFailureCount,
-					limitProgress);
+					limitProgress,
+					downloadManager);
 
 			Scraper scraper = discovery.create(config);
 			scrapers.add(scraper);
@@ -80,7 +86,8 @@ public class ScraperFactory {
 					LoggerFactory.getLogger("vendors." + scraperName),
 					fromStart,
 					maxFailureCount,
-					limitProgress);
+					limitProgress,
+					downloadManager);
 			return discovery.create(config);
 		} else {
 			throw new IllegalArgumentException("Unknown scraper ID: " + scraperName);

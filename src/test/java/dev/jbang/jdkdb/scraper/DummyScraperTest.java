@@ -32,10 +32,13 @@ class DummyScraperTest {
 		public void fail(String message, Exception error) {}
 	};
 
+	private DownloadManager downloadManager;
+
 	@BeforeEach
 	void setUp() {
 		metadataDir = tempDir.resolve("metadata");
 		checksumDir = tempDir.resolve("checksums");
+		downloadManager = new DummyDownloadManager();
 		config = new ScraperConfig(
 				metadataDir,
 				checksumDir,
@@ -43,8 +46,8 @@ class DummyScraperTest {
 				LoggerFactory.getLogger("test"),
 				false, // fromStart
 				10, // maxFailureCount
-				0 // limitProgress (unlimited)
-				);
+				0, // limitProgress (unlimited)
+				downloadManager);
 	}
 
 	@Test
@@ -61,6 +64,60 @@ class DummyScraperTest {
 		assertThat(result.success()).isTrue();
 		assertThat(result.itemsProcessed()).isEqualTo(3);
 		assertThat(result.error()).isNull();
+	}
+
+	@Test
+	void testScraperSubmitsDownloadsToDownloadManager() {
+		// Given - create metadata without download results (no md5 set)
+		DummyDownloadManager testDownloadManager = new DummyDownloadManager();
+		ScraperConfig testConfig = new ScraperConfig(
+				metadataDir, checksumDir, progress, LoggerFactory.getLogger("test"), false, 10, 0, testDownloadManager);
+
+		List<JdkMetadata> metadata = new ArrayList<>();
+		for (int i = 0; i < 3; i++) {
+			JdkMetadata meta = JdkMetadata.create()
+					.vendor("test-vendor")
+					.releaseType("ga")
+					.version("17.0." + i)
+					.javaVersion("17")
+					.os("linux")
+					.arch("x86_64")
+					.fileType("tar.gz")
+					.imageType("jdk")
+					.url("https://example.com/jdk-" + i + ".tar.gz")
+					.filename("test-jdk-" + i + ".tar.gz");
+			// Don't set download() - these should be submitted to download manager
+			metadata.add(meta);
+		}
+
+		DummyScraper scraper = new DummyScraper(testConfig, metadata);
+
+		// When
+		scraper.call();
+
+		// Then
+		assertThat(testDownloadManager.getSubmittedCount()).isEqualTo(3);
+		assertThat(testDownloadManager.getSubmittedDownloads())
+				.hasSize(3)
+				.allMatch(d -> d.metadata().url() != null)
+				.allMatch(d -> d.metadata().filename() != null);
+	}
+
+	@Test
+	void testScraperSkipsAlreadyDownloadedFiles() {
+		// Given - create metadata WITH download results (md5 already set)
+		DummyDownloadManager testDownloadManager = new DummyDownloadManager();
+		ScraperConfig testConfig = new ScraperConfig(
+				metadataDir, checksumDir, progress, LoggerFactory.getLogger("test"), false, 10, 0, testDownloadManager);
+
+		List<JdkMetadata> metadata = createTestMetadata(3); // These have download() already set
+		DummyScraper scraper = new DummyScraper(testConfig, metadata);
+
+		// When
+		scraper.call();
+
+		// Then - should NOT submit to download manager since they already have checksums
+		assertThat(testDownloadManager.getSubmittedCount()).isEqualTo(0);
 	}
 
 	@Test
@@ -112,8 +169,14 @@ class DummyScraperTest {
 	void testScraperWithProgressLimit() {
 		// Given
 		ScraperConfig limitedConfig = new ScraperConfig(
-				metadataDir, checksumDir, progress, LoggerFactory.getLogger("test"), false, 10, 2 // limit to 2 items
-				);
+				metadataDir,
+				checksumDir,
+				progress,
+				LoggerFactory.getLogger("test"),
+				false,
+				10,
+				2, // limit to 2 items
+				downloadManager);
 		List<JdkMetadata> metadata = createTestMetadata(5);
 
 		// Create a scraper that tracks progress
@@ -138,7 +201,8 @@ class DummyScraperTest {
 				LoggerFactory.getLogger("test"),
 				false,
 				2, // max 2 failures
-				0);
+				0,
+				downloadManager);
 
 		DummyScraper scraper = new DummyScraper(limitedConfig) {
 			@Override
@@ -177,7 +241,8 @@ class DummyScraperTest {
 				LoggerFactory.getLogger("test"),
 				false, // fromStart = false
 				10,
-				0);
+				0,
+				downloadManager);
 
 		DummyScraper scraper = new DummyScraper(configNoFromStart);
 
@@ -201,7 +266,8 @@ class DummyScraperTest {
 				LoggerFactory.getLogger("test"),
 				true, // fromStart = true
 				10,
-				0);
+				0,
+				downloadManager);
 
 		DummyScraper scraper = new DummyScraper(configFromStart);
 

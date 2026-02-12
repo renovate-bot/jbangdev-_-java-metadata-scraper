@@ -3,7 +3,6 @@ package dev.jbang.jdkdb.scraper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.util.HashUtils;
 import dev.jbang.jdkdb.util.HttpUtils;
 import dev.jbang.jdkdb.util.MetadataUtils;
 import java.io.IOException;
@@ -23,6 +22,7 @@ public abstract class BaseScraper implements Scraper {
 	protected final boolean fromStart;
 	protected final int maxFailureCount;
 	protected final int limitProgress;
+	protected final DownloadManager downloadManager;
 
 	private List<JdkMetadata> allMetadata = new ArrayList<>();
 	private int failureCount = 0;
@@ -37,6 +37,7 @@ public abstract class BaseScraper implements Scraper {
 		this.fromStart = config.fromStart();
 		this.maxFailureCount = config.maxFailureCount();
 		this.limitProgress = config.limitProgress();
+		this.downloadManager = config.downloadManager();
 		this.httpUtils = new HttpUtils();
 	}
 
@@ -129,19 +130,14 @@ public abstract class BaseScraper implements Scraper {
 			return;
 		}
 
-		// Download and process the file
+		// Submit to download manager for parallel download
 		try {
 			String url = metadata.url();
 			if (url != null) {
-				DownloadResult download = downloadFile(url, filename);
-				metadata.download(download);
-				saveMetadataFile(metadata);
-				success(filename);
+				downloadManager.submit(metadata, this);
 			}
-		} catch (InterruptedProgressException | TooManyFailuresException e) {
-			throw e; // Rethrow to be handled at a higher level
 		} catch (Exception e) {
-			fail("Failed to download " + filename, e);
+			fail("Failed to submit download for " + filename, e);
 		}
 	}
 
@@ -173,42 +169,6 @@ public abstract class BaseScraper implements Scraper {
 			metadataFilename += ".json";
 		}
 		return JdkMetadata.create().metadataFilename(metadataFilename);
-	}
-
-	/** Download a file and compute its hashes */
-	protected DownloadResult downloadFile(String url, String filename) throws IOException, InterruptedException {
-		Path tempFile = Files.createTempFile("jdk-metadata-", "-" + filename);
-
-		try {
-			log("Downloading " + filename);
-			httpUtils.downloadFile(url, tempFile);
-
-			long size = Files.size(tempFile);
-
-			// Compute hashes
-			log("Computing hashes for " + filename);
-			String md5 = HashUtils.computeHash(tempFile, "MD5");
-			String sha1 = HashUtils.computeHash(tempFile, "SHA-1");
-			String sha256 = HashUtils.computeHash(tempFile, "SHA-256");
-			String sha512 = HashUtils.computeHash(tempFile, "SHA-512");
-
-			// Save checksum files
-			saveChecksumFile(filename, "md5", md5);
-			saveChecksumFile(filename, "sha1", sha1);
-			saveChecksumFile(filename, "sha256", sha256);
-			saveChecksumFile(filename, "sha512", sha512);
-
-			return new DownloadResult(md5, sha1, sha256, sha512, size);
-
-		} finally {
-			Files.deleteIfExists(tempFile);
-		}
-	}
-
-	/** Save checksum to file */
-	private void saveChecksumFile(String filename, String algorithm, String checksum) throws IOException {
-		Path checksumFile = checksumDir.resolve(filename + "." + algorithm);
-		Files.writeString(checksumFile, checksum + "  " + filename + "\n");
 	}
 
 	/** Normalize OS name */

@@ -2,6 +2,7 @@ package dev.jbang.jdkdb;
 
 import dev.jbang.jdkdb.reporting.ProgressEvent;
 import dev.jbang.jdkdb.reporting.ProgressReporter;
+import dev.jbang.jdkdb.scraper.DefaultDownloadManager;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperFactory;
 import dev.jbang.jdkdb.scraper.ScraperResult;
@@ -98,12 +99,19 @@ public class Main implements Callable<Integer> {
 		System.out.println("Max parallel threads: " + threadCount);
 		System.out.println();
 
+		// Create and start download manager
+		var downloadManager = new DefaultDownloadManager(threadCount, metadataDir, checksumDir);
+		downloadManager.start();
+		System.out.println("Started download manager with " + threadCount + " download threads");
+		System.out.println();
+
 		// Create progress reporter
 		try (var reporter = new ProgressReporter()) {
 			reporter.start();
 
 			// Create scrapers
-			var fact = ScraperFactory.create(metadataDir, checksumDir, reporter, fromStart, maxFailures, limitProgress);
+			var fact = ScraperFactory.create(
+					metadataDir, checksumDir, reporter, fromStart, maxFailures, limitProgress, downloadManager);
 			var allDiscoveries = ScraperFactory.getAvailableScraperDiscoveries();
 			if (scraperIds == null) {
 				scraperIds = new ArrayList<>(allDiscoveries.keySet());
@@ -179,6 +187,21 @@ public class Main implements Callable<Integer> {
 						Thread.currentThread().interrupt();
 						System.err.println("Scraper execution interrupted");
 					}
+				}
+
+				// All scrapers have completed, signal download manager to shut down
+				System.out.println();
+				System.out.println("All scrapers completed. Waiting for downloads to complete...");
+				downloadManager.shutdown();
+
+				try {
+					downloadManager.awaitCompletion();
+					System.out.println("All downloads completed.");
+					System.out.println("  Total completed: " + downloadManager.getCompletedCount());
+					System.out.println("  Total failed: " + downloadManager.getFailedCount());
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					System.err.println("Download manager interrupted while waiting for completion");
 				}
 
 				// Generate all.json files for affected vendor directories only
