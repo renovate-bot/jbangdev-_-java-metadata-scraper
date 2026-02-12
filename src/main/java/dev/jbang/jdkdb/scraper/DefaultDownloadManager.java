@@ -51,6 +51,7 @@ public class DefaultDownloadManager implements DownloadManager {
 	/**
 	 * Start the download worker threads. Should be called once after construction.
 	 */
+	@Override
 	public void start() {
 		logger.info(
 				"Starting DownloadManager with {} threads", ((ThreadPoolExecutor) executorService).getCorePoolSize());
@@ -94,6 +95,7 @@ public class DefaultDownloadManager implements DownloadManager {
 	/**
 	 * Signal that no more downloads will be submitted. Call this after all scrapers have finished.
 	 */
+	@Override
 	public void shutdown() {
 		logger.info("Shutting down DownloadManager");
 		shutdownRequested = true;
@@ -105,6 +107,7 @@ public class DefaultDownloadManager implements DownloadManager {
 	 *
 	 * @throws InterruptedException if interrupted while waiting
 	 */
+	@Override
 	public void awaitCompletion() throws InterruptedException {
 		// Wait for queue to be empty and all downloads to complete
 		while (!downloadQueue.isEmpty() || activeDownloads.get() > 0) {
@@ -121,6 +124,7 @@ public class DefaultDownloadManager implements DownloadManager {
 	 *
 	 * @return Number of successfully completed downloads
 	 */
+	@Override
 	public int getCompletedCount() {
 		return completedDownloads.get();
 	}
@@ -130,6 +134,7 @@ public class DefaultDownloadManager implements DownloadManager {
 	 *
 	 * @return Number of failed downloads
 	 */
+	@Override
 	public int getFailedCount() {
 		return failedDownloads.get();
 	}

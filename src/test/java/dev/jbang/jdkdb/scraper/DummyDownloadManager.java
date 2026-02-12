@@ -21,6 +21,31 @@ public class DummyDownloadManager implements DownloadManager {
 		submittedDownloads.add(new SubmittedDownload(metadata, scraper));
 	}
 
+	@Override
+	public void start() {
+		// No-op for testing
+	}
+
+	@Override
+	public void shutdown() {
+		// No-op for testing
+	}
+
+	@Override
+	public void awaitCompletion() {
+		// No-op for testing
+	}
+
+	@Override
+	public int getCompletedCount() {
+		return 0;
+	}
+
+	@Override
+	public int getFailedCount() {
+		return 0;
+	}
+
 	/**
 	 * Get all submitted downloads for verification in tests.
 	 *

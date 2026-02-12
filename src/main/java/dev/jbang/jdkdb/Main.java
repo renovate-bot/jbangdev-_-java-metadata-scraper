@@ -1,6 +1,8 @@
 package dev.jbang.jdkdb;
 
 import dev.jbang.jdkdb.scraper.DefaultDownloadManager;
+import dev.jbang.jdkdb.scraper.DownloadManager;
+import dev.jbang.jdkdb.scraper.NoOpDownloadManager;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperFactory;
 import dev.jbang.jdkdb.scraper.ScraperResult;
@@ -79,6 +81,11 @@ public class Main implements Callable<Integer> {
 			defaultValue = "-1")
 	private int limitProgress;
 
+	@Option(
+			names = {"--no-download"},
+			description = "Skip downloading files and only generate metadata (for testing/dry-run)")
+	private boolean noDownload;
+
 	@Override
 	public Integer call() throws Exception {
 		// Handle list command
@@ -98,9 +105,16 @@ public class Main implements Callable<Integer> {
 		System.out.println();
 
 		// Create and start download manager
-		var downloadManager = new DefaultDownloadManager(threadCount, metadataDir, checksumDir);
-		downloadManager.start();
-		System.out.println("Started download manager with " + threadCount + " download threads");
+		DownloadManager downloadManager;
+		if (noDownload) {
+			downloadManager = new NoOpDownloadManager();
+			downloadManager.start();
+			System.out.println("No-download mode enabled - files will not be downloaded");
+		} else {
+			downloadManager = new DefaultDownloadManager(threadCount, metadataDir, checksumDir);
+			downloadManager.start();
+			System.out.println("Started download manager with " + threadCount + " download threads");
+		}
 		System.out.println();
 
 		// Create scrapers

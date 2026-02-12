@@ -14,4 +14,36 @@ public interface DownloadManager {
 	 * @param scraper The scraper that submitted this download (for progress reporting)
 	 */
 	void submit(JdkMetadata metadata, BaseScraper scraper);
+
+	/**
+	 * Start the download manager. Should be called once after construction.
+	 */
+	void start();
+
+	/**
+	 * Signal that no more downloads will be submitted. Call this after all scrapers have finished.
+	 */
+	void shutdown();
+
+	/**
+	 * Wait for all queued downloads to complete. This method blocks until all downloads are
+	 * finished.
+	 *
+	 * @throws InterruptedException if interrupted while waiting
+	 */
+	void awaitCompletion() throws InterruptedException;
+
+	/**
+	 * Get the number of completed downloads.
+	 *
+	 * @return Number of successfully completed downloads
+	 */
+	int getCompletedCount();
+
+	/**
+	 * Get the number of failed downloads.
+	 *
+	 * @return Number of failed downloads
+	 */
+	int getFailedCount();
 }
