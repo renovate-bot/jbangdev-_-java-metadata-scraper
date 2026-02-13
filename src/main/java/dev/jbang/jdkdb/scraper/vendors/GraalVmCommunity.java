@@ -38,7 +38,7 @@ public class GraalVmCommunity extends GitHubReleaseScraper {
 	protected void processRelease(JsonNode release) throws Exception {
 		// Only process Community releases (which start with "jdk")
 		String tagName = release.get("tag_name").asText();
-		if (!tagName.startsWith("jdk")) {
+		if (!tagName.startsWith("jdk-")) {
 			return;
 		}
 		processReleaseAssets(release, this::processAsset);

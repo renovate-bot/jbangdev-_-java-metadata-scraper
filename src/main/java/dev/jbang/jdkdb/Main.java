@@ -227,6 +227,7 @@ public class Main implements Callable<Integer> {
 			var failed = 0;
 			var totalItems = 0;
 			var totalSkipped = 0;
+			var totalFailedItems = 0;
 
 			for (var result : results.values()) {
 				System.out.println(result);
@@ -234,6 +235,7 @@ public class Main implements Callable<Integer> {
 					successful++;
 					totalItems += result.itemsProcessed();
 					totalSkipped += result.itemsSkipped();
+					totalFailedItems += result.itemsFailed();
 				} else {
 					failed++;
 				}
@@ -250,6 +252,7 @@ public class Main implements Callable<Integer> {
 				System.out.printf("    Status: %s%n", result.success() ? "SUCCESS" : "FAILED");
 				System.out.printf("    Processed: %d%n", result.itemsProcessed());
 				System.out.printf("    Skipped: %d%n", result.itemsSkipped());
+				System.out.printf("    Failures: %d%n", result.itemsFailed());
 				if (!result.success()) {
 					System.out.printf(
 							"    Error: %s%n",
@@ -266,6 +269,7 @@ public class Main implements Callable<Integer> {
 			System.out.println("Failed: " + failed);
 			System.out.println("Total items processed: " + totalItems);
 			System.out.println("Total items skipped: " + totalSkipped);
+			System.out.println("Total items failed: " + totalFailedItems);
 
 			var endTime = System.currentTimeMillis();
 			var duration = (endTime - startTime) / 1000.0;

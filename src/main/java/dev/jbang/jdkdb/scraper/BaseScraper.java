@@ -59,11 +59,16 @@ public abstract class BaseScraper implements Scraper {
 			}
 
 			log("Completed successfully. Marked " + processingCount + " items for processing, skipped " + skippedCount
-					+ " existing items");
+					+ " existing items, and had " + failureCount + " failures.");
 
-			return ScraperResult.success(processingCount, skippedCount);
+			return ScraperResult.success(processingCount, skippedCount, failureCount);
+		} catch (TooManyFailuresException e) {
+			warn("Aborted due to too many failures. Marked " + processingCount + " items for processing, skipped "
+					+ skippedCount + " existing items.");
+			return ScraperResult.failure(e);
 		} catch (Exception e) {
-			warn("Failed with error: " + e.getMessage());
+			warn("Failed with error: " + e.getMessage() + " (processed " + processingCount + " items, skipped "
+					+ skippedCount + " existing items)");
 			return ScraperResult.failure(e);
 		}
 	}

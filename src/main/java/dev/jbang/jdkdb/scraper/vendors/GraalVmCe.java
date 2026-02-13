@@ -18,6 +18,7 @@ public class GraalVmCe extends GitHubReleaseScraper {
 	// Prior graalvm 23: graalvm-ce-java17-darwin-amd64-22.3.2.tar.gz
 	private static final Pattern FILENAME_PATTERN = Pattern.compile(
 			"^graalvm-ce-(?:complete-)?java(\\d{1,2})-(linux|darwin|windows)-(aarch64|amd64)-([\\d+.]{2,})\\.(zip|tar\\.gz)$");
+	private static final Pattern EA_PATTERN = Pattern.compile("-(dev|rc\\d)-");
 
 	public GraalVmCe(ScraperConfig config) {
 		super(config);
@@ -69,13 +70,18 @@ public class GraalVmCe extends GitHubReleaseScraper {
 		String version = matcher.group(4);
 		String ext = matcher.group(5);
 
+		String releaseType = "ga";
+		if (EA_PATTERN.matcher(assetName).find()) {
+			releaseType = "ea";
+		}
+
 		String url = String.format(
 				"https://github.com/%s/%s/releases/download/%s/%s", GITHUB_ORG, GITHUB_REPO, tagName, assetName);
 
 		// Create metadata
 		return JdkMetadata.create()
 				.vendor(VENDOR)
-				.releaseType("ga")
+				.releaseType(releaseType)
 				.version(version + "+java" + javaVersion)
 				.javaVersion(javaVersion)
 				.jvmImpl("graalvm")

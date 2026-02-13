@@ -88,7 +88,6 @@ public class Ibm extends BaseScraper {
 	}
 
 	private JdkMetadata processAsset(String ibmFile, String jdkVersion, String architecture) {
-
 		// Skip SFJ files
 		if (ibmFile.contains("sfj")) {
 			fine("Skipping " + ibmFile + " (sfj)");

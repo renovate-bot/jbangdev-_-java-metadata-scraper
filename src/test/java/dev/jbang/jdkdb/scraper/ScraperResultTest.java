@@ -9,26 +9,28 @@ class ScraperResultTest {
 	@Test
 	void testSuccessResult() {
 		// When
-		ScraperResult result = ScraperResult.success(10, 2);
+		ScraperResult result = ScraperResult.success(10, 2, 1);
 
 		// Then
 		assertThat(result).isNotNull();
 		assertThat(result.success()).isTrue();
 		assertThat(result.itemsProcessed()).isEqualTo(10);
 		assertThat(result.itemsSkipped()).isEqualTo(2);
+		assertThat(result.itemsFailed()).isEqualTo(1);
 		assertThat(result.error()).isNull();
 	}
 
 	@Test
 	void testSuccessResultWithZeroItems() {
 		// When
-		ScraperResult result = ScraperResult.success(0, 0);
+		ScraperResult result = ScraperResult.success(0, 0, 0);
 
 		// Then
 		assertThat(result).isNotNull();
 		assertThat(result.success()).isTrue();
 		assertThat(result.itemsProcessed()).isEqualTo(0);
 		assertThat(result.itemsSkipped()).isEqualTo(0);
+		assertThat(result.itemsFailed()).isEqualTo(0);
 		assertThat(result.error()).isNull();
 	}
 
@@ -44,6 +46,8 @@ class ScraperResultTest {
 		assertThat(result).isNotNull();
 		assertThat(result.success()).isFalse();
 		assertThat(result.itemsProcessed()).isEqualTo(0);
+		assertThat(result.itemsSkipped()).isEqualTo(0);
+		assertThat(result.itemsFailed()).isEqualTo(0);
 		assertThat(result.error()).isEqualTo(exception);
 		assertThat(result.error().getMessage()).isEqualTo("Test error");
 	}
@@ -63,13 +67,13 @@ class ScraperResultTest {
 	@Test
 	void testSuccessResultToString() {
 		// Given
-		ScraperResult result = ScraperResult.success(5, 2);
+		ScraperResult result = ScraperResult.success(5, 2, 3);
 
 		// When
 		String str = result.toString();
 
 		// Then
-		assertThat(str).isEqualTo("SUCCESS (5 items processed, 2 items skipped)");
+		assertThat(str).isEqualTo("SUCCESS (5 items processed, 2 items skipped, 3 items failed)");
 	}
 
 	@Test
@@ -100,9 +104,9 @@ class ScraperResultTest {
 	@Test
 	void testResultEquality() {
 		// Given
-		ScraperResult result1 = ScraperResult.success(10, 2);
-		ScraperResult result2 = ScraperResult.success(10, 2);
-		ScraperResult result3 = ScraperResult.success(5, 1);
+		ScraperResult result1 = ScraperResult.success(10, 2, 3);
+		ScraperResult result2 = ScraperResult.success(10, 2, 3);
+		ScraperResult result3 = ScraperResult.success(5, 1, 0);
 
 		// Then
 		assertThat(result1).isEqualTo(result2);

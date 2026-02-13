@@ -24,7 +24,6 @@ dev.jbang.jdkdb.scraper.vendors.Bisheng$Discovery
 dev.jbang.jdkdb.scraper.vendors.Redhat$Discovery
 dev.jbang.jdkdb.scraper.vendors.GraalVmLegacy$Discovery
 dev.jbang.jdkdb.scraper.vendors.GraalVmCe$Discovery
-dev.jbang.jdkdb.scraper.vendors.GraalVmCeEa$Discovery
 dev.jbang.jdkdb.scraper.vendors.GraalVmCommunity$Discovery
 dev.jbang.jdkdb.scraper.vendors.GraalVmCommunityEa$Discovery
 dev.jbang.jdkdb.scraper.vendors.Ibm$Discovery

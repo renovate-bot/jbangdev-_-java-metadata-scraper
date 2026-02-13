@@ -15,10 +15,10 @@ public class GraalVmCommunityEa extends GitHubReleaseScraper {
 	private static final String GITHUB_ORG = "graalvm";
 	private static final String GITHUB_REPO = "graalvm-ce-dev-builds";
 
-	// Pattern for community dev builds: graalvm-community-jdk-17.0.8_linux-x64_bin.tar.gz
-	// or with build number: graalvm-community-jdk-21.0.1-dev_linux-x64_bin.tar.gz
-	private static final Pattern FILENAME_PATTERN = Pattern.compile(
-			"^graalvm-community-jdk-(\\d{1,2}\\.\\d{1}\\.\\d{1,3}(?:-dev)?)_(linux|macos|windows)-(aarch64|x64)_bin\\.(zip|tar\\.gz)$");
+	// Pattern for community dev builds: graalvm-community-dev-linux-amd64.tar.gz
+	private static final Pattern FILENAME_PATTERN =
+			Pattern.compile("^graalvm-community-dev-(linux|macos|darwin|windows)-(aarch64|amd64)\\.(zip|tar\\.gz)$");
+	private static final Pattern VERSION_PATTERN = Pattern.compile("^(.*)-dev-.*$");
 
 	public GraalVmCommunityEa(ScraperConfig config) {
 		super(config);
@@ -36,26 +36,22 @@ public class GraalVmCommunityEa extends GitHubReleaseScraper {
 
 	@Override
 	protected void processRelease(JsonNode release) throws Exception {
-		// Only process Community releases (which start with "jdk")
 		String tagName = release.get("tag_name").asText();
-		if (!tagName.startsWith("jdk")) {
+		Matcher versionMatcher = VERSION_PATTERN.matcher(tagName);
+		if (!versionMatcher.matches()) {
+			warn("Skipping release " + tagName + " (does not match version pattern)");
 			return;
 		}
+		String javaVersion = versionMatcher.group(1);
 
-		boolean isPrerelease = release.path("prerelease").asBoolean(false);
-		// Only process prereleases (EA releases)
-		if (!isPrerelease) {
-			return;
-		}
-
-		processReleaseAssets(release, this::processAsset);
+		processReleaseAssets(release, (r, asset) -> processAsset(release, asset, javaVersion));
 	}
 
-	private JdkMetadata processAsset(JsonNode release, JsonNode asset) {
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset, String javaVersion) {
 		String tagName = release.get("tag_name").asText();
 		String assetName = asset.get("name").asText();
 
-		if (!assetName.startsWith("graalvm-community")
+		if (!assetName.startsWith("graalvm-community-dev-")
 				|| !(assetName.endsWith("tar.gz") || assetName.endsWith("zip"))) {
 			fine("Skipping " + assetName + " (non-GraalVM Community asset)");
 			return null;
@@ -72,10 +68,9 @@ public class GraalVmCommunityEa extends GitHubReleaseScraper {
 			return skipped(metadataFilename);
 		}
 
-		String javaVersion = matcher.group(1);
-		String os = matcher.group(2);
-		String arch = matcher.group(3);
-		String ext = matcher.group(4);
+		String os = matcher.group(1);
+		String arch = matcher.group(2);
+		String ext = matcher.group(3);
 
 		String url = String.format(
 				"https://github.com/%s/%s/releases/download/%s/%s", getGitHubOrg(), GITHUB_REPO, tagName, assetName);
@@ -84,7 +79,7 @@ public class GraalVmCommunityEa extends GitHubReleaseScraper {
 		return JdkMetadata.create()
 				.vendor(VENDOR)
 				.releaseType("ea")
-				.version(javaVersion)
+				.version(tagName)
 				.javaVersion(javaVersion)
 				.jvmImpl("graalvm")
 				.os(normalizeOs(os))

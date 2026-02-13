@@ -74,49 +74,45 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 			return;
 		}
 
-		try {
-			// Process each release version
-			for (JsonNode releaseNode : availableReleases) {
-				int release = releaseNode.asInt();
-				log("Processing release: " + release);
+		// Process each release version
+		for (JsonNode releaseNode : availableReleases) {
+			int release = releaseNode.asInt();
+			log("Processing release: " + release);
 
-				// Fetch assets for this release with pagination
-				int page = 0;
-				boolean hasMore = true;
+			// Fetch assets for this release with pagination
+			int page = 0;
+			boolean hasMore = true;
 
-				while (hasMore) {
-					String assetsUrl = String.format(
-							"%s%s&page=%d&page_size=20&sort_order=ASC",
-							getApiBase(), String.format(getAssetsPathTemplate(), release), page);
+			while (hasMore) {
+				String assetsUrl = String.format(
+						"%s%s&page=%d&page_size=20&sort_order=ASC",
+						getApiBase(), String.format(getAssetsPathTemplate(), release), page);
 
-					JsonNode assets;
-					try {
-						String assetsJson = httpUtils.downloadString(assetsUrl);
-						assets = readJson(assetsJson);
-					} catch (Exception e) {
-						if (page == 0) {
-							fail("Could not download list of assets for release " + release, e);
-						} else {
-							log("Could not download page " + page + " of assets for release " + release
-									+ ", assuming no more pages (" + e.getMessage() + ")");
-						}
+				JsonNode assets;
+				try {
+					String assetsJson = httpUtils.downloadString(assetsUrl);
+					assets = readJson(assetsJson);
+				} catch (Exception e) {
+					if (page == 0) {
+						fail("Could not download list of assets for release " + release, e);
+					} else {
+						log("Could not download page " + page + " of assets for release " + release
+								+ ", assuming no more pages (" + e.getMessage() + ")");
+					}
+					break;
+				}
+
+				if (assets.isArray() && assets.size() > 0) {
+					processAssets(assets);
+					page++;
+					if (page >= 25) { // Safety limit to prevent infinite pagination
+						log("Reached page limit for release " + release + ", moving to next release");
 						break;
 					}
-
-					if (assets.isArray() && assets.size() > 0) {
-						processAssets(assets);
-						page++;
-						if (page >= 25) { // Safety limit to prevent infinite pagination
-							log("Reached page limit for release " + release + ", moving to next release");
-							break;
-						}
-					} else {
-						hasMore = false;
-					}
+				} else {
+					hasMore = false;
 				}
 			}
-		} catch (InterruptedProgressException e) {
-			log("Reached progress limit, aborting");
 		}
 	}
 
