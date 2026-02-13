@@ -98,6 +98,17 @@ public class SapMachine extends GitHubReleaseScraper {
 				.filename(assetName);
 	}
 
+	private String determineReleaseType(String version) {
+		if (version == null) {
+			return "ga";
+		}
+		String lower = version.toLowerCase();
+		if (lower.contains("-ea") || lower.contains("beta")) {
+			return "ea";
+		}
+		return "ga";
+	}
+
 	public static class Discovery implements Scraper.Discovery {
 		@Override
 		public String name() {

@@ -38,7 +38,6 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 
 	private JdkMetadata processAsset(JsonNode release, JsonNode asset) {
 		String tagName = release.get("tag_name").asText();
-		boolean isPrerelease = release.get("prerelease").asBoolean();
 		String assetName = asset.get("name").asText();
 
 		// Skip non-matching files
@@ -71,12 +70,14 @@ public class GluonGraalVm extends GitHubReleaseScraper {
 			arch = "x86_64";
 		}
 
+		String releaseType = assetName.contains("-dev.") || tagName.contains("-dev-") ? "ea" : "ga";
+
 		String url = String.format("https://github.com/gluonhq/graal/releases/download/%s/%s", tagName, assetName);
 
 		// Create metadata using builder
 		return JdkMetadata.create()
 				.vendor(VENDOR)
-				.releaseType(determineReleaseType(version, isPrerelease))
+				.releaseType(releaseType)
 				.version(version)
 				.javaVersion(javaVersion)
 				.jvmImpl("graalvm")

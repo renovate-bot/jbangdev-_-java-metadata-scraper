@@ -50,31 +50,6 @@ public abstract class GitHubReleaseScraper extends BaseScraper {
 	}
 
 	/**
-	 * Determine release type from version string or prerelease flag.
-	 * Common logic extracted from multiple scrapers.
-	 */
-	protected String determineReleaseType(String version, boolean isPrerelease) {
-		if (isPrerelease) {
-			return "ea";
-		}
-		if (version == null) {
-			return "ga";
-		}
-		String lower = version.toLowerCase();
-		if (lower.contains("ea") || lower.contains("alpha") || lower.contains("beta") || lower.contains("-dev")) {
-			return "ea";
-		}
-		return "ga";
-	}
-
-	/**
-	 * Overload for determining release type from version string only
-	 */
-	protected String determineReleaseType(String version) {
-		return determineReleaseType(version, false);
-	}
-
-	/**
 	 * Functional interface for processing assets
 	 */
 	@FunctionalInterface
