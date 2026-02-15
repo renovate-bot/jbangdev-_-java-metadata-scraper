@@ -5,6 +5,8 @@ import dev.jbang.jdkdb.util.HashUtils;
 import dev.jbang.jdkdb.util.HttpUtils;
 import dev.jbang.jdkdb.util.MetadataUtils;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.*;
@@ -26,8 +28,11 @@ public class DefaultDownloadManager implements DownloadManager {
 	private final Path metadataDir;
 	private final Path checksumDir;
 	private volatile boolean shutdownRequested;
+	private final int maxDownloadsPerHost;
+	private final ConcurrentHashMap<String, AtomicInteger> activeDownloadsPerHost;
 
 	private static final Logger logger = LoggerFactory.getLogger(DefaultDownloadManager.class);
+	private static final int DEFAULT_MAX_DOWNLOADS_PER_HOST = 3;
 
 	/**
 	 * Create a new DefaultDownloadManager.
@@ -37,6 +42,18 @@ public class DefaultDownloadManager implements DownloadManager {
 	 * @param checksumDir The directory to save checksum files
 	 */
 	public DefaultDownloadManager(int threadCount, Path metadataDir, Path checksumDir) {
+		this(threadCount, metadataDir, checksumDir, DEFAULT_MAX_DOWNLOADS_PER_HOST);
+	}
+
+	/**
+	 * Create a new DefaultDownloadManager.
+	 *
+	 * @param threadCount Number of parallel download threads
+	 * @param metadataDir The directory to save metadata files
+	 * @param checksumDir The directory to save checksum files
+	 * @param maxDownloadsPerHost Maximum number of concurrent downloads per host (default: 3)
+	 */
+	public DefaultDownloadManager(int threadCount, Path metadataDir, Path checksumDir, int maxDownloadsPerHost) {
 		this.downloadQueue = new LinkedBlockingQueue<>();
 		this.executorService = Executors.newFixedThreadPool(threadCount);
 		this.httpUtils = new HttpUtils();
@@ -46,6 +63,8 @@ public class DefaultDownloadManager implements DownloadManager {
 		this.metadataDir = metadataDir;
 		this.checksumDir = checksumDir;
 		this.shutdownRequested = false;
+		this.maxDownloadsPerHost = maxDownloadsPerHost;
+		this.activeDownloadsPerHost = new ConcurrentHashMap<>();
 	}
 
 	/**
@@ -54,7 +73,9 @@ public class DefaultDownloadManager implements DownloadManager {
 	@Override
 	public void start() {
 		logger.info(
-				"Starting DownloadManager with {} threads", ((ThreadPoolExecutor) executorService).getCorePoolSize());
+				"Starting DownloadManager with {} threads, max {} downloads per host",
+				((ThreadPoolExecutor) executorService).getCorePoolSize(),
+				maxDownloadsPerHost);
 		int threadCount = ((ThreadPoolExecutor) executorService).getCorePoolSize();
 		for (int i = 0; i < threadCount; i++) {
 			executorService.submit(this::downloadWorker);
@@ -163,6 +184,34 @@ public class DefaultDownloadManager implements DownloadManager {
 			try {
 				DownloadTask task = downloadQueue.poll(500, TimeUnit.MILLISECONDS);
 				if (task != null) {
+					// Extract host from URL
+					String host = extractHost(task.metadata.url());
+					if (host == null) {
+						// Invalid URL, log failure and skip
+						failedDownloads.incrementAndGet();
+						task.scraper.fail(
+								"Invalid URL for " + task.metadata.filename() + ": " + task.metadata.url(), null);
+						logger.debug(
+								"Failed download for {} [{}] - invalid URL",
+								task.metadata.filename(),
+								task.scraper.getClass().getSimpleName());
+						continue;
+					}
+
+					// Check if we can download from this host
+					AtomicInteger hostCount = activeDownloadsPerHost.computeIfAbsent(host, k -> new AtomicInteger(0));
+					int currentCount = hostCount.get();
+
+					if (currentCount >= maxDownloadsPerHost) {
+						// Host limit reached, put task back at end of queue and try next one
+						downloadQueue.offer(task);
+						// Small sleep to avoid busy waiting when all hosts are at limit
+						Thread.sleep(100);
+						continue;
+					}
+
+					// Increment host counter and proceed with download
+					hostCount.incrementAndGet();
 					activeDownloads.incrementAndGet();
 					try {
 						processDownload(task);
@@ -180,6 +229,12 @@ public class DefaultDownloadManager implements DownloadManager {
 								task.scraper.getClass().getSimpleName());
 					} finally {
 						activeDownloads.decrementAndGet();
+						// Decrement host counter
+						int newCount = hostCount.decrementAndGet();
+						// Clean up if no more active downloads for this host
+						if (newCount == 0) {
+							activeDownloadsPerHost.remove(host, hostCount);
+						}
 					}
 					logger.info(
 							"Downloads: {} queued, {} active, {} completed, {} failed",
@@ -246,6 +301,25 @@ public class DefaultDownloadManager implements DownloadManager {
 			throws IOException {
 		Path checksumFile = checksumDir.resolve(filename + "." + algorithm);
 		Files.writeString(checksumFile, checksum + "  " + filename + "\n");
+	}
+
+	/**
+	 * Extract the host from a URL.
+	 *
+	 * @param urlString The URL string
+	 * @return The host, or null if the URL is invalid
+	 */
+	private String extractHost(String urlString) {
+		if (urlString == null) {
+			return null;
+		}
+		try {
+			URL url = new URL(urlString);
+			return url.getHost();
+		} catch (MalformedURLException e) {
+			logger.warn("Invalid URL: {}", urlString);
+			return null;
+		}
 	}
 
 	/** Internal class representing a download task */
