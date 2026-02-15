@@ -2,171 +2,138 @@ package dev.jbang.jdkdb.scraper.vendors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.jbang.jdkdb.model.JdkMetadata;
-import dev.jbang.jdkdb.scraper.BaseScraper;
-import dev.jbang.jdkdb.scraper.InterruptedProgressException;
+import dev.jbang.jdkdb.scraper.GitHubReleaseScraper;
 import dev.jbang.jdkdb.scraper.Scraper;
 import dev.jbang.jdkdb.scraper.ScraperConfig;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-/** Scraper for Adoptium Eclipse Temurin releases */
-public class Temurin extends BaseScraper {
+/** Scraper for Adoptium Eclipse Temurin Early Access releases from GitHub */
+public class Temurin extends GitHubReleaseScraper {
 	private static final String VENDOR = "temurin";
-	private static final String API_BASE = "https://api.adoptium.net/v3";
+	private static final String GITHUB_ORG = "adoptium";
+
+	// Filename pattern: OpenJDK{version}U-{type}_{arch}_{os}_{jvmimpl}_{version}.{ext}
+	private static final Pattern FILENAME_PATTERN = Pattern.compile(
+			"^OpenJDK([0-9]+U?)?-(jdk|jre+)_([^_]+)_(aix|alpine-linux|linux|mac|solaris|windows)_hotspot_(.+)\\.(tar\\.gz|zip|pkg|msi)$");
+	private static final Pattern GA_VERSION_PATTERN = Pattern.compile("^jdk-?(.+)");
+	private static final Pattern REPO_VERSION_PATTERN = Pattern.compile("temurin\\d+-binaries");
 
 	public Temurin(ScraperConfig config) {
 		super(config);
 	}
 
 	@Override
-	protected void scrape() throws Exception {
-		// Get list of available releases
-		JsonNode availableReleases;
-		try {
-			log("Fetching available releases");
-			String releasesJson = httpUtils.downloadString(API_BASE + "/info/available_releases");
-			JsonNode releasesData = readJson(releasesJson);
-			availableReleases = releasesData.get("available_releases");
-		} catch (Exception e) {
-			fail("Failed to fetch available releases", e);
-			return;
-		}
-
-		if (availableReleases == null || !availableReleases.isArray()) {
-			fail("No available releases found", null);
-			return;
-		}
-
-		try {
-			// Process each release version
-			for (JsonNode releaseNode : availableReleases) {
-				int release = releaseNode.asInt();
-				log("Processing release: " + release);
-
-				// Fetch assets for this release with pagination
-				int page = 0;
-				boolean hasMore = true;
-
-				while (hasMore) {
-					String assetsUrl = String.format(
-							"%s/assets/feature_releases/%d/ga?page=%d&page_size=50&project=jdk&sort_order=ASC&vendor=adoptium",
-							API_BASE, release, page);
-
-					JsonNode assets;
-					try {
-						String assetsJson = httpUtils.downloadString(assetsUrl);
-						assets = readJson(assetsJson);
-					} catch (Exception e) {
-						if (page == 0) {
-							fail("Could not download list of assets for release " + release, e);
-						} else {
-							log("Could not download page " + page + " of assets for release " + release
-									+ ", assuming no more pages (" + e.getMessage() + ")");
-						}
-						break;
-					}
-
-					if (assets.isArray() && assets.size() > 0) {
-						processAssets(assets);
-						page++;
-					} else {
-						hasMore = false;
-					}
-				}
-			}
-		} catch (InterruptedProgressException e) {
-			log("Reached progress limit, aborting");
-		}
+	protected String getGitHubOrg() {
+		return GITHUB_ORG;
 	}
 
-	private void processAssets(JsonNode assets) {
-		for (JsonNode asset : assets) {
-			String javaVersion =
-					asset.path("version_data").path("openjdk_version").asText();
-			String version = asset.path("version_data").path("semver").asText();
-
-			JsonNode binaries = asset.get("binaries");
-			if (binaries != null && binaries.isArray()) {
-				for (JsonNode binary : binaries) {
-					JdkMetadata metadata = processAsset(binary, version, javaVersion);
-					if (metadata != null) {
-						process(metadata);
-					}
-				}
-			}
-		}
+	@Override
+	protected Iterable<String> getGitHubRepos() throws Exception {
+		// Use the helper method to fetch all temurin EA repositories
+		return getReposFromOrg(getGitHubOrg(), "temurin", "^temurin\\d+-binaries$");
 	}
 
-	private JdkMetadata processAsset(JsonNode binary, String version, String javaVersion) {
-		String filename = binary.has("package") && binary.get("package").has("name")
-				? binary.get("package").get("name").asText()
-				: "unknown";
+	@Override
+	protected void processRelease(JsonNode release) throws Exception {
+		String repoUrl = release.get("url").asText();
+		Matcher repoVersionMatcher = REPO_VERSION_PATTERN.matcher(repoUrl);
+		if (!repoVersionMatcher.find()) {
+			warn("Skipping release " + release.get("tag_name").asText()
+					+ " (repository URL does not match expected pattern)");
+			return;
+		}
+		String javaMajorVersion = repoVersionMatcher.group(0);
 
-		String imageType = binary.path("image_type").asText();
+		// Extract versions from tagname/url
+		String tagName = release.get("tag_name").asText();
+		String version = tagName.replaceFirst("^jdk-?", "");
+		boolean isPrerelease = release.path("prerelease").asBoolean(false);
+		String javaVersion;
+		if (!isPrerelease) {
+			Matcher versionMatcher = GA_VERSION_PATTERN.matcher(tagName);
+			if (!versionMatcher.matches()) {
+				warn("Skipping release " + tagName + " (tag name does not match expected pattern)");
+				return;
+			}
+			javaVersion = versionMatcher.group(1);
+		} else {
+			javaVersion = javaMajorVersion;
+		}
+
+		processReleaseAssets(release, (r, asset) -> processAsset(release, asset, version, javaVersion));
+	}
+
+	private JdkMetadata processAsset(JsonNode release, JsonNode asset, String version, String javaVersion) {
+		String assetName = asset.get("name").asText();
+		Matcher matcher = FILENAME_PATTERN.matcher(assetName);
+		if (!matcher.matches()) {
+			if (!assetName.endsWith(".txt")
+					&& !assetName.endsWith(".json")
+					&& !assetName.endsWith(".sig")
+					&& !assetName.contains("-sources")
+					&& !assetName.contains("-sbom")
+					&& !assetName.contains("-jmods")
+					&& !assetName.contains("-static-libs")
+					&& !assetName.contains("-debugimage")
+					&& !assetName.contains("-testimage")
+					&& !assetName.equals("AQAvitTapFiles.tar.gz")) {
+				warn("Skipping " + assetName + " (does not match pattern)");
+			}
+			return null;
+		}
+
+		// String majorVersion = matcher.group(1);
+		String imageType = matcher.group(2);
+		String arch = matcher.group(3);
+		String os = matcher.group(4);
+		// String version = matcher.group(5);
+		String ext = matcher.group(6);
+
 		// Only process JDK and JRE
 		if (!imageType.equals("jdk") && !imageType.equals("jre")) {
-			fine("Skipping " + filename + " (not JDK or JRE)");
-			return null;
-		}
-		JsonNode packageNode = binary.get("package");
-		if (packageNode == null) {
-			fine("Skipping " + filename + " (missing package information)");
 			return null;
 		}
 
-		if (metadataExists(filename)) {
-			return skipped(filename);
+		String metadataFilename = toMetadataFilename(release, asset);
+		if (metadataExists(metadataFilename)) {
+			return skipped(metadataFilename);
 		}
 
-		String url = packageNode.path("link").asText();
+		String downloadUrl = asset.get("browser_download_url").asText();
 
-		String os = binary.path("os").asText();
-		String arch = binary.path("architecture").asText();
-		String heapSize = binary.path("heap_size").asText();
-		String jvmImpl = binary.path("jvm_impl").asText();
-
-		// Determine file extension
-		String ext = filename.endsWith(".tar.gz") ? "tar.gz" : "zip";
-
-		// Normalize version for OpenJ9
-		String normalizedVersion = version;
-		if (jvmImpl.equals("openj9") && filename.contains("openj9") && !version.contains("openj9")) {
-			// Extract OpenJ9 version from filename if present
-			if (filename.matches(".*[_-]openj9[-_]\\d+\\.\\d+\\.\\d+.*")) {
-				String openj9Part = filename.replaceAll(".*([_-]openj9[-_]\\d+\\.\\d+\\.\\d+[a-z]?).*", "$1");
-				normalizedVersion = version + "." + openj9Part.replace("_", "-");
-			}
-		}
+		// Only process prereleases (EA releases)
+		boolean isPrerelease = release.path("prerelease").asBoolean(false);
+		String releaseType = isPrerelease ? "ea" : "ga";
 
 		// Build features list
 		List<String> features = new ArrayList<>();
-		if (heapSize.equals("large")) {
-			features.add("large_heap");
-		}
-		if (os.equals("alpine-linux")) {
+		if (os.contains("alpine")) {
 			features.add("musl");
 		}
 
 		// Create metadata
 		return JdkMetadata.create()
 				.vendor(VENDOR)
-				.releaseType("ga")
-				.version(normalizedVersion)
+				.releaseType(releaseType)
+				.version(version)
 				.javaVersion(javaVersion)
-				.jvmImpl(jvmImpl)
+				.jvmImpl("hotspot")
 				.os(normalizeOs(os))
 				.arch(normalizeArch(arch))
 				.fileType(ext)
 				.imageType(imageType)
 				.features(features)
-				.url(url)
-				.filename(filename);
+				.url(downloadUrl)
+				.filename(assetName);
 	}
 
 	public static class Discovery implements Scraper.Discovery {
 		@Override
 		public String name() {
-			return VENDOR;
+			return "temurin";
 		}
 
 		@Override
