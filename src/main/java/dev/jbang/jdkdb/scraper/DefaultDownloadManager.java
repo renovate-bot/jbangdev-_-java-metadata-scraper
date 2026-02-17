@@ -282,8 +282,16 @@ public class DefaultDownloadManager implements DownloadManager {
 			// Save metadata file
 			Path vendorMetadataDir = metadataDir.resolve("vendor").resolve(task.vendor);
 			Files.createDirectories(vendorMetadataDir);
-			Path metadataFile = vendorMetadataDir.resolve(metadata.metadataFilename());
+			Path metadataFile = vendorMetadataDir.resolve(metadata.metadataFile());
 			MetadataUtils.saveMetadataFile(metadataFile, metadata);
+
+			// Apply the original file timestamp to the metadata file
+			try {
+				var fileTime = Files.getLastModifiedTime(tempFile);
+				Files.setLastModifiedTime(metadataFile, fileTime);
+			} catch (IOException e) {
+				// Ignore if we can't set the timestamp
+			}
 
 			// Report success
 			task.downloadLogger().info("Processed " + filename);

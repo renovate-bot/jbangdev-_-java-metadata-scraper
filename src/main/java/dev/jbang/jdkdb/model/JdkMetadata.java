@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import dev.jbang.jdkdb.scraper.DownloadResult;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -97,7 +98,7 @@ public class JdkMetadata {
 	private long size;
 
 	@JsonIgnore
-	private transient String metadataFilename;
+	private transient Path metadataFile;
 
 	// Constructors
 	public JdkMetadata() {
@@ -252,15 +253,15 @@ public class JdkMetadata {
 		return size;
 	}
 
-	public String metadataFilename() {
-		if (metadataFilename == null && filename != null) {
-			return filename + ".json";
+	public Path metadataFile() {
+		if (metadataFile == null && filename != null) {
+			return Path.of(filename + ".json");
 		}
-		return metadataFilename;
+		return metadataFile;
 	}
 
-	public JdkMetadata metadataFilename(String metadataFilename) {
-		this.metadataFilename = metadataFilename;
+	public JdkMetadata metadataFile(Path metadataFile) {
+		this.metadataFile = metadataFile;
 		return this;
 	}
 

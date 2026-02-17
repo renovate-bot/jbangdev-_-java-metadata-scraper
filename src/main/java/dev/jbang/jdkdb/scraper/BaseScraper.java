@@ -89,8 +89,8 @@ public abstract class BaseScraper implements Scraper {
 		logger.warn(message);
 	}
 
-	protected void skip(String filename) {
-		logger.debug("Skipping " + filename + " (already exists)");
+	protected void skip(Path metadataFile) {
+		logger.debug("Skipping " + metadataFile + " (already exists)");
 		skippedCount++;
 	}
 
@@ -112,7 +112,7 @@ public abstract class BaseScraper implements Scraper {
 		// Skip if this is a skipped placeholder (no filename set)
 		String filename = metadata.filename();
 		if (metadata.filename() == null || metadata.url() == null) {
-			skip(metadata.metadataFilename());
+			skip(metadata.metadataFile());
 			return;
 		}
 
@@ -162,7 +162,7 @@ public abstract class BaseScraper implements Scraper {
 
 	/** Save individual metadata to file */
 	protected void saveMetadataFile(JdkMetadata metadata) throws IOException {
-		Path metadataFile = metadataDir.resolve(metadata.metadataFilename());
+		Path metadataFile = metadataDir.resolve(metadata.metadataFile());
 		MetadataUtils.saveMetadataFile(metadataFile, metadata);
 	}
 
@@ -170,7 +170,7 @@ public abstract class BaseScraper implements Scraper {
 		if (!metadataFilename.endsWith(".json")) {
 			metadataFilename += ".json";
 		}
-		return JdkMetadata.create().metadataFilename(metadataFilename);
+		return JdkMetadata.create().metadataFile(Path.of(metadataFilename));
 	}
 
 	/** Normalize OS name */

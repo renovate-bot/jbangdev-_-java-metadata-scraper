@@ -96,7 +96,7 @@ class DummyScraperTest {
 		Files.createDirectories(metadataDir);
 		for (JdkMetadata meta : metadata) {
 			// Create empty metadata files to simulate already processed items
-			Files.writeString(metadataDir.resolve(meta.metadataFilename()), "{}");
+			Files.writeString(metadataDir.resolve(meta.metadataFile()), "{}");
 		}
 
 		DummyScraper scraper = new DummyScraper(config, metadata);

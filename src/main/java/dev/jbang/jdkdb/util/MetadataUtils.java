@@ -11,9 +11,12 @@ import dev.jbang.jdkdb.model.JdkMetadata;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class MetadataUtils {
@@ -21,6 +24,8 @@ public class MetadataUtils {
 
 	private static ObjectMapper writeOneMapper =
 			new ObjectMapper().configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
+
+	private static final Pattern DURATION_PATTERN = Pattern.compile("^(\\d+)([dwmy])$");
 
 	// Custom pretty printer with proper formatting
 	private static MinimalPrettyPrinter printer = new MinimalPrettyPrinter() {
@@ -115,7 +120,7 @@ public class MetadataUtils {
 
 	public static JdkMetadata readMetadataFile(Path metadataFile) throws IOException {
 		JdkMetadata md = readMapper.readValue(metadataFile.toFile(), JdkMetadata.class);
-		md.metadataFilename(metadataFile.getFileName().toString());
+		md.metadataFile(metadataFile);
 		return md;
 	}
 
@@ -132,13 +137,14 @@ public class MetadataUtils {
 		// Sort by version first (using VersionComparator) and filename second
 		Comparator<JdkMetadata> comparator = Comparator.<JdkMetadata, String>comparing(
 						md -> md.version(), VersionComparator.INSTANCE)
-				.thenComparing(md -> md.metadataFilename());
+				.thenComparing(md -> md.metadataFile().getFileName().toString());
 
 		// Only for debugging purposes
 		if (System.getProperty("index.sort", "numerical").equalsIgnoreCase("lexical")) {
 			System.out.println(
 					"WARNING: FOR DEBUGGING ONLY - Using lexical version sorting for " + metadataFile.getFileName());
-			comparator = Comparator.<JdkMetadata, String>comparing(md -> md.metadataFilename());
+			comparator = Comparator.<JdkMetadata, String>comparing(
+					md -> md.metadataFile().getFileName().toString());
 		}
 
 		List<JdkMetadata> sortedList = metadataList.stream().sorted(comparator).toList();
@@ -365,7 +371,7 @@ public class MetadataUtils {
 	 * @param maxDepth The maximum depth to search for metadata files
 	 * @param allowIncomplete If true, include metadata entries that are missing checksum values
 	 */
-	private static List<JdkMetadata> collectAllMetadata(Path dir, int maxDepth, boolean allowIncomplete)
+	public static List<JdkMetadata> collectAllMetadata(Path dir, int maxDepth, boolean allowIncomplete)
 			throws IOException {
 		List<JdkMetadata> allMetadata = new ArrayList<>();
 
@@ -403,5 +409,29 @@ public class MetadataUtils {
 			return defaultValue;
 		}
 		return value.trim();
+	}
+
+	/**
+	 * Parse duration string (e.g., "30d", "3w", "6m", "1y") into Duration.
+	 *
+	 * @param durationStr Duration string with format [number][d|w|m|y]
+	 * @return Duration object or null if format is invalid
+	 */
+	public static Duration parseDuration(String durationStr) {
+		Matcher matcher = DURATION_PATTERN.matcher(durationStr.toLowerCase());
+		if (!matcher.matches()) {
+			return null;
+		}
+
+		long amount = Long.parseLong(matcher.group(1));
+		String unit = matcher.group(2);
+
+		return switch (unit) {
+			case "d" -> Duration.ofDays(amount);
+			case "w" -> Duration.ofDays(amount * 7);
+			case "m" -> Duration.ofDays(amount * 30); // Approximate month as 30 days
+			case "y" -> Duration.ofDays(amount * 365); // Approximate year as 365 days
+			default -> null;
+		};
 	}
 }

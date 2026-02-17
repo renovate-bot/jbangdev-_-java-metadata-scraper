@@ -12,7 +12,7 @@ import picocli.CommandLine.Command;
 		version = "1.0.0",
 		description = "Scrapes JDK metadata from various vendors and generates index files",
 		mixinStandardHelpOptions = true,
-		subcommands = {UpdateCommand.class, IndexCommand.class, DownloadCommand.class})
+		subcommands = {UpdateCommand.class, IndexCommand.class, DownloadCommand.class, CleanCommand.class})
 public class Main {
 	private static final String GITHUB_TOKEN_ENV = "GITHUB_TOKEN";
 

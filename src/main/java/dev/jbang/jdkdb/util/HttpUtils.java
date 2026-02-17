@@ -9,7 +9,10 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileTime;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 
 /** Utility class for HTTP operations */
 public class HttpUtils {
@@ -34,6 +37,16 @@ public class HttpUtils {
 		try (InputStream inputStream = response.body()) {
 			Files.copy(inputStream, destination, StandardCopyOption.REPLACE_EXISTING);
 		}
+
+		// Preserve original file timestamp from Last-Modified header if available
+		response.headers().firstValue("Last-Modified").ifPresent(lastModified -> {
+			try {
+				Instant instant = Instant.from(DateTimeFormatter.RFC_1123_DATE_TIME.parse(lastModified));
+				Files.setLastModifiedTime(destination, FileTime.from(instant));
+			} catch (Exception e) {
+				// Silently ignore if we can't parse or set the timestamp
+			}
+		});
 	}
 
 	/** Download content from a URL as a string */

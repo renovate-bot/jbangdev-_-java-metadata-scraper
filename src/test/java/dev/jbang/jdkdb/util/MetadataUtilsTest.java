@@ -121,11 +121,11 @@ class MetadataUtilsTest {
 				.imageType("jdk")
 				.url("https://example.com/jdk-2.zip")
 				.download(download2)
-				.metadataFilename("custom-metadata-filename.json");
+				.metadataFile(Path.of("custom-metadata-filename.json"));
 
 		// Save individual metadata files
-		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata1.metadataFilename()), metadata1);
-		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata2.metadataFilename()), metadata2);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata1.metadataFile()), metadata1);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata2.metadataFile()), metadata2);
 
 		// Verify individual files exist
 		assertThat(vendorDir.resolve("test-jdk-1.json")).exists();
@@ -166,7 +166,7 @@ class MetadataUtilsTest {
 				.url("https://example.com/jdk.tar.gz")
 				.download(download);
 
-		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata.metadataFilename()), metadata);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata.metadataFile()), metadata);
 
 		// Create an old all.json with different content
 		Files.writeString(vendorDir.resolve("all.json"), "[{\"old\": \"data\"}]");
@@ -332,8 +332,8 @@ class MetadataUtilsTest {
 				.url("https://example.com/temurin-17.zip")
 				.download(download2);
 
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFilename()), metadata1);
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFilename()), metadata2);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFile()), metadata1);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFile()), metadata2);
 
 		// When
 		MetadataUtils.generateComprehensiveIndices(metadataDir, false);
@@ -423,8 +423,8 @@ class MetadataUtilsTest {
 				.url("https://example.com/microsoft.tar.gz")
 				.download(download2);
 
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFilename()), metadata1);
-		MetadataUtils.saveMetadataFile(microsoftDir.resolve(metadata2.metadataFilename()), metadata2);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFile()), metadata1);
+		MetadataUtils.saveMetadataFile(microsoftDir.resolve(metadata2.metadataFile()), metadata2);
 
 		// When
 		MetadataUtils.generateComprehensiveIndices(metadataDir, false);
@@ -484,8 +484,8 @@ class MetadataUtilsTest {
 				.url("https://example.com/ea.tar.gz")
 				.download(download2);
 
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFilename()), metadata1);
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFilename()), metadata2);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFile()), metadata1);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFile()), metadata2);
 
 		// When
 		MetadataUtils.generateComprehensiveIndices(metadataDir, false);
@@ -575,8 +575,8 @@ class MetadataUtilsTest {
 				.url("https://example.com/incomplete.tar.gz")
 				.download(download2);
 
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFilename()), metadata1);
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFilename()), metadata2);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFile()), metadata1);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFile()), metadata2);
 
 		// When - generate with allowIncomplete=false
 		MetadataUtils.generateComprehensiveIndices(metadataDir, false);
@@ -620,7 +620,7 @@ class MetadataUtilsTest {
 				.url("https://example.com/test.tar.gz")
 				.download(download);
 
-		MetadataUtils.saveMetadataFile(testDir.resolve(metadata.metadataFilename()), metadata);
+		MetadataUtils.saveMetadataFile(testDir.resolve(metadata.metadataFile()), metadata);
 
 		// When
 		MetadataUtils.generateComprehensiveIndices(metadataDir, false);
@@ -678,8 +678,8 @@ class MetadataUtilsTest {
 				.url("https://example.com/aarch64.tar.gz")
 				.download(download2);
 
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFilename()), metadata1);
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFilename()), metadata2);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFile()), metadata1);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFile()), metadata2);
 
 		// When
 		MetadataUtils.generateComprehensiveIndices(metadataDir, false);
@@ -736,8 +736,8 @@ class MetadataUtilsTest {
 				.url("https://example.com/jre.tar.gz")
 				.download(download2);
 
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFilename()), metadata1);
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFilename()), metadata2);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFile()), metadata1);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFile()), metadata2);
 
 		// When
 		MetadataUtils.generateComprehensiveIndices(metadataDir, false);
@@ -794,8 +794,8 @@ class MetadataUtilsTest {
 				.url("https://example.com/openj9.tar.gz")
 				.download(download2);
 
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFilename()), metadata1);
-		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFilename()), metadata2);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata1.metadataFile()), metadata1);
+		MetadataUtils.saveMetadataFile(temurinDir.resolve(metadata2.metadataFile()), metadata2);
 
 		// When
 		MetadataUtils.generateComprehensiveIndices(metadataDir, false);
