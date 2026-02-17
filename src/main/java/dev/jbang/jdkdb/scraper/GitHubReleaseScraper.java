@@ -42,14 +42,6 @@ public abstract class GitHubReleaseScraper extends BaseScraper {
 			return;
 		}
 
-		if (skipEaDuration != null) {
-			boolean isPrerelease = release.path("prerelease").asBoolean(false);
-			if (isPrerelease && isOldRelease(release)) {
-				fine("Skipping old EA release " + release.path("tag_name").asText());
-				return;
-			}
-		}
-
 		for (JsonNode asset : assets) {
 			JdkMetadata metadata = assetProcessor.process(release, asset);
 			if (metadata != null) {
@@ -80,6 +72,17 @@ public abstract class GitHubReleaseScraper extends BaseScraper {
 		Iterable<JsonNode> releases = getReleasesFromRepos(getGitHubOrg(), repo);
 		for (JsonNode release : releases) {
 			try {
+				if (skipEaDuration != null) {
+					boolean isPrerelease = release.path("prerelease").asBoolean(false);
+					if (isPrerelease) {
+						if (isOldRelease(release)) {
+							fine("Skipping old EA release "
+									+ release.path("tag_name").asText());
+							continue;
+						}
+					}
+				}
+
 				processRelease(release);
 			} catch (InterruptedProgressException | TooManyFailuresException e) {
 				throw e; // Rethrow to be handled at a higher level

@@ -219,19 +219,10 @@ public class UpdateCommand implements Callable<Integer> {
 				System.out.println();
 				System.out.println("Generating all.json files for affected vendor directories...");
 				try {
-					IndexCommand.generateIndices(metadataDir, new ArrayList<>(affectedVendors), false);
+					IndexCommand.generateIndices(metadataDir, new ArrayList<>(affectedVendors), noDownload);
 					System.out.println("Successfully generated all.json files");
 				} catch (Exception e) {
 					System.err.println("Failed to generate all.json files: " + e.getMessage());
-					e.printStackTrace();
-				}
-
-				// Generate comprehensive indices (all.json, ga.json, ea.json, and nested structures)
-				System.out.println();
-				try {
-					MetadataUtils.generateComprehensiveIndices(metadataDir, false);
-				} catch (Exception e) {
-					System.err.println("Failed to generate comprehensive indices: " + e.getMessage());
 					e.printStackTrace();
 				}
 			}
