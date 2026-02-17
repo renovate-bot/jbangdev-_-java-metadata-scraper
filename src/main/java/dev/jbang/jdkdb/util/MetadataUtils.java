@@ -130,10 +130,18 @@ public class MetadataUtils {
 	/** Save all metadata and create combined all.json file */
 	public static void saveMetadata(Path metadataFile, List<JdkMetadata> metadataList) throws IOException {
 		// Sort by version first (using VersionComparator) and filename second
-		List<JdkMetadata> sortedList = metadataList.stream()
-				.sorted(Comparator.<JdkMetadata, String>comparing(md -> md.version(), VersionComparator.INSTANCE)
-						.thenComparing(md -> md.metadataFilename()))
-				.toList();
+		Comparator<JdkMetadata> comparator = Comparator.<JdkMetadata, String>comparing(
+						md -> md.version(), VersionComparator.INSTANCE)
+				.thenComparing(md -> md.metadataFilename());
+
+		// Only for debugging purposes
+		if (System.getProperty("index.sort", "numerical").equalsIgnoreCase("lexical")) {
+			System.out.println(
+					"WARNING: FOR DEBUGGING ONLY - Using lexical version sorting for " + metadataFile.getFileName());
+			comparator = Comparator.<JdkMetadata, String>comparing(md -> md.metadataFilename());
+		}
+
+		List<JdkMetadata> sortedList = metadataList.stream().sorted(comparator).toList();
 
 		// Create all.json
 		if (!sortedList.isEmpty()) {
