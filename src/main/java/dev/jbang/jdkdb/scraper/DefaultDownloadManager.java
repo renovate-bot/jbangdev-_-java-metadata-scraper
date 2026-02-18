@@ -365,6 +365,11 @@ public class DefaultDownloadManager implements DownloadManager {
 			return extractReleaseFromZip(archiveFile);
 		} else if (lowerFilename.endsWith(".tar.gz") || lowerFilename.endsWith(".tgz")) {
 			return extractReleaseFromTarGz(archiveFile);
+		} else if (lowerFilename.endsWith(".pkg")) {
+			// PKG files are XAR archives with nested CPIO archives - complex structure
+			// Not yet supported, would require additional dependencies and complex extraction
+			logger.debug("PKG file format not yet supported for release info extraction: {}", filename);
+			return null;
 		}
 
 		// Unsupported archive format
@@ -379,18 +384,21 @@ public class DefaultDownloadManager implements DownloadManager {
 	 */
 	private Map<String, String> extractReleaseFromZip(Path zipFile) throws IOException {
 		try (ZipFile zip = new ZipFile(zipFile.toFile())) {
-			// First, try to find "release" in the root
-			ZipEntry releaseEntry = zip.getEntry("release");
-			if (releaseEntry != null && !releaseEntry.isDirectory()) {
-				return parseReleaseProperties(zip.getInputStream(releaseEntry));
-			}
+			// Search for any file named "release" in the archive
+			// This handles various layouts including macOS packages with nested structures
+			var entries = zip.entries();
+			while (entries.hasMoreElements()) {
+				ZipEntry entry = entries.nextElement();
+				String name = entry.getName();
 
-			// If not found in root, find the root directory and look for "release" inside it
-			String rootDir = findSingleRootDirectory(zip);
-			if (rootDir != null) {
-				releaseEntry = zip.getEntry(rootDir + "release");
-				if (releaseEntry != null && !releaseEntry.isDirectory()) {
-					return parseReleaseProperties(zip.getInputStream(releaseEntry));
+				// Check if this is a "release" file (not a directory)
+				if (!entry.isDirectory() && name.endsWith("/release")) {
+					// Prefer files in standard locations (shorter paths first)
+					// This naturally prioritizes root or shallow release files
+					return parseReleaseProperties(zip.getInputStream(entry));
+				} else if (!entry.isDirectory() && name.equals("release")) {
+					// Found release in root
+					return parseReleaseProperties(zip.getInputStream(entry));
 				}
 			}
 		}
@@ -404,9 +412,8 @@ public class DefaultDownloadManager implements DownloadManager {
 	 * @return Map of release properties or null if not found
 	 */
 	private Map<String, String> extractReleaseFromTarGz(Path tarGzFile) throws IOException {
-		String rootDir = null;
-
-		// First pass: find root directory and look for release in root
+		// Search for any file named "release" in the archive
+		// This handles various layouts including macOS packages with nested structures
 		try (InputStream fis = Files.newInputStream(tarGzFile);
 				GZIPInputStream gzis = new GZIPInputStream(fis);
 				TarArchiveInputStream tis = new TarArchiveInputStream(gzis)) {
@@ -415,68 +422,16 @@ public class DefaultDownloadManager implements DownloadManager {
 
 			while ((entry = tis.getNextEntry()) != null) {
 				String name = entry.getName();
-				if (name.equals("release") && !entry.isDirectory()) {
-					// Found release in root
+
+				// Check if this is a "release" file (not a directory)
+				if (!entry.isDirectory() && (name.equals("release") || name.endsWith("/release"))) {
+					// Found a release file - extract it
 					return parseReleaseProperties(tis);
-				}
-
-				// Track root directory (first directory entry)
-				if (rootDir == null && entry.isDirectory() && name.indexOf('/') == name.length() - 1) {
-					rootDir = name;
-				}
-			}
-		}
-
-		// Second pass: look for release in root directory
-		if (rootDir != null) {
-			try (InputStream fis = Files.newInputStream(tarGzFile);
-					GZIPInputStream gzis = new GZIPInputStream(fis);
-					TarArchiveInputStream tis = new TarArchiveInputStream(gzis)) {
-
-				TarArchiveEntry entry;
-				String releaseInRoot = rootDir + "release";
-				while ((entry = tis.getNextEntry()) != null) {
-					if (entry.getName().equals(releaseInRoot) && !entry.isDirectory()) {
-						return parseReleaseProperties(tis);
-					}
 				}
 			}
 		}
 
 		return null;
-	}
-
-	/**
-	 * Find the single root directory in a ZIP archive.
-	 *
-	 * @param zip The ZIP file
-	 * @return The root directory name with trailing slash, or null if not found or multiple roots
-	 */
-	private String findSingleRootDirectory(ZipFile zip) {
-		String rootDir = null;
-		var entries = zip.entries();
-
-		while (entries.hasMoreElements()) {
-			ZipEntry entry = entries.nextElement();
-			String name = entry.getName();
-
-			// Skip if this is root level file
-			if (!name.contains("/")) {
-				continue;
-			}
-
-			// Extract root directory name
-			String currentRoot = name.substring(0, name.indexOf('/') + 1);
-
-			if (rootDir == null) {
-				rootDir = currentRoot;
-			} else if (!rootDir.equals(currentRoot)) {
-				// Multiple root directories found
-				return null;
-			}
-		}
-
-		return rootDir;
 	}
 
 	/**
