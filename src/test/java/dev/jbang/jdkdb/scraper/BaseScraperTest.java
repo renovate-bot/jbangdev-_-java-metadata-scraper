@@ -143,8 +143,8 @@ class BaseScraperTest {
 		DummyScraper scraper = createScraper();
 
 		// When/Then
+		assertThat(scraper.normalizeArch("s390")).isEqualTo("s390");
 		assertThat(scraper.normalizeArch("s390x")).isEqualTo("s390x");
-		assertThat(scraper.normalizeArch("s390")).isEqualTo("s390x");
 		assertThat(scraper.normalizeArch("sparcv9")).isEqualTo("sparcv9");
 		assertThat(scraper.normalizeArch("riscv64")).isEqualTo("riscv64");
 		assertThat(scraper.normalizeArch("unknownarch")).isEqualTo("unknown-architecture-unknownarch");
