@@ -616,16 +616,16 @@ class MetadataUtilsTest {
 
 		DownloadResult download = new DownloadResult("md5-1", "sha1-1", "sha256-1", "sha512-1", 100_000_000L);
 		JdkMetadata metadata = JdkMetadata.create()
-				.vendor(null) // null vendor
+				.vendor("unknown-vendor-myvendor") // null vendor
 				.filename("test-jdk.tar.gz")
-				.releaseType("") // empty release type
+				.releaseType("ga")
 				.version("17.0.5")
 				.javaVersion("17")
-				.jvmImpl(null) // null jvm_impl
-				.os("linux")
-				.arch("x86_64")
+				.jvmImpl("hotspot")
+				.os("unknown-os-fooos") // unknown OS
+				.arch("unknown-architecture-barch") // unknown architecture
 				.fileType("tar.gz")
-				.imageType("") // empty image type
+				.imageType("jdk")
 				.url("https://example.com/test.tar.gz")
 				.releaseInfo(Collections.emptyMap())
 				.download(download);
@@ -637,17 +637,14 @@ class MetadataUtilsTest {
 
 		// Then - verify normalized directories are created
 		assertThat(metadataDir.resolve("all.json")).exists();
-		assertThat(metadataDir.resolve("unknown-release-type-")).exists().isDirectory();
-		Path unknownReleaseTypeDir = metadataDir.resolve("unknown-release-type-");
-		assertThat(unknownReleaseTypeDir.resolve("linux")).exists().isDirectory();
-		Path linuxDir = unknownReleaseTypeDir.resolve("linux");
-		Path archDir = linuxDir.resolve("x86_64");
-		assertThat(archDir).exists().isDirectory();
-		assertThat(archDir.resolve("unknown-image-type")).exists().isDirectory();
-		Path imageTypeDir = archDir.resolve("unknown-image-type");
-		assertThat(imageTypeDir.resolve("unknown-jvm-impl")).exists().isDirectory();
-		Path jvmDir = imageTypeDir.resolve("unknown-jvm-impl");
-		assertThat(jvmDir.resolve("unknown-vendor.json")).exists();
+		Path releaseTypeDir = metadataDir.resolve("ga");
+		assertThat(releaseTypeDir.resolve("unknown-os-fooos")).exists().isDirectory();
+		Path unknownOsDir = releaseTypeDir.resolve("unknown-os-fooos");
+		Path unknownArchDir = unknownOsDir.resolve("unknown-architecture-barch");
+		assertThat(unknownArchDir).exists().isDirectory();
+		Path imageTypeDir = unknownArchDir.resolve("jdk");
+		Path jvmDir = imageTypeDir.resolve("hotspot");
+		assertThat(jvmDir.resolve("unknown-vendor-myvendor.json")).exists();
 	}
 
 	@Test

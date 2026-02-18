@@ -8,16 +8,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import dev.jbang.jdkdb.model.JdkMetadata;
+import dev.jbang.jdkdb.scraper.ScraperFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class MetadataUtils {
@@ -309,6 +313,12 @@ public class MetadataUtils {
 
 		for (var releaseEntry : byReleaseType.entrySet()) {
 			String releaseType = releaseEntry.getKey();
+
+			if (!isValidEnum(ReleaseTypes.class, releaseType)) {
+				System.out.println("WARN: Skipping invalid release type: " + releaseType);
+				continue;
+			}
+
 			List<JdkMetadata> releaseMetadata = releaseEntry.getValue();
 			Path releaseDir = baseDir.resolve(releaseType);
 			Files.createDirectories(releaseDir);
@@ -332,6 +342,12 @@ public class MetadataUtils {
 
 		for (var osEntry : byOs.entrySet()) {
 			String os = osEntry.getKey();
+
+			if (!isValidEnumOrUnknown(Os.class, os)) {
+				System.out.println("WARN: Skipping invalid OS: " + os);
+				continue;
+			}
+
 			List<JdkMetadata> osMetadata = osEntry.getValue();
 			Path osDir = baseDir.resolve(os);
 			Files.createDirectories(osDir);
@@ -357,6 +373,12 @@ public class MetadataUtils {
 
 		for (var archEntry : byArch.entrySet()) {
 			String arch = archEntry.getKey();
+
+			if (!isValidEnumOrUnknown(Arch.class, arch.replace("-", "_"))) {
+				System.out.println("WARN: Skipping invalid architecture: " + arch);
+				continue;
+			}
+
 			List<JdkMetadata> archMetadata = archEntry.getValue();
 			Path archDir = baseDir.resolve(arch);
 			Files.createDirectories(archDir);
@@ -382,6 +404,12 @@ public class MetadataUtils {
 
 		for (var imageEntry : byImageType.entrySet()) {
 			String imageType = imageEntry.getKey();
+
+			if (!isValidEnum(ImageTypes.class, imageType)) {
+				System.out.println("WARN: Skipping invalid image type: " + imageType);
+				continue;
+			}
+
 			List<JdkMetadata> imageMetadata = imageEntry.getValue();
 			Path imageDir = baseDir.resolve(imageType);
 			Files.createDirectories(imageDir);
@@ -407,6 +435,12 @@ public class MetadataUtils {
 
 		for (var jvmEntry : byJvmImpl.entrySet()) {
 			String jvmImpl = jvmEntry.getKey();
+
+			if (!isValidEnum(JvmImpl.class, jvmImpl)) {
+				System.out.println("WARN: Skipping invalid JVM implementation: " + jvmImpl);
+				continue;
+			}
+
 			List<JdkMetadata> jvmMetadata = jvmEntry.getValue();
 			Path jvmDir = baseDir.resolve(jvmImpl);
 			Files.createDirectories(jvmDir);
@@ -425,13 +459,21 @@ public class MetadataUtils {
 			throws IOException {
 		// Group by vendor
 		var byVendor = jvmMetadata.stream()
-				.collect(java.util.stream.Collectors.groupingBy(
-						md -> normalizeValue(md.vendor(), "unknown-vendor"),
-						java.util.LinkedHashMap::new,
-						java.util.stream.Collectors.toList()));
+				.collect(Collectors.groupingBy(
+						md -> normalizeValue(md.vendor(), "unknown-vendor"), LinkedHashMap::new, Collectors.toList()));
+
+		Set<String> allVendors = ScraperFactory.getAvailableScraperDiscoveries().values().stream()
+				.map(v -> v.vendor())
+				.collect(Collectors.toSet());
 
 		for (var vendorEntry : byVendor.entrySet()) {
 			String vendor = vendorEntry.getKey();
+
+			if (!allVendors.contains(vendor) && !vendor.startsWith("unknown-vendor-")) {
+				System.out.println("WARN: Skipping invalid vendor: " + vendor);
+				continue;
+			}
+
 			List<JdkMetadata> vendorMetadata = vendorEntry.getValue();
 
 			// Save vendor-level JSON
