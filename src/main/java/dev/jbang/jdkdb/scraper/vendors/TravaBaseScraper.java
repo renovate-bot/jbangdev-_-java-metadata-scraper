@@ -42,8 +42,8 @@ public abstract class TravaBaseScraper extends GitHubReleaseScraper {
 		if (!contentType.startsWith("application")) {
 			return null;
 		}
-		Matcher matcher = getFilenamePattern().matcher(assetName);
-		if (!matcher.matches()) {
+		Matcher filenameMatcher = getFilenamePattern().matcher(assetName);
+		if (!filenameMatcher.matches()) {
 			warn("Skipping " + assetName + " (does not match pattern)");
 			return null;
 		}
@@ -56,7 +56,6 @@ public abstract class TravaBaseScraper extends GitHubReleaseScraper {
 		String tagName = release.get("tag_name").asText();
 		String version = extractVersion(tagName);
 
-		Matcher filenameMatcher = getFilenamePattern().matcher(assetName);
 		String os = filenameMatcher.group(1);
 		String arch = extractArch(filenameMatcher);
 		String ext = extractExtension(filenameMatcher);

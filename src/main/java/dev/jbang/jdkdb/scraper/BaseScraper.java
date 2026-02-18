@@ -99,7 +99,7 @@ public abstract class BaseScraper implements Scraper {
 
 	/** Log failure to process single metadata item */
 	protected void fail(String message, Exception error) {
-		logger.error("Failed " + message + ": " + error.getMessage());
+		logger.error(message + ": " + error.getMessage());
 		failureCount++;
 		if (maxFailureCount > 0 && failureCount >= maxFailureCount) {
 			throw new TooManyFailuresException("Too many failures, aborting");

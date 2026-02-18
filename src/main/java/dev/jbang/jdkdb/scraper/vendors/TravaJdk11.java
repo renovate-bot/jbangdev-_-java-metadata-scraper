@@ -10,8 +10,8 @@ public class TravaJdk11 extends TravaBaseScraper {
 	private static final String REPO = "trava-jdk-11-dcevm";
 	private static final String JAVA_VERSION = "11";
 	private static final Pattern TAG_PATTERN = Pattern.compile("^dcevm-(11\\.[\\d.+]+)$");
-	private static final Pattern FILENAME_PATTERN =
-			Pattern.compile("^java11-openjdk-dcevm-(linux|osx|windows)-(amd64|arm64|x64)\\.(tar\\.gz|zip)$");
+	private static final Pattern FILENAME_PATTERN = Pattern.compile(
+			"^(?:java11-openjdk|Openjdk11u)-dcevm-(linux|osx|mac|windows)-(amd64|arm64|x64)\\.(tar\\.gz|zip)$");
 
 	public TravaJdk11(ScraperConfig config) {
 		super(config);
