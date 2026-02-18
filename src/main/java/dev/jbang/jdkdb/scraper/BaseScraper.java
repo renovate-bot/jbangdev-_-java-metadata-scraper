@@ -210,7 +210,8 @@ public abstract class BaseScraper implements Scraper {
 			case "ppc" -> "ppc32";
 			case "ppc64" -> "ppc64";
 			case String s when s.matches("ppc64le|ppc64el") -> "ppc64le";
-			case String s when s.matches("s390x|s390") -> "s390x";
+			case "s390" -> "s390";
+			case "s390x" -> "s390x";
 			case String s when s.matches("sparc|sparcv9") -> "sparcv9";
 			case String s when s.matches("riscv|riscv64") -> "riscv64";
 			case "mips" -> "mips";
