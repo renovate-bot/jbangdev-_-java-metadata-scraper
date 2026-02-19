@@ -7,6 +7,13 @@
         </encoder>
     </appender>
 
+    <!-- Minimal console appender for command logger - just level and message -->
+    <appender name="COMMAND_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%-5level - %msg%n</pattern>
+        </encoder>
+    </appender>
+
     <!-- File appender -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/jdkdb-scraper.log</file>
@@ -58,6 +65,13 @@
         <appender-ref ref="FILE" />
         <appender-ref ref="ERROR_FILE" />
     </root>
+
+    <!-- Command logger with minimal console output - just level and message, but full details in files -->
+    <logger name="command" level="DEBUG" additivity="false">
+        <appender-ref ref="COMMAND_CONSOLE" />
+        <appender-ref ref="FILE" />
+        <appender-ref ref="ERROR_FILE" />
+    </logger>
 
     <!-- Set application package to INFO level to see application logs -->
     <logger name="dev.jbang.jdkdb" level="INFO" additivity="false">

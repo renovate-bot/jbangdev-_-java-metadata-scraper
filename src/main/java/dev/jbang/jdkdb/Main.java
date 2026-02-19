@@ -3,6 +3,8 @@ package dev.jbang.jdkdb;
 import dev.jbang.jdkdb.util.HttpUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
@@ -14,6 +16,7 @@ import picocli.CommandLine.Command;
 		mixinStandardHelpOptions = true,
 		subcommands = {UpdateCommand.class, IndexCommand.class, DownloadCommand.class, CleanCommand.class})
 public class Main {
+	private static final Logger logger = LoggerFactory.getLogger("command");
 	private static final String GITHUB_TOKEN_ENV = "GITHUB_TOKEN";
 
 	protected static void setupGitHubToken() {
@@ -21,14 +24,15 @@ public class Main {
 		String fromEnv = System.getenv(GITHUB_TOKEN_ENV);
 		if (fromEnv != null && !fromEnv.isBlank()) {
 			githubToken = fromEnv.trim();
-			System.out.println("Using GitHub token from " + GITHUB_TOKEN_ENV);
+			logger.info("Using GitHub token from {}", GITHUB_TOKEN_ENV);
 		} else {
 			githubToken = runGhAuthToken();
 			if (githubToken != null) {
-				System.out.println("Using GitHub token from gh auth token");
+				logger.info("Using GitHub token from gh auth token");
 			} else {
-				System.out.println("No GitHub token found (set " + GITHUB_TOKEN_ENV
-						+ " or run 'gh auth login'); API rate limits may apply");
+				logger.info(
+						"No GitHub token found (set {} or run 'gh auth login'); API rate limits may apply",
+						GITHUB_TOKEN_ENV);
 			}
 		}
 		if (githubToken != null) {

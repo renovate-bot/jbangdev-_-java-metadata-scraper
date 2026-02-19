@@ -24,6 +24,7 @@ import picocli.CommandLine.Option;
 		description = "Download and compute checksums for metadata files that have missing checksum values",
 		mixinStandardHelpOptions = true)
 public class DownloadCommand implements Callable<Integer> {
+	private static final Logger logger = LoggerFactory.getLogger("command");
 
 	@Option(
 			names = {"-m", "--metadata-dir"},
@@ -64,15 +65,15 @@ public class DownloadCommand implements Callable<Integer> {
 
 	@Override
 	public Integer call() throws Exception {
-		System.out.println("Java Metadata Scraper - Download");
-		System.out.println("=================================");
-		System.out.println("Metadata directory: " + metadataDir.toAbsolutePath());
-		System.out.println("Checksum directory: " + checksumDir.toAbsolutePath());
-		System.out.println();
+		logger.info("Java Metadata Scraper - Download");
+		logger.info("=================================");
+		logger.info("Metadata directory: {}", metadataDir.toAbsolutePath());
+		logger.info("Checksum directory: {}", checksumDir.toAbsolutePath());
+		logger.info("");
 
 		Path vendorDir = metadataDir.resolve("vendor");
 		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
-			System.err.println("Error: Vendor directory not found: " + vendorDir.toAbsolutePath());
+			logger.error("Error: Vendor directory not found: {}", vendorDir.toAbsolutePath());
 			return 1;
 		}
 
@@ -87,12 +88,12 @@ public class DownloadCommand implements Callable<Integer> {
 						.sorted()
 						.toList();
 			}
-			System.out.println("Processing all vendors...");
+			logger.info("Processing all vendors...");
 		} else {
 			vendorsToProcess = vendorNames;
-			System.out.println("Processing specified vendors: " + String.join(", ", vendorNames));
+			logger.info("Processing specified vendors: {}", String.join(", ", vendorNames));
 		}
-		System.out.println();
+		logger.info("");
 
 		// Create download manager
 		var threadCount = maxThreads > 0 ? maxThreads : Runtime.getRuntime().availableProcessors();
@@ -142,15 +143,21 @@ public class DownloadCommand implements Callable<Integer> {
 				vendorMissingCounts.put(vendorName, vendorMissingCounts.getOrDefault(vendorName, 0) + 1);
 				int vendorMissing = vendorMissingCounts.get(vendorName);
 				if (limitProgress > 0 && vendorMissing >= limitProgress) {
-					dl.info("Reached progress limit of " + limitProgress + " items for vendor " + vendorName
-							+ ", skipping remaining files for this vendor");
-					System.out.println("Reached progress limit of " + limitProgress + " items for vendor " + vendorName
-							+ ", skipping remaining files for this vendor");
+					dl.info(
+							"Reached progress limit of {} items for vendor {}, skipping remaining files for this vendor",
+							limitProgress,
+							vendorName);
+					logger.info(
+							"Reached progress limit of {} items for vendor {}, skipping remaining files for this vendor",
+							limitProgress,
+							vendorName);
 					break;
 				}
 			} catch (Exception e) {
-				System.err.println("  Failed to read metadata file: "
-						+ Path.of(metadata.filename()).getFileName() + " - " + e.getMessage());
+				logger.error(
+						"Failed to read metadata file: {} - {}",
+						Path.of(metadata.filename()).getFileName(),
+						e.getMessage());
 			}
 		}
 
@@ -160,23 +167,23 @@ public class DownloadCommand implements Callable<Integer> {
 		int totalCompleted = 0;
 		int totalFailed = 0;
 
-		System.out.println("Waiting for downloads to complete...");
+		logger.info("Waiting for downloads to complete...");
 		try {
 			downloadManager.awaitCompletion();
 			totalCompleted = downloadManager.getCompletedCount();
 			totalFailed = downloadManager.getFailedCount();
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			System.err.println("Download manager interrupted while waiting for completion");
+			logger.error("Download manager interrupted while waiting for completion");
 			return 1;
 		}
 
-		System.out.println("Summary");
-		System.out.println("=======");
-		System.out.println("Files with missing checksums: " + filesWithMissingData);
+		logger.info("Summary");
+		logger.info("=======");
+		logger.info("Files with missing checksums: {}", filesWithMissingData);
 		if (filesWithMissingData > 0) {
-			System.out.println("Total downloads completed: " + totalCompleted);
-			System.out.println("Total downloads failed: " + totalFailed);
+			logger.info("Total downloads completed: {}", totalCompleted);
+			logger.info("Total downloads failed: {}", totalFailed);
 		}
 
 		return totalFailed > 0 ? 1 : 0;

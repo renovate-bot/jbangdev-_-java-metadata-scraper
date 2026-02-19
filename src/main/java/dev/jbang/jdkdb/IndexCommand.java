@@ -6,6 +6,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -15,6 +17,7 @@ import picocli.CommandLine.Option;
 		description = "Generate all.json files for vendor directories by aggregating individual metadata files",
 		mixinStandardHelpOptions = true)
 public class IndexCommand implements Callable<Integer> {
+	private static final Logger logger = LoggerFactory.getLogger("command");
 
 	@Option(
 			names = {"-m", "--metadata-dir"},
@@ -36,14 +39,14 @@ public class IndexCommand implements Callable<Integer> {
 
 	@Override
 	public Integer call() throws Exception {
-		System.out.println("Java Metadata Scraper - Index");
-		System.out.println("=============================");
-		System.out.println("Metadata directory: " + metadataDir.toAbsolutePath());
-		System.out.println();
+		logger.info("Java Metadata Scraper - Index");
+		logger.info("=============================");
+		logger.info("Metadata directory: {}", metadataDir.toAbsolutePath());
+		logger.info("");
 
 		Path vendorDir = metadataDir.resolve("vendor");
 		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
-			System.err.println("Error: Vendor directory not found: " + vendorDir.toAbsolutePath());
+			logger.error("Error: Vendor directory not found: {}", vendorDir.toAbsolutePath());
 			return 1;
 		}
 
@@ -58,12 +61,12 @@ public class IndexCommand implements Callable<Integer> {
 						.sorted()
 						.toList();
 			}
-			System.out.println("Processing all vendors...");
+			logger.info("Processing all vendors...");
 		} else {
 			vendorsToProcess = vendorNames;
-			System.out.println("Processing specified vendors: " + String.join(", ", vendorNames));
+			logger.info("Processing specified vendors: {}", String.join(", ", vendorNames));
 		}
-		System.out.println();
+		logger.info("");
 
 		int result = generateIndices(metadataDir, vendorsToProcess, allowIncomplete);
 
@@ -76,14 +79,14 @@ public class IndexCommand implements Callable<Integer> {
 
 		Path vendorDir = metadataDir.resolve("vendor");
 		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
-			System.err.println("Error: Vendor directory not found: " + vendorDir.toAbsolutePath());
+			logger.error("Error: Vendor directory not found: {}", vendorDir.toAbsolutePath());
 			return 1;
 		}
 
 		for (String vendorName : vendorsToProcess) {
 			Path vendorPath = vendorDir.resolve(vendorName);
 			if (!Files.exists(vendorPath) || !Files.isDirectory(vendorPath)) {
-				System.err.println("Warning: Vendor directory not found: " + vendorName);
+				logger.warn("Warning: Vendor directory not found: {}", vendorName);
 				failed++;
 				continue;
 			}
@@ -92,8 +95,7 @@ public class IndexCommand implements Callable<Integer> {
 				MetadataUtils.generateAllJsonFromDirectory(vendorPath, allowIncomplete);
 				successful++;
 			} catch (Exception e) {
-				System.err.println("  Failed for vendor " + vendorName + ": " + e.getMessage());
-				e.printStackTrace();
+				logger.error("Failed for vendor {}: {}", vendorName, e.getMessage(), e);
 				failed++;
 			}
 		}
@@ -101,17 +103,16 @@ public class IndexCommand implements Callable<Integer> {
 		try {
 			MetadataUtils.generateComprehensiveIndices(metadataDir, allowIncomplete);
 		} catch (Exception e) {
-			System.err.println("  Failed to generate comprehensive indices: " + e.getMessage());
-			e.printStackTrace();
+			logger.error("Failed to generate comprehensive indices: {}", e.getMessage(), e);
 			failed++;
 		}
 
-		System.out.println();
-		System.out.println("Index Generation Summary");
-		System.out.println("========================");
-		System.out.println("Total vendors: " + vendorsToProcess.size());
-		System.out.println("Successful: " + successful);
-		System.out.println("Failed: " + failed);
+		logger.info("");
+		logger.info("Index Generation Summary");
+		logger.info("========================");
+		logger.info("Total vendors: {}", vendorsToProcess.size());
+		logger.info("Successful: {}", successful);
+		logger.info("Failed: {}", failed);
 
 		return failed > 0 ? 1 : 0;
 	}

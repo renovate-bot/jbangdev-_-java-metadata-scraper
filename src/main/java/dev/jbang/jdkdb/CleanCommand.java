@@ -11,6 +11,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -20,6 +22,7 @@ import picocli.CommandLine.Option;
 		description = "Clean up metadata by removing incomplete files and pruning old EA releases",
 		mixinStandardHelpOptions = true)
 public class CleanCommand implements Callable<Integer> {
+	private static final Logger logger = LoggerFactory.getLogger("command");
 
 	/** Enum for incomplete metadata types */
 	public enum IncompleteType {
@@ -58,32 +61,33 @@ public class CleanCommand implements Callable<Integer> {
 
 	@Override
 	public Integer call() throws Exception {
-		System.out.println("Java Metadata Scraper - Clean");
-		System.out.println("=============================");
-		System.out.println("Metadata directory: " + metadataDir.toAbsolutePath());
+		logger.info("Java Metadata Scraper - Clean");
+		logger.info("=============================");
+		logger.info("Metadata directory: {}", metadataDir.toAbsolutePath());
 
 		// Apply default values if no options specified
 		if (removeIncomplete == null && !removeInvalid && pruneEa == null && !dryRun) {
-			System.out.println("No options specified, using defaults: --remove-incomplete=all --prune-ea=6m --dry-run");
-			System.out.println();
+			logger.info("No options specified, using defaults: --remove-incomplete=all --prune-ea=6m --dry-run");
+			logger.info("");
 			removeIncomplete = IncompleteType.all;
 			pruneEa = "6m";
 			dryRun = true;
 		}
 
-		System.out.println("Configuration:");
-		System.out.println("  Remove incomplete: "
-				+ (removeIncomplete != null
+		logger.info("Configuration:");
+		logger.info(
+				"  Remove incomplete: {}",
+				(removeIncomplete != null
 						? removeIncomplete.toString().toLowerCase().replace("_", "-")
 						: "disabled"));
-		System.out.println("  Remove invalid: " + removeInvalid);
-		System.out.println("  Prune EA: " + (pruneEa != null ? pruneEa : "disabled"));
-		System.out.println("  Dry run: " + dryRun);
-		System.out.println();
+		logger.info("  Remove invalid: {}", removeInvalid);
+		logger.info("  Prune EA: {}", (pruneEa != null ? pruneEa : "disabled"));
+		logger.info("  Dry run: {}", dryRun);
+		logger.info("");
 
 		Path vendorDir = metadataDir.resolve("vendor");
 		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
-			System.err.println("Error: Vendor directory not found: " + vendorDir.toAbsolutePath());
+			logger.error("Error: Vendor directory not found: {}", vendorDir.toAbsolutePath());
 			return 1;
 		}
 
@@ -92,13 +96,13 @@ public class CleanCommand implements Callable<Integer> {
 		if (pruneEa != null) {
 			Duration duration = MetadataUtils.parseDuration(pruneEa);
 			if (duration == null) {
-				System.err.println("Error: Invalid duration format: " + pruneEa);
-				System.err.println("Expected format: [number][d|w|m|y] (e.g., 30d, 3w, 6m, 1y)");
+				logger.error("Error: Invalid duration format: {}", pruneEa);
+				logger.error("Expected format: [number][d|w|m|y] (e.g., 30d, 3w, 6m, 1y)");
 				return 1;
 			}
 			pruneThreshold = Instant.now().minus(duration);
-			System.out.println("Pruning EA releases older than: " + pruneEa + " (before " + pruneThreshold + ")");
-			System.out.println();
+			logger.info("Pruning EA releases older than: {} (before {})", pruneEa, pruneThreshold);
+			logger.info("");
 		}
 
 		// Collect files to delete
@@ -111,37 +115,38 @@ public class CleanCommand implements Callable<Integer> {
 			try {
 				processMetadataFile(metadata, stats, filesToDelete, finalPruneThreshold);
 			} catch (IOException e) {
-				System.err.println(
-						"  Failed to process " + metadata.metadataFile().getFileName() + ": " + e.getMessage());
+				logger.error("Failed to process {}: {}", metadata.metadataFile().getFileName(), e.getMessage());
 				stats.errors++;
 			}
 		}
 
 		// Print summary
-		System.out.println();
-		System.out.println("Summary:");
-		System.out.println("========");
-		System.out.println("Total files scanned: " + stats.totalFiles);
-		System.out.println("Incomplete files: " + stats.incompleteFiles);
-		System.out.println("Invalid files: " + stats.invalidFiles);
-		System.out.println("Old EA releases: " + stats.oldEaReleases);
-		System.out.println("Errors: " + stats.errors);
-		System.out.println();
+		logger.info("");
+		logger.info("Summary:");
+		logger.info("========");
+		logger.info("Total files scanned: {}", stats.totalFiles);
+		logger.info("Incomplete files (total): {}", stats.incompleteChecksums + stats.incompleteReleaseInfo);
+		logger.info("   - missing checksums): {}", stats.incompleteChecksums);
+		logger.info("   - missing release info): {}", stats.incompleteReleaseInfo);
+		logger.info("Invalid files: {}", stats.invalidFiles);
+		logger.info("Old EA releases: {}", stats.oldEaReleases);
+		logger.info("Errors: {}", stats.errors);
+		logger.info("");
 
 		if (filesToDelete.isEmpty()) {
-			System.out.println("No files to delete.");
+			logger.info("No files to delete.");
 			return 0;
 		}
 
-		System.out.println("Files to delete: " + filesToDelete.size());
+		logger.info("Files to delete: {}", filesToDelete.size());
 
 		if (dryRun) {
-			System.out.println();
-			System.out.println("DRY RUN - No files were actually deleted.");
-			System.out.println("Run without --dry-run to perform actual deletion.");
+			logger.info("");
+			logger.info("DRY RUN - No files were actually deleted.");
+			logger.info("Run without --dry-run to perform actual deletion.");
 		} else {
-			System.out.println();
-			System.out.println("Deleting files...");
+			logger.info("");
+			logger.info("Deleting files...");
 			int deletedCount = 0;
 			int failedCount = 0;
 
@@ -149,17 +154,17 @@ public class CleanCommand implements Callable<Integer> {
 				try {
 					Files.delete(file);
 					deletedCount++;
-					System.out.println("  Deleted: " + file.getFileName());
+					logger.info("  Deleted: {}", file.getFileName());
 				} catch (IOException e) {
-					System.err.println("  Failed to delete " + file.getFileName() + ": " + e.getMessage());
+					logger.error("  Failed to delete {}: {}", file.getFileName(), e.getMessage());
 					failedCount++;
 				}
 			}
 
-			System.out.println();
-			System.out.println("Deleted: " + deletedCount + " files");
+			logger.info("");
+			logger.info("Deleted: {} files", deletedCount);
 			if (failedCount > 0) {
-				System.out.println("Failed: " + failedCount + " files");
+				logger.info("Failed: {} files", failedCount);
 			}
 		}
 
@@ -201,15 +206,18 @@ public class CleanCommand implements Callable<Integer> {
 					};
 
 			if (isIncomplete) {
-				stats.incompleteFiles++;
 				shouldDelete = true;
 				if (removeIncomplete == IncompleteType.checksums || (missingChecksums && !missingReleaseInfo)) {
-					reason = "incomplete (missing checksums)";
+					reason = "incomplete - missing checksums";
+					stats.incompleteChecksums++;
 				} else if (removeIncomplete == IncompleteType.release_info
 						|| (missingReleaseInfo && !missingChecksums)) {
-					reason = "incomplete (missing release info)";
+					reason = "incomplete - missing release info";
+					stats.incompleteReleaseInfo++;
 				} else {
-					reason = "incomplete (missing checksums and release info)";
+					reason = "incomplete - missing checksums and release info";
+					stats.incompleteChecksums++;
+					stats.incompleteReleaseInfo++;
 				}
 			}
 		}
@@ -226,14 +234,15 @@ public class CleanCommand implements Callable<Integer> {
 
 		if (shouldDelete) {
 			filesToDelete.add(metadataFile);
-			System.out.println("  - " + metadataFile.getFileName() + " (" + reason + ")");
+			logger.debug("  - {} ({})", metadataFile.getFileName(), reason);
 		}
 	}
 
 	/** Statistics for clean operation */
 	private static class CleanStats {
 		int totalFiles = 0;
-		int incompleteFiles = 0;
+		int incompleteChecksums = 0;
+		int incompleteReleaseInfo = 0;
 		int invalidFiles = 0;
 		int oldEaReleases = 0;
 		int errors = 0;

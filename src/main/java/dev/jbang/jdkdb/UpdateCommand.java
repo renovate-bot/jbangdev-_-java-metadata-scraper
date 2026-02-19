@@ -18,6 +18,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -27,6 +29,7 @@ import picocli.CommandLine.Option;
 		description = "Scrape JDK metadata from various vendors and update metadata files",
 		mixinStandardHelpOptions = true)
 public class UpdateCommand implements Callable<Integer> {
+	private static final Logger logger = LoggerFactory.getLogger("command");
 
 	@Option(
 			names = {"-m", "--metadata-dir"},
@@ -106,30 +109,31 @@ public class UpdateCommand implements Callable<Integer> {
 		// Parse skip-ea duration
 		Duration skipEaDuration = MetadataUtils.parseDuration(skipEa);
 		if (skipEaDuration == null) {
-			System.err.println("Invalid --skip-ea duration format: '" + skipEa
-					+ "'. Expected format: [number][d|w|m|y] (e.g., '30d', '6m', '1y')");
+			logger.error(
+					"Invalid --skip-ea duration format: '{}'. Expected format: [number][d|w|m|y] (e.g., '30d', '6m', '1y')",
+					skipEa);
 			return 1;
 		}
 
-		System.out.println("Java Metadata Scraper - Update");
-		System.out.println("==============================");
-		System.out.println("Metadata directory: " + metadataDir.toAbsolutePath());
-		System.out.println("Checksum directory: " + checksumDir.toAbsolutePath());
-		System.out.println("Max parallel threads: " + threadCount);
-		System.out.println();
+		logger.info("Java Metadata Scraper - Update");
+		logger.info("==============================");
+		logger.info("Metadata directory: {}", metadataDir.toAbsolutePath());
+		logger.info("Checksum directory: {}", checksumDir.toAbsolutePath());
+		logger.info("Max parallel threads: {}", threadCount);
+		logger.info("");
 
 		// Create and start download manager
 		DownloadManager downloadManager;
 		if (noDownload) {
 			downloadManager = new NoOpDownloadManager();
 			downloadManager.start();
-			System.out.println("No-download mode enabled - files will not be downloaded");
+			logger.info("No-download mode enabled - files will not be downloaded");
 		} else {
 			downloadManager = new DefaultDownloadManager(threadCount, metadataDir, checksumDir);
 			downloadManager.start();
-			System.out.println("Started download manager with " + threadCount + " download threads");
+			logger.info("Started download manager with {} download threads", threadCount);
 		}
-		System.out.println();
+		logger.info("");
 
 		// Create scrapers
 		var fact = ScraperFactory.create(
@@ -143,14 +147,13 @@ public class UpdateCommand implements Callable<Integer> {
 		for (var scraperId : scraperIds) {
 			var discovery = allDiscoveries.get(scraperId);
 			if (discovery == null) {
-				System.err.println("Warning: Unknown scraper ID: " + scraperId);
+				logger.warn("Warning: Unknown scraper ID: {}", scraperId);
 				continue;
 			}
 
 			// Check if scraper should run based on schedule
 			if (!shouldRunScraper(discovery, metadataDir)) {
-				System.out.println(
-						"Skipping scraper '" + scraperId + "' - not scheduled to run yet (" + discovery.when() + ")");
+				logger.info("Skipping scraper '{}' - not scheduled to run yet ({})", scraperId, discovery.when());
 				continue;
 			}
 
@@ -159,13 +162,13 @@ public class UpdateCommand implements Callable<Integer> {
 			affectedVendors.add(discovery.vendor());
 		}
 		if (scrapers.isEmpty()) {
-			System.out.println("No scrapers scheduled to run.");
+			logger.info("No scrapers scheduled to run.");
 			return 0;
 		}
 
-		System.out.println("Running scrapers: " + String.join(", ", scrapers.keySet()));
-		System.out.println("Total scrapers: " + scrapers.size());
-		System.out.println();
+		logger.info("Running scrapers: {}", String.join(", ", scrapers.keySet()));
+		logger.info("Total scrapers: {}", scrapers.size());
+		logger.info("");
 
 		long startTime = System.currentTimeMillis();
 
@@ -191,39 +194,37 @@ public class UpdateCommand implements Callable<Integer> {
 				try {
 					results.put(scraperNames.get(i), futures.get(i).get());
 				} catch (ExecutionException e) {
-					System.err.println(
-							"Scraper execution failed: " + e.getCause().getMessage());
+					logger.error("Scraper execution failed: {}", e.getCause().getMessage());
 				} catch (InterruptedException e) {
 					Thread.currentThread().interrupt();
-					System.err.println("Scraper execution interrupted");
+					logger.error("Scraper execution interrupted");
 				}
 			}
 
 			// All scrapers have completed, signal download manager to shut down
-			System.out.println();
-			System.out.println("All scrapers completed. Waiting for downloads to complete...");
+			logger.info("");
+			logger.info("All scrapers completed. Waiting for downloads to complete...");
 			downloadManager.shutdown();
 
 			try {
 				downloadManager.awaitCompletion();
-				System.out.println("All downloads completed.");
-				System.out.println("  Total completed: " + downloadManager.getCompletedCount());
-				System.out.println("  Total failed: " + downloadManager.getFailedCount());
+				logger.info("All downloads completed.");
+				logger.info("  Total completed: {}", downloadManager.getCompletedCount());
+				logger.info("  Total failed: {}", downloadManager.getFailedCount());
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
-				System.err.println("Download manager interrupted while waiting for completion");
+				logger.error("Download manager interrupted while waiting for completion");
 			}
 
 			if (!noIndex) {
 				// Generate all.json files for affected vendor directories only
-				System.out.println();
-				System.out.println("Generating all.json files for affected vendor directories...");
+				logger.info("");
+				logger.info("Generating all.json files for affected vendor directories...");
 				try {
 					IndexCommand.generateIndices(metadataDir, new ArrayList<>(affectedVendors), noDownload);
-					System.out.println("Successfully generated all.json files");
+					logger.info("Successfully generated all.json files");
 				} catch (Exception e) {
-					System.err.println("Failed to generate all.json files: " + e.getMessage());
-					e.printStackTrace();
+					logger.error("Failed to generate all.json files: {}", e.getMessage(), e);
 				}
 			}
 
@@ -235,9 +236,9 @@ public class UpdateCommand implements Callable<Integer> {
 			}
 
 			// Print summary
-			System.out.println();
-			System.out.println("Execution Summary");
-			System.out.println("=================");
+			logger.info("");
+			logger.info("Execution Summary");
+			logger.info("=================");
 
 			var successful = 0;
 			var failed = 0;
@@ -246,7 +247,7 @@ public class UpdateCommand implements Callable<Integer> {
 			var totalFailedItems = 0;
 
 			for (var result : results.values()) {
-				System.out.println(result);
+				logger.info("{}", result);
 				if (result.success()) {
 					successful++;
 					totalItems += result.itemsProcessed();
@@ -258,39 +259,39 @@ public class UpdateCommand implements Callable<Integer> {
 			}
 
 			// Per-scraper breakdown
-			System.out.println();
-			System.out.println("Per-Scraper Breakdown");
-			System.out.println("=====================");
+			logger.info("");
+			logger.info("Per-Scraper Breakdown");
+			logger.info("=====================");
 			for (var entry : results.entrySet()) {
 				var scraperName = entry.getKey();
 				var result = entry.getValue();
-				System.out.printf("  %s:%n", scraperName);
-				System.out.printf("    Status: %s%n", result.success() ? "SUCCESS" : "FAILED");
-				System.out.printf("    Processed: %d%n", result.itemsProcessed());
-				System.out.printf("    Skipped: %d%n", result.itemsSkipped());
-				System.out.printf("    Failures: %d%n", result.itemsFailed());
+				logger.info("  {}:", scraperName);
+				logger.info("    Status: {}", result.success() ? "SUCCESS" : "FAILED");
+				logger.info("    Processed: {}", result.itemsProcessed());
+				logger.info("    Skipped: {}", result.itemsSkipped());
+				logger.info("    Failures: {}", result.itemsFailed());
 				if (!result.success()) {
-					System.out.printf(
-							"    Error: %s%n",
+					logger.info(
+							"    Error: {}",
 							result.error() != null ? result.error().getMessage() : "Unknown error");
 				}
 			}
-			System.out.println();
-			System.out.println("Totals");
-			System.out.println("======");
+			logger.info("");
+			logger.info("Totals");
+			logger.info("======");
 
-			System.out.println();
-			System.out.println("Total scrapers: " + results.size());
-			System.out.println("Successful: " + successful);
-			System.out.println("Failed: " + failed);
-			System.out.println("Total items processed: " + totalItems);
-			System.out.println("Total items skipped: " + totalSkipped);
-			System.out.println("Total items failed: " + totalFailedItems);
+			logger.info("");
+			logger.info("Total scrapers: {}", results.size());
+			logger.info("Successful: {}", successful);
+			logger.info("Failed: {}", failed);
+			logger.info("Total items processed: {}", totalItems);
+			logger.info("Total items skipped: {}", totalSkipped);
+			logger.info("Total items failed: {}", totalFailedItems);
 
 			var endTime = System.currentTimeMillis();
 			var duration = (endTime - startTime) / 1000.0;
-			System.out.println();
-			System.out.println("All scrapers completed in " + duration + " seconds");
+			logger.info("");
+			logger.info("All scrapers completed in {} seconds", duration);
 
 			return failed > 0 ? 1 : 0;
 		}
@@ -363,18 +364,18 @@ public class UpdateCommand implements Callable<Integer> {
 	}
 
 	private void listAvailableScrapers() {
-		System.out.println("Available Scrapers:");
-		System.out.println("==================");
+		logger.info("Available Scrapers:");
+		logger.info("==================");
 
 		var names = ScraperFactory.getAvailableScraperDiscoveries().keySet().stream()
 				.sorted()
 				.toList();
 
 		for (var name : names) {
-			System.out.println("  - " + name);
+			logger.info("  - {}", name);
 		}
 
-		System.out.println();
-		System.out.println("Total: " + names.size() + " scrapers");
+		logger.info("");
+		logger.info("Total: {} scrapers", names.size());
 	}
 }

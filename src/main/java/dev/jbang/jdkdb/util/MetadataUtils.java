@@ -24,8 +24,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetadataUtils {
+	private static final Logger logger = LoggerFactory.getLogger(MetadataUtils.class);
+
 	public enum ReleaseTypes {
 		ga,
 		ea
@@ -258,8 +262,8 @@ public class MetadataUtils {
 
 		// Only for debugging purposes
 		if (System.getProperty("index.sort", "numerical").equalsIgnoreCase("lexical")) {
-			System.out.println(
-					"WARNING: FOR DEBUGGING ONLY - Using lexical version sorting for " + metadataFile.getFileName());
+			logger.warn(
+					"WARNING: FOR DEBUGGING ONLY - Using lexical version sorting for {}", metadataFile.getFileName());
 			comparator = Comparator.<JdkMetadata, String>comparing(
 					md -> md.metadataFile().getFileName().toString());
 		}
@@ -288,18 +292,18 @@ public class MetadataUtils {
 	public static void generateAllJsonFromDirectory(Path vendorDir, boolean allowIncomplete) throws IOException {
 		// Collect all metadata
 		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
-			System.out.println("No metadata found to generate indices for: " + vendorDir);
+			logger.info("No metadata found to generate indices for: {}", vendorDir);
 			return;
 		}
 
 		List<JdkMetadata> allMetadata = collectAllMetadata(vendorDir, 1, true, allowIncomplete);
 		if (allMetadata.isEmpty()) {
-			System.out.println("No metadata found to generate indices for: " + vendorDir);
+			logger.info("No metadata found to generate indices for: {}", vendorDir);
 			return;
 		}
 
 		// Save the combined all.json
-		System.out.println("Generating " + vendorDir.getFileName() + "/all.json (" + allMetadata.size() + " entries)");
+		logger.info("Generating {}/all.json ({} entries)", vendorDir.getFileName(), allMetadata.size());
 		saveMetadata(vendorDir.resolve("all.json"), allMetadata);
 	}
 
@@ -308,28 +312,28 @@ public class MetadataUtils {
 	 * OS, architecture, image_type, jvm_impl, and vendor
 	 */
 	public static void generateComprehensiveIndices(Path metadataDir, boolean allowIncomplete) throws IOException {
-		System.out.println("Generating comprehensive indices...");
+		logger.info("Generating comprehensive indices...");
 
 		// Collect all metadata
 		Path vendorDir = metadataDir.resolve("vendor");
 		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
-			System.out.println("No metadata found to generate comprehensive indices.");
+			logger.info("No metadata found to generate comprehensive indices.");
 			return;
 		}
 
 		List<JdkMetadata> allMetadata = collectAllMetadata(vendorDir, 2, true, allowIncomplete);
 		if (allMetadata.isEmpty()) {
-			System.out.println("No metadata found to generate comprehensive indices.");
+			logger.info("No metadata found to generate comprehensive indices.");
 			return;
 		}
 
 		// Generate metadata/all.json
-		System.out.println("Generating metadata/all.json (" + allMetadata.size() + " entries)");
+		logger.info("Generating metadata/all.json ({} entries)", allMetadata.size());
 		saveMetadata(metadataDir.resolve("all.json"), allMetadata);
 
 		generateReleaseTypeIndices(metadataDir, metadataDir, allMetadata);
 
-		System.out.println("Comprehensive indices generated successfully.");
+		logger.info("Comprehensive indices generated successfully.");
 	}
 
 	private static void generateReleaseTypeIndices(Path metadataDir, Path baseDir, List<JdkMetadata> metadata)
@@ -358,7 +362,7 @@ public class MetadataUtils {
 
 			// We allow the valid names "ga" and "ea" but also the "ga-ea" combined type
 			if (!isValidEnum(ReleaseTypes.class, releaseType) && !releaseType.equals("ga-ea")) {
-				System.out.println("WARN: Skipping invalid release type: " + releaseType);
+				logger.warn("Skipping invalid release type: {}", releaseType);
 				continue;
 			}
 
@@ -367,7 +371,7 @@ public class MetadataUtils {
 			Files.createDirectories(releaseDir);
 
 			// Save release_type-level JSON
-			System.out.println("Generating " + releaseType + ".json (" + releaseMetadata.size() + " entries)");
+			logger.info("Generating {}.json ({} entries)", releaseType, releaseMetadata.size());
 			saveMetadata(baseDir.resolve(releaseType + ".json"), releaseMetadata);
 
 			generateOsIndices(metadataDir, releaseDir, releaseMetadata);
@@ -387,7 +391,7 @@ public class MetadataUtils {
 			String os = osEntry.getKey();
 
 			if (!isValidEnumOrUnknown(Os.class, os)) {
-				System.out.println("WARN: Skipping invalid OS: " + os);
+				logger.warn("Skipping invalid OS: {}", os);
 				continue;
 			}
 
@@ -397,8 +401,7 @@ public class MetadataUtils {
 
 			// Save OS-level JSON
 			Path osJsonFile = baseDir.resolve(os + ".json");
-			System.out.println(
-					"Generating " + metadataDir.relativize(osJsonFile) + " (" + osMetadata.size() + " entries)");
+			logger.info("Generating {} ({} entries)", metadataDir.relativize(osJsonFile), osMetadata.size());
 			saveMetadata(osJsonFile, osMetadata);
 
 			generateArchitectureIndices(metadataDir, osDir, osMetadata);
@@ -418,7 +421,7 @@ public class MetadataUtils {
 			String arch = archEntry.getKey();
 
 			if (!isValidEnumOrUnknown(Arch.class, arch.replace("-", "_"))) {
-				System.out.println("WARN: Skipping invalid architecture: " + arch);
+				logger.warn("Skipping invalid architecture: {}", arch);
 				continue;
 			}
 
@@ -428,8 +431,7 @@ public class MetadataUtils {
 
 			// Save architecture-level JSON
 			Path archJsonFile = baseDir.resolve(arch + ".json");
-			System.out.println(
-					"Generating " + metadataDir.relativize(archJsonFile) + " (" + archMetadata.size() + " entries)");
+			logger.info("Generating {} ({} entries)", metadataDir.relativize(archJsonFile), archMetadata.size());
 			saveMetadata(archJsonFile, archMetadata);
 
 			generateImageTypeIndices(metadataDir, archDir, archMetadata);
@@ -449,7 +451,7 @@ public class MetadataUtils {
 			String imageType = imageEntry.getKey();
 
 			if (!isValidEnum(ImageTypes.class, imageType)) {
-				System.out.println("WARN: Skipping invalid image type: " + imageType);
+				logger.warn("Skipping invalid image type: {}", imageType);
 				continue;
 			}
 
@@ -459,8 +461,7 @@ public class MetadataUtils {
 
 			// Save image_type-level JSON
 			Path imageJsonFile = baseDir.resolve(imageType + ".json");
-			System.out.println(
-					"Generating " + metadataDir.relativize(imageJsonFile) + " (" + imageMetadata.size() + " entries)");
+			logger.info("Generating {} ({} entries)", metadataDir.relativize(imageJsonFile), imageMetadata.size());
 			saveMetadata(imageJsonFile, imageMetadata);
 
 			generateJvmImplIndices(metadataDir, imageDir, imageMetadata);
@@ -480,7 +481,7 @@ public class MetadataUtils {
 			String jvmImpl = jvmEntry.getKey();
 
 			if (!isValidEnum(JvmImpl.class, jvmImpl)) {
-				System.out.println("WARN: Skipping invalid JVM implementation: " + jvmImpl);
+				logger.warn("Skipping invalid JVM implementation: {}", jvmImpl);
 				continue;
 			}
 
@@ -490,8 +491,7 @@ public class MetadataUtils {
 
 			// Save jvm_impl-level JSON
 			Path jvmJsonFile = baseDir.resolve(jvmImpl + ".json");
-			System.out.println(
-					"Generating " + metadataDir.relativize(jvmJsonFile) + " (" + jvmMetadata.size() + " entries)");
+			logger.info("Generating {} ({} entries)", metadataDir.relativize(jvmJsonFile), jvmMetadata.size());
 			saveMetadata(jvmJsonFile, jvmMetadata);
 
 			generateVendorIndices(metadataDir, jvmDir, jvmMetadata);
@@ -513,7 +513,7 @@ public class MetadataUtils {
 			String vendor = vendorEntry.getKey();
 
 			if (!allVendors.contains(vendor) && !vendor.startsWith("unknown-vendor-")) {
-				System.out.println("WARN: Skipping invalid vendor: " + vendor);
+				logger.warn("Skipping invalid vendor: {}", vendor);
 				continue;
 			}
 
@@ -521,8 +521,7 @@ public class MetadataUtils {
 
 			// Save vendor-level JSON
 			Path vendorJsonFile = baseDir.resolve(vendor + ".json");
-			System.out.println("Generating " + metadataDir.relativize(vendorJsonFile) + " (" + vendorMetadata.size()
-					+ " entries)");
+			logger.info("Generating {} ({} entries)", metadataDir.relativize(vendorJsonFile), vendorMetadata.size());
 			saveMetadata(vendorJsonFile, vendorMetadata);
 		}
 	}
@@ -552,8 +551,7 @@ public class MetadataUtils {
 								allMetadata.add(metadata);
 							}
 						} catch (IOException e) {
-							System.err.println(
-									"Failed to read metadata file: " + metadataFile + " - " + e.getMessage());
+							logger.error("Failed to read metadata file: {} - {}", metadataFile, e.getMessage());
 						}
 					});
 		}
