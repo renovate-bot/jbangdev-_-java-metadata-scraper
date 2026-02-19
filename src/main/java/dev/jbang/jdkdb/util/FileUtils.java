@@ -18,4 +18,24 @@ public class FileUtils {
 	public static long getFileSize(Path file) throws IOException {
 		return Files.size(file);
 	}
+
+	// Recursively delete a directory and all its contents
+	// ignoring any exceptions to ensure best effort cleanup
+	public static void deleteDirectory(Path directory) {
+		if (Files.exists(directory)) {
+			try {
+				Files.walk(directory)
+						.sorted((a, b) -> b.compareTo(a)) // delete children before parents
+						.forEach(path -> {
+							try {
+								Files.delete(path);
+							} catch (IOException e) {
+								// ignore: best effort cleanup
+							}
+						});
+			} catch (IOException e) {
+				// ignore: best effort cleanup
+			}
+		}
+	}
 }

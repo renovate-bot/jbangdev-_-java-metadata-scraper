@@ -305,39 +305,58 @@ public class MetadataUtils {
 		// Save the combined all.json
 		logger.info("Generating {}/all.json ({} entries)", vendorDir.getFileName(), allMetadata.size());
 		saveMetadata(vendorDir.resolve("all.json"), allMetadata);
+
+		// Save the combined latest.json
+		logger.info("Generating {}/latest.json", vendorDir.getFileName());
+		List<JdkMetadata> filteredList = filterLatestVersions(allMetadata);
+		saveMetadata(vendorDir.resolve("latest.json"), filteredList);
 	}
 
 	/**
 	 * Generate comprehensive indices including nested directory structures for release_type,
 	 * OS, architecture, image_type, jvm_impl, and vendor
+	 *
+	 * @return The number of index files created
 	 */
-	public static void generateComprehensiveIndices(Path metadataDir, boolean allowIncomplete) throws IOException {
+	public static int generateComprehensiveIndices(Path metadataDir, boolean allowIncomplete) throws IOException {
 		logger.info("Generating comprehensive indices...");
 
 		// Collect all metadata
 		Path vendorDir = metadataDir.resolve("vendor");
 		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
 			logger.info("No metadata found to generate comprehensive indices.");
-			return;
+			return 0;
 		}
 
 		List<JdkMetadata> allMetadata = collectAllMetadata(vendorDir, 2, true, allowIncomplete);
 		if (allMetadata.isEmpty()) {
 			logger.info("No metadata found to generate comprehensive indices.");
-			return;
+			return 0;
 		}
 
-		// Generate metadata/all.json
-		logger.info("Generating metadata/all.json ({} entries)", allMetadata.size());
-		saveMetadata(metadataDir.resolve("all.json"), allMetadata);
+		int fileCount = 0;
 
-		generateReleaseTypeIndices(metadataDir, metadataDir, allMetadata);
+		// Generate metadata/all.json
+		// (no longer needed as it is being generated in generateReleaseTypeIndices)
+		// logger.info("Generating metadata/all.json ({} entries)", allMetadata.size());
+		// saveMetadata(metadataDir.resolve("all.json"), allMetadata);
+
+		// Generate metadata/latest.json
+		logger.info("Generating metadata/latest.json");
+		List<JdkMetadata> filteredList = filterLatestVersions(allMetadata);
+		saveMetadata(metadataDir.resolve("latest.json"), filteredList);
+		fileCount++;
+
+		fileCount += generateReleaseTypeIndices(metadataDir, metadataDir, allMetadata);
 
 		logger.info("Comprehensive indices generated successfully.");
+		return fileCount;
 	}
 
-	private static void generateReleaseTypeIndices(Path metadataDir, Path baseDir, List<JdkMetadata> metadata)
+	private static int generateReleaseTypeIndices(Path metadataDir, Path baseDir, List<JdkMetadata> metadata)
 			throws IOException {
+		int fileCount = 0;
+
 		// Group by release_type
 		var byReleaseType = metadata.stream()
 				.collect(java.util.stream.Collectors.groupingBy(
@@ -345,41 +364,41 @@ public class MetadataUtils {
 						java.util.LinkedHashMap::new,
 						java.util.stream.Collectors.toList()));
 
-		// We add a special "ga-ea" release type that combines GA and EA releases
-		byReleaseType.put(
-				"ga-ea",
-				Stream.concat(
-								byReleaseType.getOrDefault("ga", List.of()).stream(),
-								byReleaseType.getOrDefault("ea", List.of()).stream())
-						.sorted(Comparator.<JdkMetadata, String>comparing(
-										md -> md.version(), VersionComparator.INSTANCE)
-								.thenComparing(
-										md -> md.metadataFile().getFileName().toString()))
-						.toList());
+		// We add a special "all" release type that combines GA and EA releases
+		byReleaseType.put("all", metadata);
 
 		for (var releaseEntry : byReleaseType.entrySet()) {
 			String releaseType = releaseEntry.getKey();
 
-			// We allow the valid names "ga" and "ea" but also the "ga-ea" combined type
-			if (!isValidEnum(ReleaseTypes.class, releaseType) && !releaseType.equals("ga-ea")) {
+			// We allow the valid names "ga" and "ea" but also the "all" combined type
+			if (!isValidEnum(ReleaseTypes.class, releaseType) && !releaseType.equals("all")) {
 				logger.warn("Skipping invalid release type: {}", releaseType);
 				continue;
 			}
 
 			List<JdkMetadata> releaseMetadata = releaseEntry.getValue();
 			Path releaseDir = baseDir.resolve(releaseType);
+			// First recuirsively delete existing release type directory
+			// to ensure we remove old data that is no longer present
+			FileUtils.deleteDirectory(releaseDir);
+			// Then create a new empty release type directory
 			Files.createDirectories(releaseDir);
 
 			// Save release_type-level JSON
 			logger.info("Generating {}.json ({} entries)", releaseType, releaseMetadata.size());
 			saveMetadata(baseDir.resolve(releaseType + ".json"), releaseMetadata);
+			fileCount++;
 
-			generateOsIndices(metadataDir, releaseDir, releaseMetadata);
+			fileCount += generateOsIndices(metadataDir, releaseDir, releaseMetadata);
 		}
+
+		return fileCount;
 	}
 
-	private static void generateOsIndices(Path metadataDir, Path baseDir, List<JdkMetadata> metadata)
+	private static int generateOsIndices(Path metadataDir, Path baseDir, List<JdkMetadata> metadata)
 			throws IOException {
+		int fileCount = 0;
+
 		// Group by OS
 		var byOs = metadata.stream()
 				.collect(java.util.stream.Collectors.groupingBy(
@@ -403,13 +422,18 @@ public class MetadataUtils {
 			Path osJsonFile = baseDir.resolve(os + ".json");
 			logger.info("Generating {} ({} entries)", metadataDir.relativize(osJsonFile), osMetadata.size());
 			saveMetadata(osJsonFile, osMetadata);
+			fileCount++;
 
-			generateArchitectureIndices(metadataDir, osDir, osMetadata);
+			fileCount += generateArchitectureIndices(metadataDir, osDir, osMetadata);
 		}
+
+		return fileCount;
 	}
 
-	private static void generateArchitectureIndices(Path metadataDir, Path baseDir, List<JdkMetadata> osMetadata)
+	private static int generateArchitectureIndices(Path metadataDir, Path baseDir, List<JdkMetadata> osMetadata)
 			throws IOException {
+		int fileCount = 0;
+
 		// Group by architecture
 		var byArch = osMetadata.stream()
 				.collect(java.util.stream.Collectors.groupingBy(
@@ -433,13 +457,18 @@ public class MetadataUtils {
 			Path archJsonFile = baseDir.resolve(arch + ".json");
 			logger.info("Generating {} ({} entries)", metadataDir.relativize(archJsonFile), archMetadata.size());
 			saveMetadata(archJsonFile, archMetadata);
+			fileCount++;
 
-			generateImageTypeIndices(metadataDir, archDir, archMetadata);
+			fileCount += generateImageTypeIndices(metadataDir, archDir, archMetadata);
 		}
+
+		return fileCount;
 	}
 
-	private static void generateImageTypeIndices(Path metadataDir, Path baseDir, List<JdkMetadata> archMetadata)
+	private static int generateImageTypeIndices(Path metadataDir, Path baseDir, List<JdkMetadata> archMetadata)
 			throws IOException {
+		int fileCount = 0;
+
 		// Group by image_type
 		var byImageType = archMetadata.stream()
 				.collect(java.util.stream.Collectors.groupingBy(
@@ -447,10 +476,14 @@ public class MetadataUtils {
 						java.util.LinkedHashMap::new,
 						java.util.stream.Collectors.toList()));
 
+		// We add a special "all" image type that combines jdk and jre types
+		byImageType.put("all", archMetadata);
+
 		for (var imageEntry : byImageType.entrySet()) {
 			String imageType = imageEntry.getKey();
 
-			if (!isValidEnum(ImageTypes.class, imageType)) {
+			// We allow the valid names "jdk" and "jre" but also the "all" combined type
+			if (!isValidEnum(ImageTypes.class, imageType) && !imageType.equals("all")) {
 				logger.warn("Skipping invalid image type: {}", imageType);
 				continue;
 			}
@@ -463,13 +496,18 @@ public class MetadataUtils {
 			Path imageJsonFile = baseDir.resolve(imageType + ".json");
 			logger.info("Generating {} ({} entries)", metadataDir.relativize(imageJsonFile), imageMetadata.size());
 			saveMetadata(imageJsonFile, imageMetadata);
+			fileCount++;
 
-			generateJvmImplIndices(metadataDir, imageDir, imageMetadata);
+			fileCount += generateJvmImplIndices(metadataDir, imageDir, imageMetadata);
 		}
+
+		return fileCount;
 	}
 
-	private static void generateJvmImplIndices(Path metadataDir, Path baseDir, List<JdkMetadata> imageMetadata)
+	private static int generateJvmImplIndices(Path metadataDir, Path baseDir, List<JdkMetadata> imageMetadata)
 			throws IOException {
+		int fileCount = 0;
+
 		// Group by jvm_impl
 		var byJvmImpl = imageMetadata.stream()
 				.collect(java.util.stream.Collectors.groupingBy(
@@ -493,17 +531,26 @@ public class MetadataUtils {
 			Path jvmJsonFile = baseDir.resolve(jvmImpl + ".json");
 			logger.info("Generating {} ({} entries)", metadataDir.relativize(jvmJsonFile), jvmMetadata.size());
 			saveMetadata(jvmJsonFile, jvmMetadata);
+			fileCount++;
 
-			generateVendorIndices(metadataDir, jvmDir, jvmMetadata);
+			fileCount += generateVendorIndices(metadataDir, jvmDir, jvmMetadata);
 		}
+
+		return fileCount;
 	}
 
-	private static void generateVendorIndices(Path metadataDir, Path baseDir, List<JdkMetadata> jvmMetadata)
+	private static int generateVendorIndices(Path metadataDir, Path baseDir, List<JdkMetadata> jvmMetadata)
 			throws IOException {
+		int fileCount = 0;
+
 		// Group by vendor
 		var byVendor = jvmMetadata.stream()
 				.collect(Collectors.groupingBy(
 						md -> normalizeValue(md.vendor(), "unknown-vendor"), LinkedHashMap::new, Collectors.toList()));
+
+		// We add a special "all" and "latest" vendor
+		byVendor.put("all", jvmMetadata);
+		byVendor.put("latest", filterLatestVersions(jvmMetadata));
 
 		Set<String> allVendors = ScraperFactory.getAvailableScraperDiscoveries().values().stream()
 				.map(v -> v.vendor())
@@ -512,7 +559,10 @@ public class MetadataUtils {
 		for (var vendorEntry : byVendor.entrySet()) {
 			String vendor = vendorEntry.getKey();
 
-			if (!allVendors.contains(vendor) && !vendor.startsWith("unknown-vendor-")) {
+			if (!allVendors.contains(vendor)
+					&& !vendor.startsWith("unknown-vendor-")
+					&& !vendor.equals("all")
+					&& !vendor.equals("latest")) {
 				logger.warn("Skipping invalid vendor: {}", vendor);
 				continue;
 			}
@@ -523,11 +573,87 @@ public class MetadataUtils {
 			Path vendorJsonFile = baseDir.resolve(vendor + ".json");
 			logger.info("Generating {} ({} entries)", metadataDir.relativize(vendorJsonFile), vendorMetadata.size());
 			saveMetadata(vendorJsonFile, vendorMetadata);
+			fileCount++;
 		}
+
+		return fileCount;
 	}
 
 	/**
-	 * Collect all metadata from the given directory and subdirectories, excluding all.json.
+	 * Extract the major version number from a java_version string.
+	 * Takes the first digits from java_version up to the end or the first non-digit.
+	 *
+	 * @param javaVersion The java_version string (e.g., "17", "11.0.1", "8u302")
+	 * @return The major version as a string (e.g., "17", "11", "8")
+	 */
+	private static String extractMajorVersion(String javaVersion) {
+		if (javaVersion == null || javaVersion.isEmpty()) {
+			return "unknown";
+		}
+
+		StringBuilder majorVersion = new StringBuilder();
+		for (char c : javaVersion.toCharArray()) {
+			if (Character.isDigit(c)) {
+				majorVersion.append(c);
+			} else {
+				break;
+			}
+		}
+
+		return majorVersion.length() > 0 ? majorVersion.toString() : "unknown";
+	}
+
+	/**
+	 * Filter metadata to keep only the latest version per major version for each unique group.
+	 * Groups by: os, architecture, image_type, jvm_impl, vendor, major_version
+	 * Special handling: If both GA and EA exist for the same version, only GA is kept.
+	 * All assets for the winning version are included in the result.
+	 *
+	 * @param metadataList The list of metadata to filter
+	 * @return Filtered list containing all assets for the latest version per major version per group
+	 */
+	private static List<JdkMetadata> filterLatestVersions(List<JdkMetadata> metadataList) {
+		// Group by all the required fields including major version
+		var grouped = metadataList.stream().collect(Collectors.groupingBy(md -> {
+			String os = normalizeValue(md.os(), "unknown-os");
+			String arch = normalizeValue(md.arch(), "unknown-arch");
+			String imageType = normalizeValue(md.imageType(), "unknown-image-type");
+			String jvmImpl = normalizeValue(md.jvmImpl(), "unknown-jvm-impl");
+			String vendor = normalizeValue(md.vendor(), "unknown-vendor");
+			String majorVersion = extractMajorVersion(md.javaVersion());
+
+			return String.format("%s|%s|%s|%s|%s|%s", os, arch, imageType, jvmImpl, vendor, majorVersion);
+		}));
+
+		List<JdkMetadata> result = new ArrayList<>();
+
+		// For each group (which represents a unique major version + platform combination)
+		for (var group : grouped.values()) {
+			// Sort by release_type first (ga before ea), then by version (descending, latest first)
+			var sorted = group.stream()
+					.sorted(Comparator.<JdkMetadata, String>comparing(md -> md.releaseType(), Comparator.reverseOrder())
+							.thenComparing(md -> md.version(), VersionComparator.INSTANCE.reversed()))
+					.toList();
+
+			if (!sorted.isEmpty()) {
+				// The first element is the winner (highest version, GA preferred over EA)
+				JdkMetadata winner = sorted.get(0);
+				String winningVersion = winner.version();
+				String winningReleaseType = winner.releaseType();
+
+				// Add all assets that match the winning version and release type
+				group.stream()
+						.filter(md -> md.version().equals(winningVersion)
+								&& md.releaseType().equals(winningReleaseType))
+						.forEach(result::add);
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Collect all metadata from the given directory and subdirectories, excluding all.json and latest.json.
 	 *
 	 * @param dir The directory to search for metadata files
 	 * @param maxDepth The maximum depth to search for metadata files
@@ -542,6 +668,7 @@ public class MetadataUtils {
 			paths.filter(Files::isRegularFile)
 					.filter(p -> p.getFileName().toString().endsWith(".json"))
 					.filter(p -> !p.getFileName().toString().equals("all.json"))
+					.filter(p -> !p.getFileName().toString().equals("latest.json"))
 					.forEach(metadataFile -> {
 						try {
 							JdkMetadata metadata = readMetadataFile(metadataFile);

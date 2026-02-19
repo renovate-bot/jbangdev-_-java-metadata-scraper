@@ -826,4 +826,510 @@ class MetadataUtilsTest {
 		assertThat(openj9Content).contains("temurin-openj9.tar.gz");
 		assertThat(openj9Content).doesNotContain("hotspot");
 	}
+
+	@Test
+	void testGenerateLatestJsonFromDirectory() throws Exception {
+		// Given - multiple metadata files with different versions
+		Path vendorDir = tempDir.resolve("vendor/temurin");
+		Files.createDirectories(vendorDir);
+
+		DownloadResult download = new DownloadResult("md5", "sha1", "sha256", "sha512", 100_000_000L);
+
+		// Java 8 versions
+		JdkMetadata metadata8_1 = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-8u302.tar.gz")
+				.releaseType("ga")
+				.version("8u302")
+				.javaVersion("8")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/8u302.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		JdkMetadata metadata8_2 = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-8u322.tar.gz")
+				.releaseType("ga")
+				.version("8u322")
+				.javaVersion("8")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/8u322.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		// Java 11 versions
+		JdkMetadata metadata11_1 = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-11.0.15.tar.gz")
+				.releaseType("ga")
+				.version("11.0.15")
+				.javaVersion("11")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/11.0.15.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		JdkMetadata metadata11_2 = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-11.0.18.tar.gz")
+				.releaseType("ga")
+				.version("11.0.18")
+				.javaVersion("11")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/11.0.18.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		// Java 17 versions
+		JdkMetadata metadata17_1 = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.5.tar.gz")
+				.releaseType("ga")
+				.version("17.0.5")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/17.0.5.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		JdkMetadata metadata17_2 = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.8.tar.gz")
+				.releaseType("ga")
+				.version("17.0.8")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/17.0.8.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		// Different group - Windows
+		JdkMetadata metadata17_windows = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.5-windows.zip")
+				.releaseType("ga")
+				.version("17.0.5")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("windows")
+				.arch("x86_64")
+				.fileType("zip")
+				.imageType("jdk")
+				.url("https://example.com/17.0.5-win.zip")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata8_1.metadataFile()), metadata8_1);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata8_2.metadataFile()), metadata8_2);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata11_1.metadataFile()), metadata11_1);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata11_2.metadataFile()), metadata11_2);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_1.metadataFile()), metadata17_1);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_2.metadataFile()), metadata17_2);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_windows.metadataFile()), metadata17_windows);
+
+		// When
+		MetadataUtils.generateAllJsonFromDirectory(vendorDir, false);
+
+		// Then - verify all.json exists with all entries
+		Path allJson = vendorDir.resolve("all.json");
+		assertThat(allJson).exists();
+		String allContent = Files.readString(allJson);
+		assertThat(allContent).contains("8u302", "8u322", "11.0.15", "11.0.18", "17.0.5", "17.0.8");
+
+		// Verify latest.json exists with only latest per major version per group
+		Path latestJson = vendorDir.resolve("latest.json");
+		assertThat(latestJson).exists();
+		String latestContent = Files.readString(latestJson);
+
+		// Should contain latest of Java 8 (8u322)
+		assertThat(latestContent).contains("8u322");
+		assertThat(latestContent).doesNotContain("8u302");
+
+		// Should contain latest of Java 11 (11.0.18)
+		assertThat(latestContent).contains("11.0.18");
+		assertThat(latestContent).doesNotContain("11.0.15");
+
+		// Should contain latest of Java 17 for Linux (17.0.8)
+		assertThat(latestContent).contains("17.0.8");
+
+		// Should contain Java 17 for Windows (17.0.5) as it's in a different group
+		assertThat(latestContent).contains("17.0.5-windows");
+
+		// Parse and verify structure
+		ObjectMapper objectMapper = new ObjectMapper();
+		JdkMetadata[] latestArray = objectMapper.readValue(latestContent, JdkMetadata[].class);
+
+		// Should have 4 entries: latest of 8, 11, 17 (linux), 17 (windows)
+		assertThat(latestArray).hasSize(4);
+	}
+
+	@Test
+	void testGenerateLatestJsonWithComprehensiveIndices() throws Exception {
+		// Given - metadata directory with multiple versions
+		Path metadataDir = tempDir.resolve("metadata");
+		Path vendorDir = metadataDir.resolve("vendor/temurin");
+		Files.createDirectories(vendorDir);
+
+		DownloadResult download = new DownloadResult("md5", "sha1", "sha256", "sha512", 100_000_000L);
+
+		// Multiple versions of Java 17
+		JdkMetadata metadata17_1 = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.5.tar.gz")
+				.releaseType("ga")
+				.version("17.0.5")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/17.0.5.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		JdkMetadata metadata17_2 = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.8.tar.gz")
+				.releaseType("ga")
+				.version("17.0.8")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/17.0.8.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_1.metadataFile()), metadata17_1);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_2.metadataFile()), metadata17_2);
+
+		// When
+		MetadataUtils.generateComprehensiveIndices(metadataDir, false);
+
+		// Then - verify latest.json exists
+		Path latestJson = metadataDir.resolve("latest.json");
+		assertThat(latestJson).exists();
+
+		String latestContent = Files.readString(latestJson);
+		// Should contain only the latest version (17.0.8)
+		assertThat(latestContent).contains("17.0.8");
+		assertThat(latestContent).doesNotContain("17.0.5");
+
+		// Parse and verify structure
+		ObjectMapper objectMapper = new ObjectMapper();
+		JdkMetadata[] latestArray = objectMapper.readValue(latestContent, JdkMetadata[].class);
+
+		// Should have only 1 entry (latest of 17)
+		assertThat(latestArray).hasSize(1);
+		assertThat(latestArray[0].version()).isEqualTo("17.0.8");
+	}
+
+	@Test
+	void testFilterLatestVersionsPreferencesGaOverEa() throws Exception {
+		// Given - metadata with both GA and EA versions
+		Path vendorDir = tempDir.resolve("vendor/temurin");
+		Files.createDirectories(vendorDir);
+
+		DownloadResult download = new DownloadResult("md5", "sha1", "sha256", "sha512", 100_000_000L);
+
+		// Java 17 - both GA and EA versions with EA being newer
+		JdkMetadata metadata17_ga = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.8-ga.tar.gz")
+				.releaseType("ga")
+				.version("17.0.8")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/17.0.8-ga.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		JdkMetadata metadata17_ea = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.10-ea.tar.gz")
+				.releaseType("ea")
+				.version("17.0.10")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/17.0.10-ea.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		// Java 18 - only EA version
+		JdkMetadata metadata18_ea = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-18.0.1-ea.tar.gz")
+				.releaseType("ea")
+				.version("18.0.1")
+				.javaVersion("18")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/18.0.1-ea.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_ga.metadataFile()), metadata17_ga);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_ea.metadataFile()), metadata17_ea);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata18_ea.metadataFile()), metadata18_ea);
+
+		// When
+		MetadataUtils.generateAllJsonFromDirectory(vendorDir, false);
+
+		// Then - verify latest.json prefers GA over EA
+		Path latestJson = vendorDir.resolve("latest.json");
+		assertThat(latestJson).exists();
+		String latestContent = Files.readString(latestJson);
+
+		// Should contain Java 17 GA (17.0.8) not EA (17.0.10)
+		assertThat(latestContent).contains("17.0.8");
+		assertThat(latestContent).doesNotContain("17.0.10");
+
+		// Should contain Java 18 EA since no GA exists
+		assertThat(latestContent).contains("18.0.1");
+
+		// Parse and verify
+		ObjectMapper objectMapper = new ObjectMapper();
+		JdkMetadata[] latestArray = objectMapper.readValue(latestContent, JdkMetadata[].class);
+
+		// Should have 2 entries: Java 17 GA and Java 18 EA
+		assertThat(latestArray).hasSize(2);
+		assertThat(latestArray[0].releaseType()).isEqualTo("ga");
+		assertThat(latestArray[0].version()).isEqualTo("17.0.8");
+		assertThat(latestArray[1].releaseType()).isEqualTo("ea");
+		assertThat(latestArray[1].version()).isEqualTo("18.0.1");
+	}
+
+	@Test
+	void testFilterLatestVersionsKeepsAllFileTypes() throws Exception {
+		// Given - metadata with different file types for same version
+		Path vendorDir = tempDir.resolve("vendor/temurin");
+		Files.createDirectories(vendorDir);
+
+		DownloadResult download = new DownloadResult("md5", "sha1", "sha256", "sha512", 100_000_000L);
+
+		// Java 17 with multiple file types
+		JdkMetadata metadata17_targz = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.8.tar.gz")
+				.releaseType("ga")
+				.version("17.0.8")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/17.0.8.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		JdkMetadata metadata17_zip = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.8.zip")
+				.releaseType("ga")
+				.version("17.0.8")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("zip")
+				.imageType("jdk")
+				.url("https://example.com/17.0.8.zip")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		JdkMetadata metadata17_deb = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.8.deb")
+				.releaseType("ga")
+				.version("17.0.8")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("deb")
+				.imageType("jdk")
+				.url("https://example.com/17.0.8.deb")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_targz.metadataFile()), metadata17_targz);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_zip.metadataFile()), metadata17_zip);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_deb.metadataFile()), metadata17_deb);
+
+		// When
+		MetadataUtils.generateAllJsonFromDirectory(vendorDir, false);
+
+		// Then - verify latest.json contains all file types
+		Path latestJson = vendorDir.resolve("latest.json");
+		assertThat(latestJson).exists();
+		String latestContent = Files.readString(latestJson);
+
+		// Should contain all three file types
+		assertThat(latestContent).contains(".tar.gz", ".zip", ".deb");
+
+		// Parse and verify
+		ObjectMapper objectMapper = new ObjectMapper();
+		JdkMetadata[] latestArray = objectMapper.readValue(latestContent, JdkMetadata[].class);
+
+		// Should have 3 entries: one for each file type
+		assertThat(latestArray).hasSize(3);
+		assertThat(latestArray).extracting(JdkMetadata::fileType).containsExactlyInAnyOrder("tar.gz", "zip", "deb");
+	}
+
+	@Test
+	void testFilterLatestVersionsIncludesOnlyWinningVersionFileTypes() throws Exception {
+		// Given - multiple versions with different file types
+		Path vendorDir = tempDir.resolve("vendor/temurin");
+		Files.createDirectories(vendorDir);
+
+		DownloadResult download = new DownloadResult("md5", "sha1", "sha256", "sha512", 100_000_000L);
+
+		// Java 17.0.8 GA with tar.gz and zip
+		JdkMetadata metadata17_8_targz = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.8.tar.gz")
+				.releaseType("ga")
+				.version("17.0.8")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/17.0.8.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		JdkMetadata metadata17_8_zip = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.8.zip")
+				.releaseType("ga")
+				.version("17.0.8")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("zip")
+				.imageType("jdk")
+				.url("https://example.com/17.0.8.zip")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		// Java 17.0.10 EA with tar.gz, zip, and deb (newer version but EA)
+		JdkMetadata metadata17_10_targz = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.10-ea.tar.gz")
+				.releaseType("ea")
+				.version("17.0.10")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("tar.gz")
+				.imageType("jdk")
+				.url("https://example.com/17.0.10-ea.tar.gz")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		JdkMetadata metadata17_10_zip = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.10-ea.zip")
+				.releaseType("ea")
+				.version("17.0.10")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("zip")
+				.imageType("jdk")
+				.url("https://example.com/17.0.10-ea.zip")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		JdkMetadata metadata17_10_deb = JdkMetadata.create()
+				.vendor("temurin")
+				.filename("temurin-jdk-17.0.10-ea.deb")
+				.releaseType("ea")
+				.version("17.0.10")
+				.javaVersion("17")
+				.jvmImpl("hotspot")
+				.os("linux")
+				.arch("x86_64")
+				.fileType("deb")
+				.imageType("jdk")
+				.url("https://example.com/17.0.10-ea.deb")
+				.releaseInfo(Collections.emptyMap())
+				.download(download);
+
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_8_targz.metadataFile()), metadata17_8_targz);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_8_zip.metadataFile()), metadata17_8_zip);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_10_targz.metadataFile()), metadata17_10_targz);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_10_zip.metadataFile()), metadata17_10_zip);
+		MetadataUtils.saveMetadataFile(vendorDir.resolve(metadata17_10_deb.metadataFile()), metadata17_10_deb);
+
+		// When
+		MetadataUtils.generateAllJsonFromDirectory(vendorDir, false);
+
+		// Then - verify latest.json contains only file types from the winning version
+		Path latestJson = vendorDir.resolve("latest.json");
+		assertThat(latestJson).exists();
+		String latestContent = Files.readString(latestJson);
+
+		// GA 17.0.8 should win over EA 17.0.10
+		// So we should have tar.gz and zip from 17.0.8, but NOT deb from 17.0.10
+		assertThat(latestContent).contains("17.0.8");
+		assertThat(latestContent).doesNotContain("17.0.10");
+
+		// Parse and verify
+		ObjectMapper objectMapper = new ObjectMapper();
+		JdkMetadata[] latestArray = objectMapper.readValue(latestContent, JdkMetadata[].class);
+
+		// Should have exactly 2 entries: tar.gz and zip from 17.0.8 GA
+		assertThat(latestArray).hasSize(2);
+		assertThat(latestArray).allMatch(md -> md.version().equals("17.0.8"));
+		assertThat(latestArray).allMatch(md -> md.releaseType().equals("ga"));
+		assertThat(latestArray).extracting(JdkMetadata::fileType).containsExactlyInAnyOrder("tar.gz", "zip");
+		// Should NOT contain deb (which only exists in EA version)
+		assertThat(latestArray).extracting(JdkMetadata::fileType).doesNotContain("deb");
+	}
 }

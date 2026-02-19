@@ -76,6 +76,7 @@ public class IndexCommand implements Callable<Integer> {
 	public static Integer generateIndices(Path metadataDir, List<String> vendorsToProcess, boolean allowIncomplete) {
 		int successful = 0;
 		int failed = 0;
+		int indexFilesCreated = 0;
 
 		Path vendorDir = metadataDir.resolve("vendor");
 		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
@@ -101,7 +102,7 @@ public class IndexCommand implements Callable<Integer> {
 		}
 
 		try {
-			MetadataUtils.generateComprehensiveIndices(metadataDir, allowIncomplete);
+			indexFilesCreated = MetadataUtils.generateComprehensiveIndices(metadataDir, allowIncomplete);
 		} catch (Exception e) {
 			logger.error("Failed to generate comprehensive indices: {}", e.getMessage(), e);
 			failed++;
@@ -110,6 +111,7 @@ public class IndexCommand implements Callable<Integer> {
 		logger.info("");
 		logger.info("Index Generation Summary");
 		logger.info("========================");
+		logger.info("Index files created: {}", indexFilesCreated);
 		logger.info("Total vendors: {}", vendorsToProcess.size());
 		logger.info("Successful: {}", successful);
 		logger.info("Failed: {}", failed);
