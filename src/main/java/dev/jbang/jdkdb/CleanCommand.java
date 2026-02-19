@@ -38,6 +38,12 @@ public class CleanCommand implements Callable<Integer> {
 	private Path metadataDir;
 
 	@Option(
+			names = {"-c", "--checksum-dir"},
+			description = "Directory containing checksum files (default: docs/checksums)",
+			defaultValue = "docs/checksums")
+	private Path checksumDir;
+
+	@Option(
 			names = {"--remove-incomplete"},
 			description =
 					"Remove metadata files with incomplete data. Options: checksums (missing checksums), release-info (missing release info), all (either missing checksums or release info) (default: all)")
@@ -55,6 +61,11 @@ public class CleanCommand implements Callable<Integer> {
 	private String pruneEa;
 
 	@Option(
+			names = {"--prune-checksums"},
+			description = "Remove orphaned checksum files that don't have a matching metadata file")
+	private boolean pruneChecksums;
+
+	@Option(
 			names = {"--dry-run"},
 			description = "Show statistics without actually deleting files")
 	private boolean dryRun;
@@ -66,10 +77,12 @@ public class CleanCommand implements Callable<Integer> {
 		logger.info("Metadata directory: {}", metadataDir.toAbsolutePath());
 
 		// Apply default values if no options specified
-		if (removeIncomplete == null && !removeInvalid && pruneEa == null && !dryRun) {
+		if (removeIncomplete == null && !removeInvalid && pruneEa == null && !pruneChecksums && !dryRun) {
 			logger.info("No options specified, using defaults: --remove-incomplete=all --prune-ea=6m --dry-run");
 			logger.info("");
 			removeIncomplete = IncompleteType.all;
+			removeInvalid = true;
+			pruneChecksums = true;
 			pruneEa = "6m";
 			dryRun = true;
 		}
@@ -82,6 +95,7 @@ public class CleanCommand implements Callable<Integer> {
 						: "disabled"));
 		logger.info("  Remove invalid: {}", removeInvalid);
 		logger.info("  Prune EA: {}", (pruneEa != null ? pruneEa : "disabled"));
+		logger.info("  Prune checksums: {}", pruneChecksums);
 		logger.info("  Dry run: {}", dryRun);
 		logger.info("");
 
@@ -120,6 +134,13 @@ public class CleanCommand implements Callable<Integer> {
 			}
 		}
 
+		// Prune orphaned checksum files (runs last after metadata cleanup)
+		if (pruneChecksums) {
+			logger.info("Pruning orphaned checksum files...");
+			logger.info("");
+			pruneOrphanedChecksums(vendorDir, stats, filesToDelete);
+		}
+
 		// Print summary
 		logger.info("");
 		logger.info("Summary:");
@@ -130,6 +151,7 @@ public class CleanCommand implements Callable<Integer> {
 		logger.info("   - missing release info): {}", stats.incompleteReleaseInfo);
 		logger.info("Invalid files: {}", stats.invalidFiles);
 		logger.info("Old EA releases: {}", stats.oldEaReleases);
+		logger.info("Orphaned checksum files: {}", stats.orphanedChecksums);
 		logger.info("Errors: {}", stats.errors);
 		logger.info("");
 
@@ -238,6 +260,86 @@ public class CleanCommand implements Callable<Integer> {
 		}
 	}
 
+	/**
+	 * Prune orphaned checksum files that don't have corresponding metadata files.
+	 * This is run after metadata cleanup to remove checksums for deleted metadata.
+	 */
+	private void pruneOrphanedChecksums(Path metadataVendorDir, CleanStats stats, List<Path> filesToDelete) {
+		if (!Files.exists(checksumDir) || !Files.isDirectory(checksumDir)) {
+			logger.warn("Checksum directory not found: {}", checksumDir.toAbsolutePath());
+			return;
+		}
+
+		try {
+			// Get list of all vendor directories from checksums
+			List<Path> vendorDirs =
+					Files.list(checksumDir).filter(Files::isDirectory).toList();
+
+			for (Path vendorChecksumDir : vendorDirs) {
+				String vendorName = vendorChecksumDir.getFileName().toString();
+				Path vendorMetadataDir = metadataVendorDir.resolve(vendorName);
+
+				// Skip if no metadata directory for this vendor
+				if (!Files.exists(vendorMetadataDir) || !Files.isDirectory(vendorMetadataDir)) {
+					logger.debug("No metadata directory for vendor: {}", vendorName);
+					continue;
+				}
+
+				// List all checksum files for this vendor
+				List<Path> checksumFiles = Files.list(vendorChecksumDir)
+						.filter(Files::isRegularFile)
+						.filter(p -> {
+							String name = p.getFileName().toString();
+							return name.endsWith(".md5")
+									|| name.endsWith(".sha1")
+									|| name.endsWith(".sha256")
+									|| name.endsWith(".sha512");
+						})
+						.toList();
+
+				for (Path checksumFile : checksumFiles) {
+					try {
+						// Extract base filename by removing checksum extension
+						String checksumFileName = checksumFile.getFileName().toString();
+						String baseFileName;
+
+						if (checksumFileName.endsWith(".md5")) {
+							baseFileName = checksumFileName.substring(0, checksumFileName.length() - 4);
+						} else if (checksumFileName.endsWith(".sha1")) {
+							baseFileName = checksumFileName.substring(0, checksumFileName.length() - 5);
+						} else if (checksumFileName.endsWith(".sha256")) {
+							baseFileName = checksumFileName.substring(0, checksumFileName.length() - 7);
+						} else if (checksumFileName.endsWith(".sha512")) {
+							baseFileName = checksumFileName.substring(0, checksumFileName.length() - 7);
+						} else {
+							continue; // Skip unrecognized files
+						}
+
+						// Check if corresponding metadata file exists
+						Path metadataFile = vendorMetadataDir.resolve(baseFileName + ".json");
+
+						if (!Files.exists(metadataFile)) {
+							// Metadata file doesn't exist, mark checksum for deletion
+							stats.orphanedChecksums++;
+							filesToDelete.add(checksumFile);
+							logger.debug(
+									"  - {} (orphaned - no metadata file {})",
+									checksumFile.getFileName(),
+									metadataFile.getFileName());
+						}
+					} catch (Exception e) {
+						logger.error(
+								"Failed to check checksum file {}: {}", checksumFile.getFileName(), e.getMessage());
+						stats.errors++;
+					}
+				}
+			}
+		} catch (IOException e) {
+			logger.error("Failed to prune orphaned checksums: {}", e.getMessage());
+			stats.errors++;
+		}
+	}
+
 	/** Statistics for clean operation */
 	private static class CleanStats {
 		int totalFiles = 0;
@@ -245,6 +347,7 @@ public class CleanCommand implements Callable<Integer> {
 		int incompleteReleaseInfo = 0;
 		int invalidFiles = 0;
 		int oldEaReleases = 0;
+		int orphanedChecksums = 0;
 		int errors = 0;
 	}
 }
