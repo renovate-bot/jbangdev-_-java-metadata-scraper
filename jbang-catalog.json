@@ -1,0 +1,8 @@
+{
+  "aliases": {
+    "scraper": {
+      "script-ref": "https://github.com/jbangdev/jdkdb-scraper/releases/latest/download/jdkdb-scraper-standalone.jar",
+      "java": "21+"
+    }
+  }
+}

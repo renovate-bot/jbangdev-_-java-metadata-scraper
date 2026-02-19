@@ -15,11 +15,70 @@ This project is based on [Joschi's Java Metadata project](https://github.com/jos
 - **Multi-command CLI**: Separate commands for updating metadata, generating indexes, downloading checksums, and cleaning up old releases
 - **Archive Extraction**: Automatically extracts release information from JDK archives
 
-## Prerequisites
+## Running using JBang
 
-- Java 21 or higher
+Running the released version of the scraper application can simply be done with [JBang](jbang.dev):
 
-## GitHub Authentication
+```bash
+# Show available commands
+jbang scraper@jbangdev/jdkdb-scraper --help
+
+# Update: Run all scrapers
+jbang scraper@jbangdev/jdkdb-scraper update
+
+# Update: List available scrapers
+jbang scraper@jbangdev/jdkdb-scraper update --list
+
+# Update: Run specific scrapers
+jbang scraper@jbangdev/jdkdb-scraper update --scrapers microsoft,semeru,temurin
+
+# Update: Specify custom directories and control parallelism
+jbang scraper@jbangdev/jdkdb-scraper update \
+  --metadata-dir /path/to/metadata \
+  --checksum-dir /path/to/checksums \
+  --threads 4
+
+# Update: Scrape from start (ignore existing metadata)
+jbang scraper@jbangdev/jdkdb-scraper update --from-start
+
+# Update: Limit progress for testing
+jbang scraper@jbangdev/jdkdb-scraper update --limit-progress 5
+
+# Index: Generate all.json files for all vendors
+jbang scraper@jbangdev/jdkdb-scraper index
+
+# Index: Regenerate all.json for specific vendors
+jbang scraper@jbangdev/jdkdb-scraper index --vendors temurin,zulu
+
+# Download: Download and compute missing checksums for all vendors
+jbang scraper@jbangdev/jdkdb-scraper download
+
+# Download: Process specific vendors
+jbang scraper@jbangdev/jdkdb-scraper download --vendors microsoft
+
+# Download: Show statistics only (dry-run)
+jbang scraper@jbangdev/jdkdb-scraper download --stats-only
+
+# Clean: Remove incomplete metadata files and prune old EA releases (dry-run)
+jbang scraper@jbangdev/jdkdb-scraper clean --dry-run
+
+# Clean: Actually remove incomplete files and prune EA releases older than 6 months
+jbang scraper@jbangdev/jdkdb-scraper clean --remove-incomplete=all --prune-ea=6m
+
+# Clean: Remove orphaned checksum files
+jbang scraper@jbangdev/jdkdb-scraper clean --prune-checksums
+```
+
+## Usage
+
+The application provides four main commands:
+
+- **`update`** - Scrape JDK metadata from various vendors and update metadata files
+- **`index`** - Generate aggregated all.json files for vendor directories
+- **`download`** - Download and compute checksums for metadata files with missing checksums
+- **`clean`** - Clean up metadata by removing incomplete files and pruning old EA releases
+
+### GitHub Authentication
 
 Many scrapers fetch data from GitHub APIs, which have rate limits. To avoid hitting these limits, the application supports GitHub authentication through:
 
@@ -38,78 +97,16 @@ java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar update
 
 The application checks for tokens in this order: environment variable first, then GitHub CLI.
 
-## Building
+### Typical usage
 
-This project uses Gradle for dependency management and building.
+- You can simply run `update` in the root of the data repository (where the `docs/` folder is located) and let it do its work. It will scrape all the vendor sites, obtain the latest metadata, download the jdk distributions, calculate checksums and update all the indices. Nothing else to be done. But this can take some time.
+- You can split the work into two steps:
+  1. You run `update --no-download` which will do the scraping and will make sure that we have all the latest distributions cataloged. It will write all the metadata but with _missing_ checksums (and release info).
+  2. You then run the much heavier and time-consuming `download` process that will look for any metadata file that has missing checksums (or release info) and download the archive to do the calculations. You can limit this step to only process a maximum amount of downloads before stopping. And then you can repeat it after a certain wait time to avoid rate limits and such.
 
-```bash
-# Build the project
-./gradlew spotlessApply build
+The `index` command can be run any time you think the indices might be out of date and it will generate them all from scratch. _NB:_ if you use the second of the two strategies mentioned above then you will have metadata files with missing checksums, in that case you will need to add the option `--allow-incomplete` or they won't show up in the indices!
 
-# This creates two jars:
-# - jdkdb-scraper-1.0.0-SNAPSHOT.jar (regular jar)
-# - jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar (fat jar with all dependencies)
-```
-
-## Usage
-
-The application provides four main commands:
-- **`update`** - Scrape JDK metadata from various vendors and update metadata files
-- **`index`** - Generate aggregated all.json files for vendor directories
-- **`download`** - Download and compute checksums for metadata files with missing checksums
-- **`clean`** - Clean up metadata by removing incomplete files and pruning old EA releases
-
-### Running using the standalone JAR:
-
-```bash
-# Show available commands
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar --help
-
-# Update: Run all scrapers
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar update
-
-# Update: List available scrapers
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar update --list
-
-# Update: Run specific scrapers
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar update --scrapers microsoft,semeru,temurin
-
-# Update: Specify custom directories and control parallelism
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar update \
-  --metadata-dir /path/to/metadata \
-  --checksum-dir /path/to/checksums \
-  --threads 4
-
-# Update: Scrape from start (ignore existing metadata)
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar update --from-start
-
-# Update: Limit progress for testing
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar update --limit-progress 5
-
-# Index: Generate all.json files for all vendors
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar index
-
-# Index: Regenerate all.json for specific vendors
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar index --vendors temurin,zulu
-
-# Download: Download and compute missing checksums for all vendors
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar download
-
-# Download: Process specific vendors
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar download --vendors microsoft
-
-# Download: Show statistics only (dry-run)
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar download --stats-only
-
-# Clean: Remove incomplete metadata files and prune old EA releases (dry-run)
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar clean --dry-run
-
-# Clean: Actually remove incomplete files and prune EA releases older than 6 months
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar clean --remove-incomplete=all --prune-ea=6m
-
-# Clean: Remove orphaned checksum files
-java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar clean --prune-checksums
-```
+And finally the `clean` command can be used to get rid of any invalid or orphaned data. If you run it without any flags it will give an overview of everything that could be cleaned up without actually doing any of the cleaning yet.
 
 ## Command Line Options
 
@@ -263,6 +260,36 @@ Options:
                      Remove metadata files that fail validation
                        (MetadataUtils.isValidMetadata)
   -V, --version      Print version information and exit.
+```
+
+## Development
+
+### Requirements
+
+- Needs Java 21 or higher
+
+### Building
+
+This project uses Gradle for dependency management and building.
+
+```bash
+# Build the project
+./gradlew spotlessApply build
+
+# This creates two jars:
+# - jdkdb-scraper-1.0.0-SNAPSHOT.jar (regular jar)
+# - jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar (fat jar with all dependencies)
+```
+
+
+### Running using the standalone JAR:
+
+```bash
+# Show available commands
+java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar --help
+
+# Update: Run all scrapers
+java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar update
 ```
 
 ## Architecture
