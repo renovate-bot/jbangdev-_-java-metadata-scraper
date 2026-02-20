@@ -3,6 +3,7 @@ package dev.jbang.jdkdb;
 import dev.jbang.jdkdb.model.JdkMetadata;
 import dev.jbang.jdkdb.scraper.DefaultDownloadManager;
 import dev.jbang.jdkdb.scraper.DownloadManager;
+import dev.jbang.jdkdb.scraper.InterruptedProgressException;
 import dev.jbang.jdkdb.scraper.NoOpDownloadManager;
 import dev.jbang.jdkdb.util.ArchiveUtils;
 import dev.jbang.jdkdb.util.GitHubUtils;
@@ -60,6 +61,12 @@ public class DownloadCommand implements Callable<Integer> {
 	private int limitProgress;
 
 	@Option(
+			names = {"--limit-total"},
+			description = "Maximum total number of downloads to accept before stopping (default: unlimited)",
+			defaultValue = "-1")
+	private int limitTotal;
+
+	@Option(
 			names = {"--stats-only"},
 			description = "Skip downloading files and only show statistics (for testing/dry-run)")
 	private boolean statsOnly;
@@ -102,7 +109,7 @@ public class DownloadCommand implements Callable<Integer> {
 		var threadCount = maxThreads > 0 ? maxThreads : Runtime.getRuntime().availableProcessors();
 		DownloadManager downloadManager = statsOnly
 				? new NoOpDownloadManager()
-				: new DefaultDownloadManager(threadCount, metadataDir, checksumDir);
+				: new DefaultDownloadManager(threadCount, metadataDir, checksumDir, 3, limitTotal);
 		downloadManager.start();
 
 		List<JdkMetadata> metadataList = MetadataUtils.collectAllMetadata(vendorDir, 2, false, true).stream()
@@ -156,6 +163,9 @@ public class DownloadCommand implements Callable<Integer> {
 							vendorName);
 					break;
 				}
+			} catch (InterruptedProgressException e) {
+				logger.info("Progress limit reached, stopping submission of new downloads");
+				break;
 			} catch (Exception e) {
 				logger.error(
 						"Failed to read metadata file: {} - {}",

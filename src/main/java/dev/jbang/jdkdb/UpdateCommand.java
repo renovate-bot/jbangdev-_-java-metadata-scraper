@@ -80,6 +80,12 @@ public class UpdateCommand implements Callable<Integer> {
 	private int limitProgress;
 
 	@Option(
+			names = {"--limit-total"},
+			description = "Maximum total number of downloads to accept before stopping (default: unlimited)",
+			defaultValue = "-1")
+	private int limitTotal;
+
+	@Option(
 			names = {"--no-download"},
 			description = "Skip downloading files and only generate metadata (for testing/dry-run)")
 	private boolean noDownload;
@@ -132,7 +138,7 @@ public class UpdateCommand implements Callable<Integer> {
 			downloadManager.start();
 			logger.info("No-download mode enabled - files will not be downloaded");
 		} else {
-			downloadManager = new DefaultDownloadManager(threadCount, metadataDir, checksumDir);
+			downloadManager = new DefaultDownloadManager(threadCount, metadataDir, checksumDir, 3, limitTotal);
 			downloadManager.start();
 			logger.info("Started download manager with {} download threads", threadCount);
 		}

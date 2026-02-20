@@ -27,10 +27,12 @@ public class DefaultDownloadManager implements DownloadManager {
 	private final AtomicInteger activeDownloads;
 	private final AtomicInteger completedDownloads;
 	private final AtomicInteger failedDownloads;
+	private final AtomicInteger submittedCount;
 	private final Path metadataDir;
 	private final Path checksumDir;
 	private volatile boolean shutdownRequested;
 	private final int maxDownloadsPerHost;
+	private final int limitTotal;
 	private final ConcurrentHashMap<String, AtomicInteger> activeDownloadsPerHost;
 
 	private static final Logger logger = LoggerFactory.getLogger(DefaultDownloadManager.class);
@@ -44,7 +46,7 @@ public class DefaultDownloadManager implements DownloadManager {
 	 * @param checksumDir The directory to save checksum files
 	 */
 	public DefaultDownloadManager(int threadCount, Path metadataDir, Path checksumDir) {
-		this(threadCount, metadataDir, checksumDir, DEFAULT_MAX_DOWNLOADS_PER_HOST);
+		this(threadCount, metadataDir, checksumDir, DEFAULT_MAX_DOWNLOADS_PER_HOST, -1);
 	}
 
 	/**
@@ -56,16 +58,32 @@ public class DefaultDownloadManager implements DownloadManager {
 	 * @param maxDownloadsPerHost Maximum number of concurrent downloads per host (default: 3)
 	 */
 	public DefaultDownloadManager(int threadCount, Path metadataDir, Path checksumDir, int maxDownloadsPerHost) {
+		this(threadCount, metadataDir, checksumDir, maxDownloadsPerHost, -1);
+	}
+
+	/**
+	 * Create a new DefaultDownloadManager.
+	 *
+	 * @param threadCount Number of parallel download threads
+	 * @param metadataDir The directory to save metadata files
+	 * @param checksumDir The directory to save checksum files
+	 * @param maxDownloadsPerHost Maximum number of concurrent downloads per host (default: 3)
+	 * @param limitTotal Maximum number of total downloads to accept (-1 for unlimited)
+	 */
+	public DefaultDownloadManager(
+			int threadCount, Path metadataDir, Path checksumDir, int maxDownloadsPerHost, int limitTotal) {
 		this.downloadQueue = new LinkedBlockingQueue<>();
 		this.executorService = Executors.newFixedThreadPool(threadCount);
 		this.httpUtils = new HttpUtils();
 		this.activeDownloads = new AtomicInteger(0);
 		this.completedDownloads = new AtomicInteger(0);
 		this.failedDownloads = new AtomicInteger(0);
+		this.submittedCount = new AtomicInteger(0);
 		this.metadataDir = metadataDir;
 		this.checksumDir = checksumDir;
 		this.shutdownRequested = false;
 		this.maxDownloadsPerHost = maxDownloadsPerHost;
+		this.limitTotal = limitTotal;
 		this.activeDownloadsPerHost = new ConcurrentHashMap<>();
 	}
 
@@ -98,6 +116,13 @@ public class DefaultDownloadManager implements DownloadManager {
 		}
 		if (metadata.url() == null || metadata.filename() == null) {
 			return;
+		}
+		// Check if we've reached the total download limit
+		if (limitTotal > 0) {
+			int currentCount = submittedCount.incrementAndGet();
+			if (currentCount > limitTotal) {
+				throw new InterruptedProgressException("Reached total download limit of " + limitTotal + " items");
+			}
 		}
 		try {
 			downloadQueue.put(new DownloadTask(metadata, vendor, downloadLogger));
