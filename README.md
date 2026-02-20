@@ -34,9 +34,9 @@ jbang scraper@jbangdev/jdkdb-scraper update --scrapers microsoft,semeru,temurin
 
 # Update: Specify custom directories and control parallelism
 jbang scraper@jbangdev/jdkdb-scraper update \
-  --metadata-dir /path/to/metadata \
-  --checksum-dir /path/to/checksums \
-  --threads 4
+--metadata-dir /path/to/metadata \
+--checksum-dir /path/to/checksums \
+--threads 4
 
 # Update: Scrape from start (ignore existing metadata)
 jbang scraper@jbangdev/jdkdb-scraper update --from-start
@@ -101,8 +101,9 @@ The application checks for tokens in this order: environment variable first, the
 
 - You can simply run `update` in the root of the data repository (where the `docs/` folder is located) and let it do its work. It will scrape all the vendor sites, obtain the latest metadata, download the jdk distributions, calculate checksums and update all the indices. Nothing else to be done. But this can take some time.
 - You can split the work into two steps:
-  1. You run `update --no-download` which will do the scraping and will make sure that we have all the latest distributions cataloged. It will write all the metadata but with _missing_ checksums (and release info).
-  2. You then run the much heavier and time-consuming `download` process that will look for any metadata file that has missing checksums (or release info) and download the archive to do the calculations. You can limit this step to only process a maximum amount of downloads before stopping. And then you can repeat it after a certain wait time to avoid rate limits and such.
+
+1. You run `update --no-download` which will do the scraping and will make sure that we have all the latest distributions cataloged. It will write all the metadata but with _missing_ checksums (and release info).
+2. You then run the much heavier and time-consuming `download` process that will look for any metadata file that has missing checksums (or release info) and download the archive to do the calculations. You can limit this step to only process a maximum amount of downloads before stopping. And then you can repeat it after a certain wait time to avoid rate limits and such.
 
 The `index` command can be run any time you think the indices might be out of date and it will generate them all from scratch. _NB:_ if you use the second of the two strategies mentioned above then you will have metadata files with missing checksums, in that case you will need to add the option `--allow-incomplete` or they won't show up in the indices!
 
@@ -112,154 +113,154 @@ And finally the `clean` command can be used to get rid of any invalid or orphane
 
 ### Main Command
 
-```
+```bash
 Usage: jdkdb-scraper [-hV] [COMMAND]
 Scrapes JDK metadata from various vendors and generates index files
-  -h, --help      Show this help message and exit.
-  -V, --version   Print version information and exit.
+-h, --help      Show this help message and exit.
+-V, --version   Print version information and exit.
 Commands:
-  update    Scrape JDK metadata from various vendors and update metadata files
-  index     Generate all.json files for vendor directories by aggregating
-              individual metadata files
-  download  Download and compute checksums for metadata files that have missing
-              checksum values
-  clean     Clean up metadata by removing incomplete files and pruning old EA
-              releases
+update    Scrape JDK metadata from various vendors and update metadata files
+index     Generate all.json files for vendor directories by aggregating
+			individual metadata files
+download  Download and compute checksums for metadata files that have missing
+			checksum values
+clean     Clean up metadata by removing incomplete files and pruning old EA
+			releases
 ```
 
 ### Update Command
 
-```
+```bash
 Usage: jdkdb-scraper update [-hlV] [--from-start] [--no-download] [--no-index]
-                            [-c=<checksumDir>]
-                            [--limit-progress=<limitProgress>]
-                            [-m=<metadataDir>] [--max-failures=<maxFailures>]
-                            [--skip-ea=<skipEa>] [-t=<maxThreads>]
-                            [-s=<scraperIds>[,<scraperIds>...]]...
+							[-c=<checksumDir>]
+							[--limit-progress=<limitProgress>]
+							[-m=<metadataDir>] [--max-failures=<maxFailures>]
+							[--skip-ea=<skipEa>] [-t=<maxThreads>]
+							[-s=<scraperIds>[,<scraperIds>...]]...
 
 Scrape JDK metadata from various vendors and update metadata files
 
 Options:
-  -c, --checksum-dir=<checksumDir>
-                     Directory to store checksum files (default: docs/checksums)
-      --from-start   Ignore existing metadata files and scrape all items from
-                       the start
-  -h, --help         Show this help message and exit.
-  -l, --list         List all available scraper IDs and exit
-      --limit-progress=<limitProgress>
-                     Maximum number of metadata items to process per scraper
-                       before aborting (default: unlimited)
-  -m, --metadata-dir=<metadataDir>
-                     Directory to store metadata files (default: docs/metadata)
-      --max-failures=<maxFailures>
-                     Maximum number of allowed failures per scraper before
-                       aborting that scraper (default: 10)
-      --no-download  Skip downloading files and only generate metadata (for
-                       testing/dry-run)
-      --no-index     Skip generating index files (for testing/dry-run)
-  -s, --scrapers=<scraperIds>[,<scraperIds>...]
-                     Comma-separated list of scraper IDs to run (if not
-                       specified, all scrapers run)
-      --skip-ea=<skipEa>
-                     Skip early access (EA) releases older than the specified
-                       duration (e.g., '6m' for 6 months, '1y' for 1 year)
-                       (default: 6m)
-  -t, --threads=<maxThreads>
-                     Maximum number of parallel scraper threads (default:
-                       number of processors)
-  -V, --version      Print version information and exit.
+-c, --checksum-dir=<checksumDir>
+					Directory to store checksum files (default: docs/checksums)
+	--from-start   Ignore existing metadata files and scrape all items from
+					the start
+-h, --help         Show this help message and exit.
+-l, --list         List all available scraper IDs and exit
+	--limit-progress=<limitProgress>
+					Maximum number of metadata items to process per scraper
+					before aborting (default: unlimited)
+-m, --metadata-dir=<metadataDir>
+					Directory to store metadata files (default: docs/metadata)
+	--max-failures=<maxFailures>
+					Maximum number of allowed failures per scraper before
+					aborting that scraper (default: 10)
+	--no-download  Skip downloading files and only generate metadata (for
+					testing/dry-run)
+	--no-index     Skip generating index files (for testing/dry-run)
+-s, --scrapers=<scraperIds>[,<scraperIds>...]
+					Comma-separated list of scraper IDs to run (if not
+					specified, all scrapers run)
+	--skip-ea=<skipEa>
+					Skip early access (EA) releases older than the specified
+					duration (e.g., '6m' for 6 months, '1y' for 1 year)
+					(default: 6m)
+-t, --threads=<maxThreads>
+					Maximum number of parallel scraper threads (default:
+					number of processors)
+-V, --version      Print version information and exit.
 ```
 
 ### Index Command
 
-```
+```bash
 Usage: jdkdb-scraper index [-hV] [--allow-incomplete] [-m=<metadataDir>]
-                           [-v=<vendorNames>[,<vendorNames>...]]...
+						[-v=<vendorNames>[,<vendorNames>...]]...
 
 Generate all.json files for vendor directories by aggregating individual
 metadata files
 
 Options:
-      --allow-incomplete
-                     Allow incomplete metadata files (missing checksums) to be
-                       included
-  -h, --help         Show this help message and exit.
-  -m, --metadata-dir=<metadataDir>
-                     Directory containing metadata files (default:
-                       docs/metadata)
-  -v, --vendors=<vendorNames>[,<vendorNames>...]
-                     Comma-separated list of vendor names to regenerate
-                       all.json for (if not specified, all vendors are
-                       processed)
-  -V, --version      Print version information and exit.
+	--allow-incomplete
+					Allow incomplete metadata files (missing checksums) to be
+					included
+-h, --help         Show this help message and exit.
+-m, --metadata-dir=<metadataDir>
+					Directory containing metadata files (default:
+					docs/metadata)
+-v, --vendors=<vendorNames>[,<vendorNames>...]
+					Comma-separated list of vendor names to regenerate
+					all.json for (if not specified, all vendors are
+					processed)
+-V, --version      Print version information and exit.
 ```
 
 ### Download Command
 
-```
+```bash
 Usage: jdkdb-scraper download [-hV] [--stats-only] [-c=<checksumDir>]
-                              [--limit-progress=<limitProgress>]
-                              [-m=<metadataDir>] [-t=<maxThreads>]
-                              [-v=<vendorNames>[,<vendorNames>...]]...
+							[--limit-progress=<limitProgress>]
+							[-m=<metadataDir>] [-t=<maxThreads>]
+							[-v=<vendorNames>[,<vendorNames>...]]...
 
 Download and compute checksums for metadata files that have missing checksum
 values
 
 Options:
-  -c, --checksum-dir=<checksumDir>
-                     Directory to store checksum files (default: docs/checksums)
-  -h, --help         Show this help message and exit.
-      --limit-progress=<limitProgress>
-                     Maximum number of metadata items to process per scraper
-                       before aborting (default: unlimited)
-  -m, --metadata-dir=<metadataDir>
-                     Directory containing metadata files (default:
-                       docs/metadata)
-      --stats-only   Skip downloading files and only show statistics (for
-                       testing/dry-run)
-  -t, --threads=<maxThreads>
-                     Maximum number of parallel download threads (default:
-                       number of processors)
-  -v, --vendors=<vendorNames>[,<vendorNames>...]
-                     Comma-separated list of vendor names to process (if not
-                       specified, all vendors are processed)
-  -V, --version      Print version information and exit.
+-c, --checksum-dir=<checksumDir>
+					Directory to store checksum files (default: docs/checksums)
+-h, --help         Show this help message and exit.
+	--limit-progress=<limitProgress>
+					Maximum number of metadata items to process per scraper
+					before aborting (default: unlimited)
+-m, --metadata-dir=<metadataDir>
+					Directory containing metadata files (default:
+					docs/metadata)
+	--stats-only   Skip downloading files and only show statistics (for
+					testing/dry-run)
+-t, --threads=<maxThreads>
+					Maximum number of parallel download threads (default:
+					number of processors)
+-v, --vendors=<vendorNames>[,<vendorNames>...]
+					Comma-separated list of vendor names to process (if not
+					specified, all vendors are processed)
+-V, --version      Print version information and exit.
 ```
 
 ### Clean Command
 
-```
+```bash
 Usage: jdkdb-scraper clean [-hV] [--dry-run] [--prune-checksums]
-                           [--remove-invalid] [-c=<checksumDir>]
-                           [-m=<metadataDir>] [--prune-ea=<pruneEa>]
-                           [--remove-incomplete=<removeIncomplete>]
+						[--remove-invalid] [-c=<checksumDir>]
+						[-m=<metadataDir>] [--prune-ea=<pruneEa>]
+						[--remove-incomplete=<removeIncomplete>]
 
 Clean up metadata by removing incomplete files and pruning old EA releases
 
 Options:
-  -c, --checksum-dir=<checksumDir>
-                     Directory containing checksum files (default:
-                       docs/checksums)
-      --dry-run      Show statistics without actually deleting files
-  -h, --help         Show this help message and exit.
-  -m, --metadata-dir=<metadataDir>
-                     Directory containing metadata files (default:
-                       docs/metadata)
-      --prune-checksums
-                     Remove orphaned checksum files that don't have a matching
-                       metadata file
-      --prune-ea=<pruneEa>
-                     Prune EA releases older than specified duration (e.g.,
-                       30d, 3w, 6m, 1y). Duration format: [number][d|w|m|y]
-      --remove-incomplete=<removeIncomplete>
-                     Remove metadata files with incomplete data. Options:
-                       checksums (missing checksums), release-info (missing
-                       release info), all (either missing checksums or release
-                       info) (default: all)
-      --remove-invalid
-                     Remove metadata files that fail validation
-                       (MetadataUtils.isValidMetadata)
-  -V, --version      Print version information and exit.
+-c, --checksum-dir=<checksumDir>
+					Directory containing checksum files (default:
+					docs/checksums)
+	--dry-run      Show statistics without actually deleting files
+-h, --help         Show this help message and exit.
+-m, --metadata-dir=<metadataDir>
+					Directory containing metadata files (default:
+					docs/metadata)
+	--prune-checksums
+					Remove orphaned checksum files that don't have a matching
+					metadata file
+	--prune-ea=<pruneEa>
+					Prune EA releases older than specified duration (e.g.,
+					30d, 3w, 6m, 1y). Duration format: [number][d|w|m|y]
+	--remove-incomplete=<removeIncomplete>
+					Remove metadata files with incomplete data. Options:
+					checksums (missing checksums), release-info (missing
+					release info), all (either missing checksums or release
+					info) (default: all)
+	--remove-invalid
+					Remove metadata files that fail validation
+					(MetadataUtils.isValidMetadata)
+-V, --version      Print version information and exit.
 ```
 
 ## Development
@@ -281,8 +282,7 @@ This project uses Gradle for dependency management and building.
 # - jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar (fat jar with all dependencies)
 ```
 
-
-### Running using the standalone JAR:
+### Running using the standalone JAR
 
 ```bash
 # Show available commands
@@ -434,7 +434,7 @@ public class NewVendor extends BaseScraper {
 
 ## Project Structure
 
-```
+```bash
 src/
 ├── main/
 │   ├── java/
@@ -548,18 +548,16 @@ The scrapers generate structured output in the `docs/` directory:
 ### Metadata Files (`docs/metadata/`)
 
 1. **Top-level aggregated indexes**:
-   - `all.json` - All JDK releases across all vendors
-   - `ga.json` - General Availability (stable) releases only
-   - `ea.json` - Early Access releases only
-   - `latest.json` - Latest releases per vendor
-
+- `all.json` - All JDK releases across all vendors
+- `ga.json` - General Availability (stable) releases only
+- `ea.json` - Early Access releases only
+- `latest.json` - Latest releases per vendor
 2. **Organized by release type** (`all/`, `ea/`, `ga/`):
-   - OS-specific files: `linux.json`, `macosx.json`, `windows.json`, `aix.json`, `solaris.json`
-   - Architecture-specific subdirectories with further breakdowns
-
+- OS-specific files: `linux.json`, `macosx.json`, `windows.json`, `aix.json`, `solaris.json`
+- Architecture-specific subdirectories with further breakdowns
 3. **Vendor-specific metadata** (`vendor/<vendor-name>/`):
-   - Individual `.json` files for each JDK release
-   - `all.json` file combining all releases for that vendor
+- Individual `.json` files for each JDK release
+- `all.json` file combining all releases for that vendor
 
 ### Checksum Files (`docs/checksums/`)
 
@@ -570,6 +568,7 @@ The scrapers generate structured output in the `docs/` directory:
 ## Logging
 
 Logs are written to:
+
 - Console (STDOUT) - Real-time progress
 - File (`logs/jdkdb-scraper.log`) - Detailed execution log
 
