@@ -342,14 +342,14 @@ public class MetadataUtils {
 		// saveMetadata(metadataDir.resolve("all.json"), allMetadata);
 
 		// Generate metadata/latest.json
-		logger.info("Generating metadata/latest.json");
+		logger.debug("Generating metadata/latest.json");
 		List<JdkMetadata> filteredList = filterLatestVersions(allMetadata);
 		saveMetadata(metadataDir.resolve("latest.json"), filteredList);
 		fileCount++;
 
 		fileCount += generateReleaseTypeIndices(metadataDir, metadataDir, allMetadata);
 
-		logger.info("Comprehensive indices generated successfully.");
+		logger.debug("Comprehensive indices generated successfully.");
 		return fileCount;
 	}
 
@@ -385,7 +385,7 @@ public class MetadataUtils {
 			Files.createDirectories(releaseDir);
 
 			// Save release_type-level JSON
-			logger.info("Generating {}.json ({} entries)", releaseType, releaseMetadata.size());
+			logger.debug("Generating {}.json ({} entries)", releaseType, releaseMetadata.size());
 			saveMetadata(baseDir.resolve(releaseType + ".json"), releaseMetadata);
 			fileCount++;
 
@@ -420,7 +420,7 @@ public class MetadataUtils {
 
 			// Save OS-level JSON
 			Path osJsonFile = baseDir.resolve(os + ".json");
-			logger.info("Generating {} ({} entries)", metadataDir.relativize(osJsonFile), osMetadata.size());
+			logger.debug("Generating {} ({} entries)", metadataDir.relativize(osJsonFile), osMetadata.size());
 			saveMetadata(osJsonFile, osMetadata);
 			fileCount++;
 
@@ -455,7 +455,7 @@ public class MetadataUtils {
 
 			// Save architecture-level JSON
 			Path archJsonFile = baseDir.resolve(arch + ".json");
-			logger.info("Generating {} ({} entries)", metadataDir.relativize(archJsonFile), archMetadata.size());
+			logger.debug("Generating {} ({} entries)", metadataDir.relativize(archJsonFile), archMetadata.size());
 			saveMetadata(archJsonFile, archMetadata);
 			fileCount++;
 
@@ -494,7 +494,7 @@ public class MetadataUtils {
 
 			// Save image_type-level JSON
 			Path imageJsonFile = baseDir.resolve(imageType + ".json");
-			logger.info("Generating {} ({} entries)", metadataDir.relativize(imageJsonFile), imageMetadata.size());
+			logger.debug("Generating {} ({} entries)", metadataDir.relativize(imageJsonFile), imageMetadata.size());
 			saveMetadata(imageJsonFile, imageMetadata);
 			fileCount++;
 
@@ -529,7 +529,7 @@ public class MetadataUtils {
 
 			// Save jvm_impl-level JSON
 			Path jvmJsonFile = baseDir.resolve(jvmImpl + ".json");
-			logger.info("Generating {} ({} entries)", metadataDir.relativize(jvmJsonFile), jvmMetadata.size());
+			logger.debug("Generating {} ({} entries)", metadataDir.relativize(jvmJsonFile), jvmMetadata.size());
 			saveMetadata(jvmJsonFile, jvmMetadata);
 			fileCount++;
 
@@ -571,13 +571,13 @@ public class MetadataUtils {
 
 			// Save vendor.json
 			Path vendorJsonFile = baseDir.resolve(vendor + ".json");
-			logger.info("Generating {} ({} entries)", metadataDir.relativize(vendorJsonFile), vendorMetadata.size());
+			logger.debug("Generating {} ({} entries)", metadataDir.relativize(vendorJsonFile), vendorMetadata.size());
 			saveMetadata(vendorJsonFile, vendorMetadata);
 			fileCount++;
 
 			// Save vendor-latest.json
 			Path vendorLatestJsonFile = baseDir.resolve(vendor + "-latest.json");
-			logger.info(
+			logger.debug(
 					"Generating {} ({} entries)", metadataDir.relativize(vendorLatestJsonFile), vendorMetadata.size());
 			saveMetadata(vendorLatestJsonFile, filterLatestVersions(vendorMetadata));
 			fileCount++;
