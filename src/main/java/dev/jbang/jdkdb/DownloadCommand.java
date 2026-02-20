@@ -10,9 +10,11 @@ import dev.jbang.jdkdb.util.GitHubUtils;
 import dev.jbang.jdkdb.util.MetadataUtils;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -71,9 +73,25 @@ public class DownloadCommand implements Callable<Integer> {
 			description = "Skip downloading files and only show statistics (for testing/dry-run)")
 	private boolean statsOnly;
 
+	@Option(
+			names = {"--include"},
+			description =
+					"Include only these file types (e.g., tar_gz,zip). If specified, only these types will be downloaded.",
+			split = ",")
+	private List<MetadataUtils.FileType> includeFileTypes;
+
+	@Option(
+			names = {"--exclude"},
+			description = "Exclude these file types (e.g., msi,exe). These types will not be downloaded.",
+			split = ",")
+	private List<MetadataUtils.FileType> excludeFileTypes;
+
 	@Override
 	public Integer call() throws Exception {
 		GitHubUtils.setupGitHubToken();
+
+		// Process file type filter
+		Set<MetadataUtils.FileType> fileTypeFilter = processFileTypeFilter(includeFileTypes, excludeFileTypes);
 
 		logger.info("Java Metadata Scraper - Download");
 		logger.info("=================================");
@@ -108,9 +126,12 @@ public class DownloadCommand implements Callable<Integer> {
 		// Create download manager
 		var threadCount = maxThreads > 0 ? maxThreads : Runtime.getRuntime().availableProcessors();
 		DownloadManager downloadManager = statsOnly
-				? new NoOpDownloadManager()
-				: new DefaultDownloadManager(threadCount, metadataDir, checksumDir, 3, limitTotal);
+				? new NoOpDownloadManager(fileTypeFilter)
+				: new DefaultDownloadManager(threadCount, metadataDir, checksumDir, 3, limitTotal, fileTypeFilter);
 		downloadManager.start();
+		if (fileTypeFilter != null) {
+			logger.info("File type filter enabled: {}", fileTypeFilter);
+		}
 
 		List<JdkMetadata> metadataList = MetadataUtils.collectAllMetadata(vendorDir, 2, false, true).stream()
 				// Don't try to download macOS PKG files if the only thing we need is
@@ -200,5 +221,36 @@ public class DownloadCommand implements Callable<Integer> {
 		}
 
 		return totalFailed > 0 ? 1 : 0;
+	}
+
+	/**
+	 * Process the include and exclude file type options to create a filter set.
+	 *
+	 * @param includeFileTypes List of file types to include (null or empty means include all)
+	 * @param excludeFileTypes List of file types to exclude (null or empty means exclude none)
+	 * @return A set of file types to accept, or null if no filtering should be applied
+	 */
+	private Set<MetadataUtils.FileType> processFileTypeFilter(
+			List<MetadataUtils.FileType> includeFileTypes, List<MetadataUtils.FileType> excludeFileTypes) {
+		if ((includeFileTypes == null || includeFileTypes.isEmpty())
+				&& (excludeFileTypes == null || excludeFileTypes.isEmpty())) {
+			return null; // No filtering
+		}
+
+		Set<MetadataUtils.FileType> result;
+		if (includeFileTypes != null && !includeFileTypes.isEmpty()) {
+			// Start with only the included types
+			result = EnumSet.copyOf(includeFileTypes);
+		} else {
+			// Start with all types
+			result = EnumSet.allOf(MetadataUtils.FileType.class);
+		}
+
+		// Remove excluded types
+		if (excludeFileTypes != null && !excludeFileTypes.isEmpty()) {
+			result.removeAll(excludeFileTypes);
+		}
+
+		return result.isEmpty() ? null : result;
 	}
 }

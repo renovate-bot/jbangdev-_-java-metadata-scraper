@@ -1,6 +1,8 @@
 package dev.jbang.jdkdb.scraper;
 
 import dev.jbang.jdkdb.model.JdkMetadata;
+import dev.jbang.jdkdb.util.MetadataUtils;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,8 +13,25 @@ import org.slf4j.LoggerFactory;
  */
 public class NoOpDownloadManager implements DownloadManager {
 	private final AtomicInteger completedDownloads = new AtomicInteger(0);
+	private final Set<MetadataUtils.FileType> fileTypeFilter;
 
 	private static final Logger logger = LoggerFactory.getLogger(NoOpDownloadManager.class);
+
+	/**
+	 * Create a new NoOpDownloadManager.
+	 */
+	public NoOpDownloadManager() {
+		this(null);
+	}
+
+	/**
+	 * Create a new NoOpDownloadManager.
+	 *
+	 * @param fileTypeFilter Set of file types to accept (null to accept all)
+	 */
+	public NoOpDownloadManager(Set<MetadataUtils.FileType> fileTypeFilter) {
+		this.fileTypeFilter = fileTypeFilter;
+	}
 
 	/**
 	 * Start the download manager. This is a no-op.
@@ -32,6 +51,29 @@ public class NoOpDownloadManager implements DownloadManager {
 	@Override
 	public void submit(JdkMetadata metadata, String vendor, Logger downloadLogger) {
 		if (metadata.url() != null && metadata.filename() != null) {
+			// Check file type filter
+			if (fileTypeFilter != null && metadata.fileType() != null) {
+				// Convert file_type string to enum (with underscores instead of periods)
+				String fileTypeStr = metadata.fileType().replace(".", "_");
+				try {
+					MetadataUtils.FileType fileType = MetadataUtils.FileType.valueOf(fileTypeStr);
+					if (!fileTypeFilter.contains(fileType)) {
+						logger.debug(
+								"Ignoring download submission for {} [{}] - file type {} not in filter",
+								metadata.filename(),
+								vendor,
+								fileType);
+						return;
+					}
+				} catch (IllegalArgumentException e) {
+					logger.debug(
+							"Ignoring download submission for {} [{}] - unknown file type: {}",
+							metadata.filename(),
+							vendor,
+							fileTypeStr);
+					return;
+				}
+			}
 			completedDownloads.incrementAndGet();
 			logger.debug("Ignoring download request for: {} (no-download option specified)", metadata.filename());
 			downloadLogger.debug(

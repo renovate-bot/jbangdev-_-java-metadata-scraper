@@ -34,6 +34,7 @@ public class DefaultDownloadManager implements DownloadManager {
 	private final int maxDownloadsPerHost;
 	private final int limitTotal;
 	private final ConcurrentHashMap<String, AtomicInteger> activeDownloadsPerHost;
+	private final Set<MetadataUtils.FileType> fileTypeFilter;
 
 	private static final Logger logger = LoggerFactory.getLogger(DefaultDownloadManager.class);
 	private static final int DEFAULT_MAX_DOWNLOADS_PER_HOST = 3;
@@ -46,7 +47,7 @@ public class DefaultDownloadManager implements DownloadManager {
 	 * @param checksumDir The directory to save checksum files
 	 */
 	public DefaultDownloadManager(int threadCount, Path metadataDir, Path checksumDir) {
-		this(threadCount, metadataDir, checksumDir, DEFAULT_MAX_DOWNLOADS_PER_HOST, -1);
+		this(threadCount, metadataDir, checksumDir, DEFAULT_MAX_DOWNLOADS_PER_HOST, -1, null);
 	}
 
 	/**
@@ -58,7 +59,7 @@ public class DefaultDownloadManager implements DownloadManager {
 	 * @param maxDownloadsPerHost Maximum number of concurrent downloads per host (default: 3)
 	 */
 	public DefaultDownloadManager(int threadCount, Path metadataDir, Path checksumDir, int maxDownloadsPerHost) {
-		this(threadCount, metadataDir, checksumDir, maxDownloadsPerHost, -1);
+		this(threadCount, metadataDir, checksumDir, maxDownloadsPerHost, -1, null);
 	}
 
 	/**
@@ -72,6 +73,26 @@ public class DefaultDownloadManager implements DownloadManager {
 	 */
 	public DefaultDownloadManager(
 			int threadCount, Path metadataDir, Path checksumDir, int maxDownloadsPerHost, int limitTotal) {
+		this(threadCount, metadataDir, checksumDir, maxDownloadsPerHost, limitTotal, null);
+	}
+
+	/**
+	 * Create a new DefaultDownloadManager.
+	 *
+	 * @param threadCount Number of parallel download threads
+	 * @param metadataDir The directory to save metadata files
+	 * @param checksumDir The directory to save checksum files
+	 * @param maxDownloadsPerHost Maximum number of concurrent downloads per host (default: 3)
+	 * @param limitTotal Maximum number of total downloads to accept (-1 for unlimited)
+	 * @param fileTypeFilter Set of file types to accept (null to accept all)
+	 */
+	public DefaultDownloadManager(
+			int threadCount,
+			Path metadataDir,
+			Path checksumDir,
+			int maxDownloadsPerHost,
+			int limitTotal,
+			Set<MetadataUtils.FileType> fileTypeFilter) {
 		this.downloadQueue = new LinkedBlockingQueue<>();
 		this.executorService = Executors.newFixedThreadPool(threadCount);
 		this.httpUtils = new HttpUtils();
@@ -85,6 +106,7 @@ public class DefaultDownloadManager implements DownloadManager {
 		this.maxDownloadsPerHost = maxDownloadsPerHost;
 		this.limitTotal = limitTotal;
 		this.activeDownloadsPerHost = new ConcurrentHashMap<>();
+		this.fileTypeFilter = fileTypeFilter;
 	}
 
 	/**
@@ -116,6 +138,29 @@ public class DefaultDownloadManager implements DownloadManager {
 		}
 		if (metadata.url() == null || metadata.filename() == null) {
 			return;
+		}
+		// Check file type filter
+		if (fileTypeFilter != null && metadata.fileType() != null) {
+			// Convert file_type string to enum (with underscores instead of periods)
+			String fileTypeStr = metadata.fileType().replace(".", "_");
+			try {
+				MetadataUtils.FileType fileType = MetadataUtils.FileType.valueOf(fileTypeStr);
+				if (!fileTypeFilter.contains(fileType)) {
+					logger.debug(
+							"Ignoring download submission for {} [{}] - file type {} not in filter",
+							metadata.filename(),
+							vendor,
+							fileType);
+					return;
+				}
+			} catch (IllegalArgumentException e) {
+				logger.debug(
+						"Ignoring download submission for {} [{}] - unknown file type: {}",
+						metadata.filename(),
+						vendor,
+						fileTypeStr);
+				return;
+			}
 		}
 		// Check if we've reached the total download limit
 		if (limitTotal > 0) {
