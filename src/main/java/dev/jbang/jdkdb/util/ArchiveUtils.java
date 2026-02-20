@@ -92,7 +92,6 @@ public class ArchiveUtils {
 				TarArchiveInputStream tis = new TarArchiveInputStream(gzis)) {
 
 			TarArchiveEntry entry;
-
 			while ((entry = tis.getNextEntry()) != null) {
 				String name = entry.getName();
 
@@ -123,33 +122,41 @@ public class ArchiveUtils {
 	 *
 	 * @param pkgFile The PKG file
 	 * @return Map of release properties or null if not found
+	 * @throws IOException
 	 */
-	private static Map<String, String> extractReleaseFromPkg(Path pkgFile) {
+	private static Map<String, String> extractReleaseFromPkg(Path pkgFile) throws IOException {
 		Path tempDir = null;
 		try {
 			// Create temporary directory for extraction
 			tempDir = Files.createTempDirectory("jdk-pkg-extract-");
+			// pkgutil requires the destination folder to NOT exist!
+			Path expandDir = tempDir.resolve("pkg-expanded");
 
 			// Step 1: Extract PKG contents using pkgutil (gets full package structure)
 			Process process = new ProcessBuilder(
 							"pkgutil",
 							"--expand-full",
 							pkgFile.toAbsolutePath().toString(),
-							tempDir.toAbsolutePath().toString())
+							expandDir.toAbsolutePath().toString())
 					.redirectOutput(ProcessBuilder.Redirect.PIPE)
 					.redirectError(ProcessBuilder.Redirect.PIPE)
 					.start();
 
-			int exitCode = process.waitFor();
-			if (exitCode != 0) {
-				logger.debug("pkgutil extraction failed with exit code: {}", exitCode);
+			try {
+				int exitCode = process.waitFor();
+				if (exitCode != 0) {
+					logger.warn("pkgutil extraction failed with exit code: {}", exitCode);
+					return null;
+				}
+			} catch (InterruptedException e) {
+				logger.info("pkgutil extraction interrupted");
 				return null;
 			}
 
 			// Step 2: Search for release file in the expanded directory
-			Path releaseFile = findReleaseFile(tempDir);
+			Path releaseFile = findReleaseFile(expandDir);
 			if (releaseFile == null) {
-				logger.debug("No release file found in PKG archive");
+				logger.warn("No release file found in PKG archive");
 				return null;
 			}
 
@@ -157,17 +164,10 @@ public class ArchiveUtils {
 			try (InputStream is = Files.newInputStream(releaseFile)) {
 				return parseReleaseProperties(is);
 			}
-		} catch (Exception e) {
-			logger.debug("Failed to extract release from PKG file", e);
-			return null;
 		} finally {
 			// Clean up temporary directory
 			if (tempDir != null) {
-				try {
-					deleteDirectory(tempDir);
-				} catch (IOException e) {
-					logger.debug("Failed to delete temporary directory: {}", tempDir, e);
-				}
+				FileUtils.deleteDirectory(tempDir);
 			}
 		}
 	}
@@ -187,25 +187,6 @@ public class ArchiveUtils {
 					})
 					.findFirst()
 					.orElse(null);
-		}
-	}
-
-	/**
-	 * Recursively delete a directory and all its contents.
-	 *
-	 * @param dir The directory to delete
-	 */
-	private static void deleteDirectory(Path dir) throws IOException {
-		if (Files.exists(dir)) {
-			try (var stream = Files.walk(dir)) {
-				stream.sorted(Comparator.reverseOrder()).forEach(path -> {
-					try {
-						Files.delete(path);
-					} catch (IOException e) {
-						// Ignore individual file deletion failures
-					}
-				});
-			}
 		}
 	}
 
