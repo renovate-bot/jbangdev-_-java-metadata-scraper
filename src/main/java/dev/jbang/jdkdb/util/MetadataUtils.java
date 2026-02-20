@@ -189,7 +189,7 @@ public class MetadataUtils {
 
 	public static JdkMetadata readMetadataFile(Path metadataFile) throws IOException {
 		JdkMetadata md = readMapper.readValue(metadataFile.toFile(), JdkMetadata.class);
-		md.metadataFile(metadataFile);
+		md.metadataFile(metadataFile.toAbsolutePath());
 		return md;
 	}
 
