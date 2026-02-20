@@ -43,6 +43,10 @@ public class ArchiveUtils {
 				logger.debug("PKG file format only supported on macOS - skipping: {}", filename);
 				return null;
 			}
+		} else if (lowerFilename.endsWith(".rpm")) {
+			return extractReleaseFromRpm(archiveFile);
+		} else if (lowerFilename.endsWith(".deb")) {
+			return extractReleaseFromDeb(archiveFile);
 		}
 
 		// Unsupported archive format
@@ -161,6 +165,151 @@ public class ArchiveUtils {
 			}
 
 			// Step 3: Parse the release file
+			try (InputStream is = Files.newInputStream(releaseFile)) {
+				return parseReleaseProperties(is);
+			}
+		} finally {
+			// Clean up temporary directory
+			if (tempDir != null) {
+				FileUtils.deleteDirectory(tempDir);
+			}
+		}
+	}
+
+	/**
+	 * Extract release file from RPM archive using rpm2cpio and cpio commands.
+	 *
+	 * @param rpmFile The RPM file
+	 * @return Map of release properties or null if not found
+	 * @throws IOException
+	 */
+	private static Map<String, String> extractReleaseFromRpm(Path rpmFile) throws IOException {
+		Path tempDir = null;
+		try {
+			// Create temporary directory for extraction
+			tempDir = Files.createTempDirectory("jdk-rpm-extract-");
+
+			// Step 1: Convert RPM to CPIO and extract using cpio
+			// rpm2cpio outputs to stdout, pipe to cpio for extraction
+			ProcessBuilder pb = new ProcessBuilder(
+							"/bin/sh",
+							"-c",
+							String.format(
+									"rpm2cpio '%s' | cpio -idm 2>/dev/null",
+									rpmFile.toAbsolutePath().toString()))
+					.directory(tempDir.toFile())
+					.redirectOutput(ProcessBuilder.Redirect.PIPE)
+					.redirectError(ProcessBuilder.Redirect.PIPE);
+
+			Process process = pb.start();
+
+			try {
+				int exitCode = process.waitFor();
+				if (exitCode != 0) {
+					logger.warn("RPM extraction failed with exit code: {}", exitCode);
+					return null;
+				}
+			} catch (InterruptedException e) {
+				logger.info("RPM extraction interrupted");
+				return null;
+			}
+
+			// Step 2: Search for release file in the extracted directory
+			Path releaseFile = findReleaseFile(tempDir);
+			if (releaseFile == null) {
+				logger.warn("No release file found in RPM archive");
+				return null;
+			}
+
+			// Step 3: Parse the release file
+			try (InputStream is = Files.newInputStream(releaseFile)) {
+				return parseReleaseProperties(is);
+			}
+		} finally {
+			// Clean up temporary directory
+			if (tempDir != null) {
+				FileUtils.deleteDirectory(tempDir);
+			}
+		}
+	}
+
+	/**
+	 * Extract release file from DEB archive using ar and tar commands.
+	 *
+	 * @param debFile The DEB file
+	 * @return Map of release properties or null if not found
+	 * @throws IOException
+	 */
+	private static Map<String, String> extractReleaseFromDeb(Path debFile) throws IOException {
+		Path tempDir = null;
+		try {
+			// Create temporary directory for extraction
+			tempDir = Files.createTempDirectory("jdk-deb-extract-");
+
+			// Step 1: Extract DEB archive using ar
+			Process arProcess = new ProcessBuilder(
+							"ar", "x", debFile.toAbsolutePath().toString())
+					.directory(tempDir.toFile())
+					.redirectOutput(ProcessBuilder.Redirect.PIPE)
+					.redirectError(ProcessBuilder.Redirect.PIPE)
+					.start();
+
+			try {
+				int exitCode = arProcess.waitFor();
+				if (exitCode != 0) {
+					logger.warn("DEB extraction (ar) failed with exit code: {}", exitCode);
+					return null;
+				}
+			} catch (InterruptedException e) {
+				logger.info("DEB extraction (ar) interrupted");
+				return null;
+			}
+
+			// Step 2: Find the data.tar.* file
+			Path dataArchive = null;
+			for (String name : new String[] {"data.tar.xz", "data.tar.gz", "data.tar.bz2", "data.tar"}) {
+				Path candidate = tempDir.resolve(name);
+				if (Files.exists(candidate)) {
+					dataArchive = candidate;
+					break;
+				}
+			}
+
+			if (dataArchive == null) {
+				logger.warn("No data.tar.* file found in DEB archive");
+				return null;
+			}
+
+			// Step 3: Extract the data archive
+			Path dataExtractDir = tempDir.resolve("data");
+			Files.createDirectories(dataExtractDir);
+
+			Process tarProcess = new ProcessBuilder(
+							"tar", "xf", dataArchive.toAbsolutePath().toString())
+					.directory(dataExtractDir.toFile())
+					.redirectOutput(ProcessBuilder.Redirect.PIPE)
+					.redirectError(ProcessBuilder.Redirect.PIPE)
+					.start();
+
+			try {
+				int exitCode = tarProcess.waitFor();
+				if (exitCode != 0) {
+					logger.warn("DEB extraction (tar) failed with exit code: {}", exitCode);
+					return null;
+				}
+			} catch (InterruptedException e) {
+				logger.info("DEB extraction (tar) interrupted");
+				return null;
+			}
+
+			// Step 4: Search for release file in the extracted directory
+			Path releaseFile = findReleaseFile(dataExtractDir);
+			if (releaseFile == null) {
+				logger.warn("No release file found in DEB archive");
+				return null;
+			}
+
+			// Step 5: Parse the release file
 			try (InputStream is = Files.newInputStream(releaseFile)) {
 				return parseReleaseProperties(is);
 			}
