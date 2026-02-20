@@ -47,6 +47,8 @@ public class ArchiveUtils {
 			return extractReleaseFromRpm(archiveFile);
 		} else if (lowerFilename.endsWith(".deb")) {
 			return extractReleaseFromDeb(archiveFile);
+		} else if (lowerFilename.endsWith(".msi")) {
+			return extractReleaseFromMsi(archiveFile);
 		}
 
 		// Unsupported archive format
@@ -310,6 +312,59 @@ public class ArchiveUtils {
 			}
 
 			// Step 5: Parse the release file
+			try (InputStream is = Files.newInputStream(releaseFile)) {
+				return parseReleaseProperties(is);
+			}
+		} finally {
+			// Clean up temporary directory
+			if (tempDir != null) {
+				FileUtils.deleteDirectory(tempDir);
+			}
+		}
+	}
+
+	/**
+	 * Extract release file from MSI archive using msiextract command.
+	 *
+	 * @param msiFile The MSI file
+	 * @return Map of release properties or null if not found
+	 * @throws IOException
+	 */
+	private static Map<String, String> extractReleaseFromMsi(Path msiFile) throws IOException {
+		Path tempDir = null;
+		try {
+			// Create temporary directory for extraction
+			tempDir = Files.createTempDirectory("jdk-msi-extract-");
+
+			// Step 1: Extract MSI archive using msiextract
+			Process process = new ProcessBuilder(
+							"msiextract",
+							"-C",
+							tempDir.toAbsolutePath().toString(),
+							msiFile.toAbsolutePath().toString())
+					.redirectOutput(ProcessBuilder.Redirect.PIPE)
+					.redirectError(ProcessBuilder.Redirect.PIPE)
+					.start();
+
+			try {
+				int exitCode = process.waitFor();
+				if (exitCode != 0) {
+					logger.warn("MSI extraction failed with exit code: {}", exitCode);
+					return null;
+				}
+			} catch (InterruptedException e) {
+				logger.info("MSI extraction interrupted");
+				return null;
+			}
+
+			// Step 2: Search for release file in the extracted directory
+			Path releaseFile = findReleaseFile(tempDir);
+			if (releaseFile == null) {
+				logger.warn("No release file found in MSI archive");
+				return null;
+			}
+
+			// Step 3: Parse the release file
 			try (InputStream is = Files.newInputStream(releaseFile)) {
 				return parseReleaseProperties(is);
 			}
