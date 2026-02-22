@@ -116,6 +116,6 @@ public class IndexCommand implements Callable<Integer> {
 		logger.info("Successful: {}", successful);
 		logger.info("Failed: {}", failed);
 
-		return failed > 0 ? 1 : 0;
+		return successful > 0 ? 0 : 1;
 	}
 }

@@ -220,7 +220,7 @@ public class DownloadCommand implements Callable<Integer> {
 			logger.info("Total downloads failed: {}", totalFailed);
 		}
 
-		return totalFailed > 0 ? 1 : 0;
+		return totalCompleted > 0 ? 0 : 1;
 	}
 
 	/**

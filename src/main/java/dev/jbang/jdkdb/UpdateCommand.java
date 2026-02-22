@@ -324,7 +324,7 @@ public class UpdateCommand implements Callable<Integer> {
 			logger.info("");
 			logger.info("All scrapers completed in {} seconds", duration);
 
-			return failed > 0 ? 1 : 0;
+			return successful > 0 ? 0 : 1;
 		}
 	}
 
