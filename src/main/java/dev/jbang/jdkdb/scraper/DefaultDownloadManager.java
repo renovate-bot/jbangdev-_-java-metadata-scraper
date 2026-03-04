@@ -35,6 +35,9 @@ public class DefaultDownloadManager implements DownloadManager {
 	private final int limitTotal;
 	private final ConcurrentHashMap<String, AtomicInteger> activeDownloadsPerHost;
 	private final Set<JdkMetadata.FileType> fileTypeFilter;
+	private final ConcurrentHashMap<String, AtomicInteger> submittedPerVendor;
+	private final ConcurrentHashMap<String, AtomicInteger> completedPerVendor;
+	private final ConcurrentHashMap<String, AtomicInteger> failedPerVendor;
 
 	private static final Logger logger = LoggerFactory.getLogger(DefaultDownloadManager.class);
 	private static final int DEFAULT_MAX_DOWNLOADS_PER_HOST = 3;
@@ -107,6 +110,9 @@ public class DefaultDownloadManager implements DownloadManager {
 		this.limitTotal = limitTotal;
 		this.activeDownloadsPerHost = new ConcurrentHashMap<>();
 		this.fileTypeFilter = fileTypeFilter;
+		this.submittedPerVendor = new ConcurrentHashMap<>();
+		this.completedPerVendor = new ConcurrentHashMap<>();
+		this.failedPerVendor = new ConcurrentHashMap<>();
 	}
 
 	/**
@@ -166,6 +172,8 @@ public class DefaultDownloadManager implements DownloadManager {
 				throw new InterruptedProgressException("Reached total download limit of " + limitTotal + " items");
 			}
 		}
+		// Track submitted downloads per vendor
+		submittedPerVendor.computeIfAbsent(vendor, k -> new AtomicInteger(0)).incrementAndGet();
 		try {
 			downloadQueue.put(new DownloadTask(metadata, vendor, downloadLogger));
 			downloadLogger.info("Queued download for " + metadata.filename());
@@ -283,9 +291,15 @@ public class DefaultDownloadManager implements DownloadManager {
 					try {
 						processDownload(task);
 						completedDownloads.incrementAndGet();
+						completedPerVendor
+								.computeIfAbsent(task.vendor, k -> new AtomicInteger(0))
+								.incrementAndGet();
 						logger.debug("Succeeded download for {} [{}]", task.metadata.filename(), task.vendor);
 					} catch (Exception e) {
 						failedDownloads.incrementAndGet();
+						failedPerVendor
+								.computeIfAbsent(task.vendor, k -> new AtomicInteger(0))
+								.incrementAndGet();
 						task.downloadLogger().error("Failed to download {}", task.metadata.filename(), e);
 						logger.debug("Failed download for {} [{}]", task.metadata.filename(), task.vendor);
 					} finally {
@@ -411,6 +425,34 @@ public class DefaultDownloadManager implements DownloadManager {
 			logger.warn("Invalid URL: {}", urlString);
 			return null;
 		}
+	}
+
+	/**
+	 * Get per-vendor download statistics.
+	 *
+	 * @return Map of vendor name to statistics
+	 */
+	@Override
+	public Map<String, VendorStats> getVendorStats() {
+		Map<String, VendorStats> stats = new HashMap<>();
+		// Get all vendor names from any of the maps
+		Set<String> allVendors = new HashSet<>();
+		allVendors.addAll(submittedPerVendor.keySet());
+		allVendors.addAll(completedPerVendor.keySet());
+		allVendors.addAll(failedPerVendor.keySet());
+
+		for (String vendor : allVendors) {
+			int submitted = submittedPerVendor
+					.getOrDefault(vendor, new AtomicInteger(0))
+					.get();
+			int completed = completedPerVendor
+					.getOrDefault(vendor, new AtomicInteger(0))
+					.get();
+			int failed =
+					failedPerVendor.getOrDefault(vendor, new AtomicInteger(0)).get();
+			stats.put(vendor, new VendorStats(vendor, submitted, completed, failed));
+		}
+		return stats;
 	}
 
 	/** Internal class representing a download task */

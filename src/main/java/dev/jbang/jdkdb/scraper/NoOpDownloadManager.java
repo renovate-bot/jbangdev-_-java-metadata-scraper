@@ -1,7 +1,10 @@
 package dev.jbang.jdkdb.scraper;
 
 import dev.jbang.jdkdb.model.JdkMetadata;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +16,7 @@ import org.slf4j.LoggerFactory;
 public class NoOpDownloadManager implements DownloadManager {
 	private final AtomicInteger completedDownloads = new AtomicInteger(0);
 	private final Set<JdkMetadata.FileType> fileTypeFilter;
+	private final ConcurrentHashMap<String, AtomicInteger> submittedPerVendor = new ConcurrentHashMap<>();
 
 	private static final Logger logger = LoggerFactory.getLogger(NoOpDownloadManager.class);
 
@@ -71,6 +75,9 @@ public class NoOpDownloadManager implements DownloadManager {
 				}
 			}
 			completedDownloads.incrementAndGet();
+			submittedPerVendor
+					.computeIfAbsent(vendor, k -> new AtomicInteger(0))
+					.incrementAndGet();
 			logger.debug("Ignoring download request for: {} (no-download option specified)", metadata.filename());
 			downloadLogger.debug(
 					"Ignoring download request for: {} (no-download option specified)", metadata.filename());
@@ -129,5 +136,22 @@ public class NoOpDownloadManager implements DownloadManager {
 	 */
 	public int getQueuedCount() {
 		return 0;
+	}
+
+	/**
+	 * Get per-vendor download statistics.
+	 *
+	 * @return Map of vendor name to statistics
+	 */
+	@Override
+	public Map<String, VendorStats> getVendorStats() {
+		Map<String, VendorStats> stats = new HashMap<>();
+		for (Map.Entry<String, AtomicInteger> entry : submittedPerVendor.entrySet()) {
+			String vendor = entry.getKey();
+			int submitted = entry.getValue().get();
+			// In NoOp mode, all submitted items are considered "completed" (skipped)
+			stats.put(vendor, new VendorStats(vendor, submitted, submitted, 0));
+		}
+		return stats;
 	}
 }

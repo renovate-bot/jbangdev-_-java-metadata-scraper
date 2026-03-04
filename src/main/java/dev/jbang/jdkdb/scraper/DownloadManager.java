@@ -1,10 +1,12 @@
 package dev.jbang.jdkdb.scraper;
 
 import dev.jbang.jdkdb.model.JdkMetadata;
+import java.util.Map;
 import org.slf4j.Logger;
 
 /**
- * Interface for managing parallel downloads of JDK files. Implementations receive JdkMetadata from
+ * Interface for managing parallel downloads of JDK files. Implementations
+ * receive JdkMetadata from
  * scrapers and handle the downloading of files.
  */
 public interface DownloadManager {
@@ -12,8 +14,8 @@ public interface DownloadManager {
 	 * Submit a metadata item for download.
 	 *
 	 * @param metadata The JDK metadata containing the URL to download
-	 * @param vendor The vendor name
-	 * @param logger The logger to use for logging download progress and errors
+	 * @param vendor   The vendor name
+	 * @param logger   The logger to use for logging download progress and errors
 	 */
 	void submit(JdkMetadata metadata, String vendor, Logger logger);
 
@@ -23,12 +25,14 @@ public interface DownloadManager {
 	void start();
 
 	/**
-	 * Signal that no more downloads will be submitted. Call this after all scrapers have finished.
+	 * Signal that no more downloads will be submitted. Call this after all scrapers
+	 * have finished.
 	 */
 	void shutdown();
 
 	/**
-	 * Wait for all queued downloads to complete. This method blocks until all downloads are
+	 * Wait for all queued downloads to complete. This method blocks until all
+	 * downloads are
 	 * finished.
 	 *
 	 * @throws InterruptedException if interrupted while waiting
@@ -48,4 +52,53 @@ public interface DownloadManager {
 	 * @return Number of failed downloads
 	 */
 	int getFailedCount();
+
+	/**
+	 * Get per-vendor download statistics.
+	 *
+	 * @return Map of vendor name to statistics
+	 */
+	Map<String, VendorStats> getVendorStats();
+
+	/**
+	 * Statistics for a single vendor's downloads.
+	 */
+	public record VendorStats(String vendor, int submitted, int completed, int failed) {
+		/**
+		 * Get the number of downloads that were submitted.
+		 *
+		 * @return Number of downloads submitted for this vendor
+		 */
+		public int submitted() {
+			return submitted;
+		}
+
+		/**
+		 * Get the number of downloads that completed successfully.
+		 *
+		 * @return Number of successful downloads for this vendor
+		 */
+		public int completed() {
+			return completed;
+		}
+
+		/**
+		 * Get the number of downloads that failed.
+		 *
+		 * @return Number of failed downloads for this vendor
+		 */
+		public int failed() {
+			return failed;
+		}
+
+		/**
+		 * Get the number of downloads still pending (submitted but not completed or
+		 * failed).
+		 *
+		 * @return Number of pending downloads for this vendor
+		 */
+		public int pending() {
+			return submitted - completed - failed;
+		}
+	}
 }

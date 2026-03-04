@@ -2,7 +2,9 @@ package dev.jbang.jdkdb.scraper;
 
 import dev.jbang.jdkdb.model.JdkMetadata;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 
 /**
@@ -63,6 +65,29 @@ public class DummyDownloadManager implements DownloadManager {
 	 */
 	public int getSubmittedCount() {
 		return submittedDownloads.size();
+	}
+
+	/**
+	 * Get per-vendor download statistics.
+	 *
+	 * @return Map of vendor name to statistics
+	 */
+	@Override
+	public Map<String, VendorStats> getVendorStats() {
+		Map<String, VendorStats> stats = new HashMap<>();
+		Map<String, Integer> vendorCounts = new HashMap<>();
+
+		// Count submissions per vendor
+		for (SubmittedDownload download : submittedDownloads) {
+			vendorCounts.merge(download.vendor, 1, Integer::sum);
+		}
+
+		// Create stats (all submissions are treated as completed in dummy mode)
+		for (Map.Entry<String, Integer> entry : vendorCounts.entrySet()) {
+			stats.put(entry.getKey(), new VendorStats(entry.getKey(), entry.getValue(), entry.getValue(), 0));
+		}
+
+		return stats;
 	}
 
 	/** Record of a submitted download */

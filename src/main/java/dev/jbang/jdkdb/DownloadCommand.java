@@ -216,15 +216,32 @@ public class DownloadCommand implements Callable<Integer> {
 		logger.info("=======");
 		logger.info("Files with missing data: {}", filesWithMissingData);
 		if (filesWithMissingData > 0) {
+			// Per-vendor breakdown
+			Map<String, DownloadManager.VendorStats> vendorStats = downloadManager.getVendorStats();
+			if (!vendorStats.isEmpty()) {
+				logger.info("Per-Vendor Breakdown");
+				logger.info("====================");
+				vendorStats.entrySet().stream()
+						.sorted(Map.Entry.comparingByKey())
+						.forEach(entry -> {
+							DownloadManager.VendorStats stats = entry.getValue();
+							logger.info("  {}:", stats.vendor());
+							logger.info("    Submitted:  {}", stats.submitted());
+							logger.info("    Completed:  {}", stats.completed());
+							logger.info("    Failed:     {}", stats.failed());
+							if (stats.pending() > 0) {
+								logger.info("    Pending:    {}", stats.pending());
+							}
+						});
+			}
+
 			int filesWithMissingChecksums = (int) metadataList.stream()
 					.filter(MetadataUtils::hasMissingChecksums)
 					.count();
 			int filesWithMissingReleaseInfo = (int) metadataList.stream()
 					.filter(m -> MetadataUtils.hasMissingReleaseInfo(m))
 					.count();
-			var x = metadataList.stream()
-					.filter(m -> MetadataUtils.hasMissingReleaseInfo(m))
-					.toList();
+			logger.info("");
 			logger.info("Files with missing checksums: {}", filesWithMissingChecksums);
 			logger.info("Files with missing release info: {}", filesWithMissingReleaseInfo);
 			logger.info("Total downloads completed: {}", totalCompleted);
