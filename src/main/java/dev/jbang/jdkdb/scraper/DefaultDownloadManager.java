@@ -259,58 +259,9 @@ public class DefaultDownloadManager implements DownloadManager {
 	private void downloadWorker() {
 		while (!shutdownRequested || !downloadQueue.isEmpty()) {
 			try {
-				DownloadTask task = downloadQueue.poll(500, TimeUnit.MILLISECONDS);
+				DownloadTask task = takeNewDownloadTask();
 				if (task != null) {
-					// Extract host from URL
-					String host = extractHost(task.metadata.url());
-					if (host == null) {
-						// Invalid URL, log failure and skip
-						failedDownloads.incrementAndGet();
-						task.downloadLogger()
-								.error("Invalid URL for {}: {}", task.metadata.filename(), task.metadata.url());
-						logger.debug(
-								"Failed download for {} [{}] - invalid URL", task.metadata.filename(), task.vendor);
-						continue;
-					}
-
-					// Check if we can download from this host
-					AtomicInteger hostCount = activeDownloadsPerHost.computeIfAbsent(host, k -> new AtomicInteger(0));
-					int currentCount = hostCount.get();
-
-					if (currentCount >= maxDownloadsPerHost) {
-						// Host limit reached, put task back at end of queue and try next one
-						downloadQueue.offer(task);
-						// Small sleep to avoid busy waiting when all hosts are at limit
-						Thread.sleep(100);
-						continue;
-					}
-
-					// Increment host counter and proceed with download
-					hostCount.incrementAndGet();
-					activeDownloads.incrementAndGet();
-					try {
-						processDownload(task);
-						completedDownloads.incrementAndGet();
-						completedPerVendor
-								.computeIfAbsent(task.vendor, k -> new AtomicInteger(0))
-								.incrementAndGet();
-						logger.debug("Succeeded download for {} [{}]", task.metadata.filename(), task.vendor);
-					} catch (Exception e) {
-						failedDownloads.incrementAndGet();
-						failedPerVendor
-								.computeIfAbsent(task.vendor, k -> new AtomicInteger(0))
-								.incrementAndGet();
-						task.downloadLogger().error("Failed to download {}", task.metadata.filename(), e);
-						logger.debug("Failed download for {} [{}]", task.metadata.filename(), task.vendor);
-					} finally {
-						activeDownloads.decrementAndGet();
-						// Decrement host counter
-						int newCount = hostCount.decrementAndGet();
-						// Clean up if no more active downloads for this host
-						if (newCount == 0) {
-							activeDownloadsPerHost.remove(host, hostCount);
-						}
-					}
+					setupNewDownload(task);
 					logger.info(
 							"Downloads: {} queued, {} active, {} completed, {} failed",
 							downloadQueue.size(),
@@ -321,6 +272,61 @@ public class DefaultDownloadManager implements DownloadManager {
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
 				break;
+			}
+		}
+	}
+
+	private DownloadTask takeNewDownloadTask() throws InterruptedException {
+		return downloadQueue.poll(500, TimeUnit.MILLISECONDS);
+	}
+
+	private void setupNewDownload(DownloadTask task) throws InterruptedException {
+		// Extract host from URL
+		String host = extractHost(task.metadata.url());
+		if (host == null) {
+			// Invalid URL, log failure and skip
+			failedDownloads.incrementAndGet();
+			task.downloadLogger().error("Invalid URL for {}: {}", task.metadata.filename(), task.metadata.url());
+			logger.debug("Failed download for {} [{}] - invalid URL", task.metadata.filename(), task.vendor);
+			return;
+		}
+
+		// Check if we can download from this host
+		AtomicInteger hostCount = activeDownloadsPerHost.computeIfAbsent(host, k -> new AtomicInteger(0));
+		int currentCount = hostCount.get();
+
+		if (currentCount >= maxDownloadsPerHost) {
+			// Host limit reached, put task back at end of queue and try next one
+			downloadQueue.offer(task);
+			// Small sleep to avoid busy waiting when all hosts are at limit
+			Thread.sleep(100);
+			return;
+		}
+
+		// Increment host counter and proceed with download
+		hostCount.incrementAndGet();
+		activeDownloads.incrementAndGet();
+		try {
+			processDownload(task);
+			completedDownloads.incrementAndGet();
+			completedPerVendor
+					.computeIfAbsent(task.vendor, k -> new AtomicInteger(0))
+					.incrementAndGet();
+			logger.debug("Succeeded download for {} [{}]", task.metadata.filename(), task.vendor);
+		} catch (Exception e) {
+			failedDownloads.incrementAndGet();
+			failedPerVendor
+					.computeIfAbsent(task.vendor, k -> new AtomicInteger(0))
+					.incrementAndGet();
+			task.downloadLogger().error("Failed to download {}", task.metadata.filename(), e);
+			logger.debug("Failed download for {} [{}]", task.metadata.filename(), task.vendor);
+		} finally {
+			activeDownloads.decrementAndGet();
+			// Decrement host counter
+			int newCount = hostCount.decrementAndGet();
+			// Clean up if no more active downloads for this host
+			if (newCount == 0) {
+				activeDownloadsPerHost.remove(host, hostCount);
 			}
 		}
 	}
