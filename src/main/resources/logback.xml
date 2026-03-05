@@ -41,15 +41,15 @@
         </encoder>
     </appender>
 
-    <!-- Sifting appender for vendor-specific log files -->
+    <!-- Sifting appender for distro-specific log files -->
     <appender name="SIFT" class="ch.qos.logback.classic.sift.SiftingAppender">
         <!-- Use the logger name to determine which file to write to -->
-        <discriminator class="dev.jbang.jdkdb.util.VendorLoggerDiscriminator" />
+        <discriminator class="dev.jbang.jdkdb.util.DistroLoggerDiscriminator" />
         <sift>
-            <appender name="FILE-${vendorName}" class="ch.qos.logback.core.rolling.RollingFileAppender">
-                <file>logs/vendors/${vendorName}.log</file>
+            <appender name="FILE-${distroName}" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>logs/distros/${distroName}.log</file>
                 <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-                    <fileNamePattern>logs/vendors/${vendorName}.%d{yyyy-MM-dd}.log</fileNamePattern>
+                    <fileNamePattern>logs/distros/${distroName}.%d{yyyy-MM-dd}.log</fileNamePattern>
                     <maxHistory>7</maxHistory>
                 </rollingPolicy>
                 <encoder>
@@ -80,8 +80,8 @@
         <appender-ref ref="ERROR_FILE" />
     </logger>
 
-    <!-- Vendor scrapers - log to both main file and separate vendor-specific files -->
-    <logger name="vendors" level="INFO" additivity="false">
+    <!-- Distro scrapers - log to both main file and separate distro-specific files -->
+    <logger name="distros" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE" />
         <appender-ref ref="FILE" />
         <appender-ref ref="ERROR_FILE" />

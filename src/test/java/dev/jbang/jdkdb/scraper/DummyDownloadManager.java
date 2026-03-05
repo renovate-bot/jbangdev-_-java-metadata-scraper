@@ -20,8 +20,8 @@ public class DummyDownloadManager implements DownloadManager {
 	public DummyDownloadManager() {}
 
 	@Override
-	public void submit(JdkMetadata metadata, String vendor, Logger downloadLogger) {
-		submittedDownloads.add(new SubmittedDownload(metadata, vendor, downloadLogger));
+	public void submit(JdkMetadata metadata, String distro, Logger downloadLogger) {
+		submittedDownloads.add(new SubmittedDownload(metadata, distro, downloadLogger));
 	}
 
 	@Override
@@ -68,28 +68,28 @@ public class DummyDownloadManager implements DownloadManager {
 	}
 
 	/**
-	 * Get per-vendor download statistics.
+	 * Get per-distro download statistics.
 	 *
-	 * @return Map of vendor name to statistics
+	 * @return Map of distro name to statistics
 	 */
 	@Override
-	public Map<String, VendorStats> getVendorStats() {
-		Map<String, VendorStats> stats = new HashMap<>();
-		Map<String, Integer> vendorCounts = new HashMap<>();
+	public Map<String, DistroStats> getDistroStats() {
+		Map<String, DistroStats> stats = new HashMap<>();
+		Map<String, Integer> distroCounts = new HashMap<>();
 
-		// Count submissions per vendor
+		// Count submissions per distro
 		for (SubmittedDownload download : submittedDownloads) {
-			vendorCounts.merge(download.vendor, 1, Integer::sum);
+			distroCounts.merge(download.distro, 1, Integer::sum);
 		}
 
 		// Create stats (all submissions are treated as completed in dummy mode)
-		for (Map.Entry<String, Integer> entry : vendorCounts.entrySet()) {
-			stats.put(entry.getKey(), new VendorStats(entry.getKey(), entry.getValue(), entry.getValue(), 0));
+		for (Map.Entry<String, Integer> entry : distroCounts.entrySet()) {
+			stats.put(entry.getKey(), new DistroStats(entry.getKey(), entry.getValue(), entry.getValue(), 0));
 		}
 
 		return stats;
 	}
 
 	/** Record of a submitted download */
-	public record SubmittedDownload(JdkMetadata metadata, String vendor, Logger downloadLogger) {}
+	public record SubmittedDownload(JdkMetadata metadata, String distro, Logger downloadLogger) {}
 }

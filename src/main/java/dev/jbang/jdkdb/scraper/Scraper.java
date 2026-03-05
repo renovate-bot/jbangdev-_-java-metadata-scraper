@@ -3,7 +3,7 @@ package dev.jbang.jdkdb.scraper;
 import java.util.concurrent.Callable;
 
 /**
- * Interface for vendor scrapers that collect JDK metadata. Scrapers implement {@link Callable} to
+ * Interface for distro scrapers that collect JDK metadata. Scrapers implement {@link Callable} to
  * support parallel execution.
  */
 public interface Scraper extends Callable<ScraperResult> {
@@ -21,9 +21,11 @@ public interface Scraper extends Callable<ScraperResult> {
 	interface Discovery {
 		String name();
 
+		String distro();
+
 		String vendor();
 
-		// IMPORTANT: for now all scrapers of the same vendor
+		// IMPORTANT: for now all scrapers of the same distro
 		// must share the same schedule to avoid problems!!
 		default When when() {
 			return When.ALWAYS;

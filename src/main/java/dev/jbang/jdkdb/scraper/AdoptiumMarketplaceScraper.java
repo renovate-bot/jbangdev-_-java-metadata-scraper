@@ -18,6 +18,9 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 	/** Get the vendor name */
 	public abstract String getVendorName();
 
+	/** Get the distro name */
+	public abstract String getDistroName();
+
 	/** Get the API base URL */
 	protected abstract String getApiBase();
 
@@ -179,18 +182,19 @@ public abstract class AdoptiumMarketplaceScraper extends BaseScraper {
 
 		// Create metadata using builder
 		return JdkMetadata.create()
-				.vendor(getVendorName())
-				.releaseType("ga")
-				.version(normalizedVersion)
-				.javaVersion(javaVersion)
-				.jvmImpl(jvmImpl)
-				.os(normalizeOs(os))
-				.arch(normalizeArch(arch))
-				.fileType(normalizeFileType(ext))
-				.imageType(imageType)
-				.features(features)
-				.url(url)
-				.filename(filename);
+				.setVendor(getVendorName())
+				.setDistro(getDistroName())
+				.setReleaseType("ga")
+				.setVersion(normalizedVersion)
+				.setJavaVersion(javaVersion)
+				.setJvmImpl(jvmImpl)
+				.setOs(normalizeOs(os))
+				.setArchitecture(normalizeArch(arch))
+				.setFileType(normalizeFileType(ext))
+				.setImageType(imageType)
+				.setFeatures(features)
+				.setUrl(url)
+				.setFilename(filename);
 	}
 
 	/** Helper to normalize version for OpenJ9 */

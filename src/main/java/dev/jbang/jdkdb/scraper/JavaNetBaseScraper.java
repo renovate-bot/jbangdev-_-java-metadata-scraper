@@ -8,7 +8,8 @@ import java.util.regex.Pattern;
 
 /** Base scraper for Java releases from jdk.java.net */
 public abstract class JavaNetBaseScraper extends BaseScraper {
-	protected static final String VENDOR = "openjdk";
+	protected static final String VENDOR = "oracle";
+	protected static final String DISTRO = "openjdk";
 	protected static final Pattern FILENAME_PATTERN = Pattern.compile(
 			"^openjdk-([0-9]{1,}[^_]*)_(linux|osx|macos|windows)-(aarch64|x64-musl|x64)_bin\\.(tar\\.gz|zip)$");
 	protected static final Pattern URL_PATTERN =
@@ -29,6 +30,11 @@ public abstract class JavaNetBaseScraper extends BaseScraper {
 	/** Get the vendor name for this scraper */
 	protected String getVendor() {
 		return VENDOR;
+	}
+
+	/** Get the distro name for this scraper */
+	protected String getDistro() {
+		return DISTRO;
 	}
 
 	/** Get the filename pattern for this scraper */
@@ -130,18 +136,19 @@ public abstract class JavaNetBaseScraper extends BaseScraper {
 
 		// Create metadata using builder
 		return JdkMetadata.create()
-				.vendor(getVendor())
-				.releaseType(releaseType)
-				.version(version)
-				.javaVersion(version)
-				.jvmImpl("hotspot")
-				.os(normalizeOs(os))
-				.arch(normalizeArch(arch))
-				.fileType(normalizeFileType(ext))
-				.imageType("jdk")
-				.features(features)
-				.url(url)
-				.filename(filename);
+				.setVendor(getVendor())
+				.setDistro(getDistro())
+				.setReleaseType(releaseType)
+				.setVersion(version)
+				.setJavaVersion(version)
+				.setJvmImpl("hotspot")
+				.setOs(normalizeOs(os))
+				.setArchitecture(normalizeArch(arch))
+				.setFileType(normalizeFileType(ext))
+				.setImageType("jdk")
+				.setFeatures(features)
+				.setUrl(url)
+				.setFilename(filename);
 	}
 
 	protected String determineReleaseType(String version) {

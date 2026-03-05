@@ -45,7 +45,7 @@ class ScraperFactoryTest {
 		assertThat(discoveries).isNotNull();
 		// Should at least contain our dummy scraper
 		assertThat(discoveries).containsKey("dummy");
-		assertThat(discoveries.get("dummy").vendor()).isEqualTo("test-vendor");
+		assertThat(discoveries.get("dummy").distro()).isEqualTo("test-distro");
 	}
 
 	@Test
@@ -114,7 +114,7 @@ class ScraperFactoryTest {
 	}
 
 	@Test
-	void testFactoryCreatesScrapersWithVendorDirectories() throws Exception {
+	void testFactoryCreatesScrapersWithDistroDirectories() throws Exception {
 		// Given
 		ScraperFactory factory =
 				ScraperFactory.create(metadataDir, checksumDir, false, 10, 0, Duration.ofDays(180), downloadManager);
@@ -124,8 +124,8 @@ class ScraperFactoryTest {
 		scraper.call();
 
 		// Then
-		// The metadata should be in vendor subdirectory
-		Path vendorMetadataDir = metadataDir.resolve("vendor").resolve("test-vendor");
-		assertThat(vendorMetadataDir).exists();
+		// The metadata should be in distro subdirectory
+		Path distroMetadataDir = metadataDir.resolve("test-distro");
+		assertThat(distroMetadataDir).exists();
 	}
 }

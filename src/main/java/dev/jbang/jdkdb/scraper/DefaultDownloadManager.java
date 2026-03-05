@@ -35,9 +35,9 @@ public class DefaultDownloadManager implements DownloadManager {
 	private final int limitTotal;
 	private final ConcurrentHashMap<String, AtomicInteger> activeDownloadsPerHost;
 	private final Set<JdkMetadata.FileType> fileTypeFilter;
-	private final ConcurrentHashMap<String, AtomicInteger> submittedPerVendor;
-	private final ConcurrentHashMap<String, AtomicInteger> completedPerVendor;
-	private final ConcurrentHashMap<String, AtomicInteger> failedPerVendor;
+	private final ConcurrentHashMap<String, AtomicInteger> submittedPerDistro;
+	private final ConcurrentHashMap<String, AtomicInteger> completedPerDistro;
+	private final ConcurrentHashMap<String, AtomicInteger> failedPerDistro;
 
 	private static final Logger logger = LoggerFactory.getLogger(DefaultDownloadManager.class);
 
@@ -72,9 +72,9 @@ public class DefaultDownloadManager implements DownloadManager {
 		this.limitTotal = limitTotal;
 		this.activeDownloadsPerHost = new ConcurrentHashMap<>();
 		this.fileTypeFilter = fileTypeFilter;
-		this.submittedPerVendor = new ConcurrentHashMap<>();
-		this.completedPerVendor = new ConcurrentHashMap<>();
-		this.failedPerVendor = new ConcurrentHashMap<>();
+		this.submittedPerDistro = new ConcurrentHashMap<>();
+		this.completedPerDistro = new ConcurrentHashMap<>();
+		this.failedPerDistro = new ConcurrentHashMap<>();
 	}
 
 	/**
@@ -96,34 +96,34 @@ public class DefaultDownloadManager implements DownloadManager {
 	 * Submit a metadata item for download.
 	 *
 	 * @param metadata The JDK metadata containing the URL to download
-	 * @param vendor The vendor of the JDK
+	 * @param distro The distro of the JDK
 	 * @param downloadLogger The logger for progress reporting
 	 */
 	@Override
-	public void submit(JdkMetadata metadata, String vendor, Logger downloadLogger) {
+	public void submit(JdkMetadata metadata, String distro, Logger downloadLogger) {
 		if (shutdownRequested) {
 			throw new IllegalStateException("Cannot submit downloads after shutdown requested");
 		}
-		if (metadata.url() == null || metadata.filename() == null) {
+		if (metadata.getUrl() == null || metadata.getFilename() == null) {
 			return;
 		}
 		// Check file type filter
-		if (fileTypeFilter != null && metadata.fileType() != null) {
+		if (fileTypeFilter != null && metadata.getFileType() != null) {
 			try {
 				if (!fileTypeFilter.contains(metadata.fileTypeEnum())) {
 					logger.debug(
 							"Ignoring download submission for {} [{}] - file type {} not in filter",
-							metadata.filename(),
-							vendor,
-							metadata.fileType());
+							metadata.getFilename(),
+							distro,
+							metadata.getFileType());
 					return;
 				}
 			} catch (IllegalArgumentException e) {
 				logger.debug(
 						"Ignoring download submission for {} [{}] - unknown file type: {}",
-						metadata.filename(),
-						vendor,
-						metadata.fileType());
+						metadata.getFilename(),
+						distro,
+						metadata.getFileType());
 				return;
 			}
 		}
@@ -134,12 +134,12 @@ public class DefaultDownloadManager implements DownloadManager {
 				throw new InterruptedProgressException("Reached total download limit of " + limitTotal + " items");
 			}
 		}
-		// Track submitted downloads per vendor
-		submittedPerVendor.computeIfAbsent(vendor, k -> new AtomicInteger(0)).incrementAndGet();
+		// Track submitted downloads per distro
+		submittedPerDistro.computeIfAbsent(distro, k -> new AtomicInteger(0)).incrementAndGet();
 		try {
-			downloadQueue.put(new DownloadTask(metadata, vendor, downloadLogger));
-			downloadLogger.info("Queued download for " + metadata.filename());
-			logger.debug("Submitted download for {} - {}", vendor, metadata.filename());
+			downloadQueue.put(new DownloadTask(metadata, distro, downloadLogger));
+			downloadLogger.info("Queued download for " + metadata.getFilename());
+			logger.debug("Submitted download for {} - {}", distro, metadata.getFilename());
 			logger.info(
 					"Downloads: {} queued, {} active, {} completed, {} failed",
 					downloadQueue.size(),
@@ -244,12 +244,12 @@ public class DefaultDownloadManager implements DownloadManager {
 
 	private void setupNewDownload(DownloadTask task) throws InterruptedException {
 		// Extract host from URL
-		String host = extractHost(task.metadata.url());
+		String host = extractHost(task.metadata.getUrl());
 		if (host == null) {
 			// Invalid URL, log failure and skip
 			failedDownloads.incrementAndGet();
-			task.downloadLogger().error("Invalid URL for {}: {}", task.metadata.filename(), task.metadata.url());
-			logger.debug("Failed download for {} [{}] - invalid URL", task.metadata.filename(), task.vendor);
+			task.downloadLogger().error("Invalid URL for {}: {}", task.metadata.getFilename(), task.metadata.getUrl());
+			logger.debug("Failed download for {} [{}] - invalid URL", task.metadata.getFilename(), task.distro);
 			return;
 		}
 
@@ -271,17 +271,17 @@ public class DefaultDownloadManager implements DownloadManager {
 		try {
 			processDownload(task);
 			completedDownloads.incrementAndGet();
-			completedPerVendor
-					.computeIfAbsent(task.vendor, k -> new AtomicInteger(0))
+			completedPerDistro
+					.computeIfAbsent(task.distro, k -> new AtomicInteger(0))
 					.incrementAndGet();
-			logger.debug("Succeeded download for {} [{}]", task.metadata.filename(), task.vendor);
+			logger.debug("Succeeded download for {} [{}]", task.metadata.getFilename(), task.distro);
 		} catch (Exception e) {
 			failedDownloads.incrementAndGet();
-			failedPerVendor
-					.computeIfAbsent(task.vendor, k -> new AtomicInteger(0))
+			failedPerDistro
+					.computeIfAbsent(task.distro, k -> new AtomicInteger(0))
 					.incrementAndGet();
-			task.downloadLogger().error("Failed to download {}", task.metadata.filename(), e);
-			logger.debug("Failed download for {} [{}]", task.metadata.filename(), task.vendor);
+			task.downloadLogger().error("Failed to download {}", task.metadata.getFilename(), e);
+			logger.debug("Failed download for {} [{}]", task.metadata.getFilename(), task.distro);
 		} finally {
 			activeDownloads.decrementAndGet();
 			// Decrement host counter
@@ -296,10 +296,15 @@ public class DefaultDownloadManager implements DownloadManager {
 	/** Process a single download task */
 	private void processDownload(DownloadTask task) throws IOException, InterruptedException {
 		JdkMetadata metadata = task.metadata;
-		String filename = metadata.filename();
-		String url = metadata.url();
+		String filename = metadata.getFilename();
+		String url = metadata.getUrl();
 
 		if (filename == null || url == null) {
+			return;
+		}
+
+		if (!metadata.isValid()) {
+			task.downloadLogger().warn("Skipping invalid metadata for: {}", filename);
 			return;
 		}
 
@@ -319,12 +324,12 @@ public class DefaultDownloadManager implements DownloadManager {
 			String sha512 = HashUtils.computeHash(tempFile, "SHA-512");
 
 			// Save checksum files
-			Path vendorChecksumDir = checksumDir.resolve(task.vendor);
-			Files.createDirectories(vendorChecksumDir);
-			saveChecksumFile(vendorChecksumDir, filename, "md5", md5);
-			saveChecksumFile(vendorChecksumDir, filename, "sha1", sha1);
-			saveChecksumFile(vendorChecksumDir, filename, "sha256", sha256);
-			saveChecksumFile(vendorChecksumDir, filename, "sha512", sha512);
+			Path distroChecksumDir = checksumDir.resolve(task.distro);
+			Files.createDirectories(distroChecksumDir);
+			saveChecksumFile(distroChecksumDir, filename, "md5", md5);
+			saveChecksumFile(distroChecksumDir, filename, "sha1", sha1);
+			saveChecksumFile(distroChecksumDir, filename, "sha256", sha256);
+			saveChecksumFile(distroChecksumDir, filename, "sha512", sha512);
 
 			// Update metadata with download results
 			DownloadResult result = new DownloadResult(md5, sha1, sha256, sha512, size);
@@ -335,12 +340,12 @@ public class DefaultDownloadManager implements DownloadManager {
 				task.downloadLogger().info("Extracting release info from " + filename);
 				Map<String, String> releaseInfo = ArchiveUtils.extractReleaseInfo(tempFile, filename);
 				if (releaseInfo != null && !releaseInfo.isEmpty()) {
-					metadata.releaseInfo(releaseInfo);
+					metadata.setReleaseInfo(releaseInfo);
 					task.downloadLogger()
 							.debug("Extracted release info with " + releaseInfo.size() + " properties from "
 									+ filename);
 				} else {
-					metadata.releaseInfo(Collections.emptyMap());
+					metadata.setReleaseInfo(Collections.emptyMap());
 					task.downloadLogger().debug("No release info found in " + filename);
 				}
 			} catch (Exception e) {
@@ -349,9 +354,9 @@ public class DefaultDownloadManager implements DownloadManager {
 			}
 
 			// Save metadata file
-			Path vendorMetadataDir = metadataDir.resolve("vendor").resolve(task.vendor);
-			Files.createDirectories(vendorMetadataDir);
-			Path metadataFile = vendorMetadataDir.resolve(metadata.metadataFile());
+			Path distroMetadataDir = metadataDir.resolve(task.distro);
+			Files.createDirectories(distroMetadataDir);
+			Path metadataFile = distroMetadataDir.resolve(metadata.metadataFile());
 			MetadataUtils.saveMetadataFile(metadataFile, metadata);
 
 			// Apply the original file timestamp to the metadata file
@@ -396,33 +401,33 @@ public class DefaultDownloadManager implements DownloadManager {
 	}
 
 	/**
-	 * Get per-vendor download statistics.
+	 * Get per-distro download statistics.
 	 *
-	 * @return Map of vendor name to statistics
+	 * @return Map of distro name to statistics
 	 */
 	@Override
-	public Map<String, VendorStats> getVendorStats() {
-		Map<String, VendorStats> stats = new HashMap<>();
-		// Get all vendor names from any of the maps
-		Set<String> allVendors = new HashSet<>();
-		allVendors.addAll(submittedPerVendor.keySet());
-		allVendors.addAll(completedPerVendor.keySet());
-		allVendors.addAll(failedPerVendor.keySet());
+	public Map<String, DistroStats> getDistroStats() {
+		Map<String, DistroStats> stats = new HashMap<>();
+		// Get all distro names from any of the maps
+		Set<String> allDistros = new HashSet<>();
+		allDistros.addAll(submittedPerDistro.keySet());
+		allDistros.addAll(completedPerDistro.keySet());
+		allDistros.addAll(failedPerDistro.keySet());
 
-		for (String vendor : allVendors) {
-			int submitted = submittedPerVendor
-					.getOrDefault(vendor, new AtomicInteger(0))
+		for (String distro : allDistros) {
+			int submitted = submittedPerDistro
+					.getOrDefault(distro, new AtomicInteger(0))
 					.get();
-			int completed = completedPerVendor
-					.getOrDefault(vendor, new AtomicInteger(0))
+			int completed = completedPerDistro
+					.getOrDefault(distro, new AtomicInteger(0))
 					.get();
 			int failed =
-					failedPerVendor.getOrDefault(vendor, new AtomicInteger(0)).get();
-			stats.put(vendor, new VendorStats(vendor, submitted, completed, failed));
+					failedPerDistro.getOrDefault(distro, new AtomicInteger(0)).get();
+			stats.put(distro, new DistroStats(distro, submitted, completed, failed));
 		}
 		return stats;
 	}
 
 	/** Internal class representing a download task */
-	private record DownloadTask(JdkMetadata metadata, String vendor, Logger downloadLogger) {}
+	private record DownloadTask(JdkMetadata metadata, String distro, Logger downloadLogger) {}
 }

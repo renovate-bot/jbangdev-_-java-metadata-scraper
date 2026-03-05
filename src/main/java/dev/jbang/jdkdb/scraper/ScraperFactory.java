@@ -48,22 +48,22 @@ public class ScraperFactory {
 	/** Create all available scrapers using ServiceLoader */
 	public List<Scraper> createAllScrapers() {
 		List<Scraper> scrapers = new ArrayList<>();
-		Path metadataVendorDir = metadataDir.resolve("vendor");
+		Path metadataDistroDir = metadataDir;
 
 		ServiceLoader<Scraper.Discovery> loader = ServiceLoader.load(Scraper.Discovery.class);
 
 		for (Scraper.Discovery discovery : loader) {
-			String vendor = discovery.vendor();
-			Logger dl = LoggerFactory.getLogger("vendors." + vendor);
+			String distro = discovery.distro();
+			Logger dl = LoggerFactory.getLogger("distros." + distro);
 			ScraperConfig config = new ScraperConfig(
-					metadataVendorDir.resolve(vendor),
-					checksumDir.resolve(vendor),
+					metadataDistroDir.resolve(distro),
+					checksumDir.resolve(distro),
 					dl,
 					fromStart,
 					maxFailureCount,
 					limitProgress,
 					skipEaDuration,
-					md -> downloadManager.submit(md, vendor, dl));
+					md -> downloadManager.submit(md, distro, dl));
 
 			Scraper scraper = discovery.create(config);
 			scrapers.add(scraper);
@@ -78,17 +78,17 @@ public class ScraperFactory {
 
 		Scraper.Discovery discovery = allDiscoveries.get(scraperName);
 		if (discovery != null) {
-			String vendor = discovery.vendor();
-			Logger dl = LoggerFactory.getLogger("vendors." + vendor);
+			String distro = discovery.distro();
+			Logger dl = LoggerFactory.getLogger("distros." + distro);
 			ScraperConfig config = new ScraperConfig(
-					metadataDir.resolve("vendor").resolve(vendor),
-					checksumDir.resolve(vendor),
+					metadataDir.resolve(distro),
+					checksumDir.resolve(distro),
 					dl,
 					fromStart,
 					maxFailureCount,
 					limitProgress,
 					skipEaDuration,
-					md -> downloadManager.submit(md, vendor, dl));
+					md -> downloadManager.submit(md, distro, dl));
 			return discovery.create(config);
 		} else {
 			throw new IllegalArgumentException("Unknown scraper ID: " + scraperName);

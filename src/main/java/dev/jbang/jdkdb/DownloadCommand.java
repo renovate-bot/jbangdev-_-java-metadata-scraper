@@ -35,22 +35,22 @@ public class DownloadCommand implements Callable<Integer> {
 
 	@Option(
 			names = {"-m", "--metadata-dir"},
-			description = "Directory containing metadata files (default: docs/metadata)",
-			defaultValue = "docs/metadata")
+			description = "Directory containing metadata files (default: db/metadata)",
+			defaultValue = "db/metadata")
 	private Path metadataDir;
 
 	@Option(
 			names = {"-c", "--checksum-dir"},
-			description = "Directory to store checksum files (default: docs/checksums)",
-			defaultValue = "docs/checksums")
+			description = "Directory to store checksum files (default: db/checksums)",
+			defaultValue = "db/checksums")
 	private Path checksumDir;
 
 	@Option(
-			names = {"-v", "--vendors"},
+			names = {"-v", "--distros"},
 			description =
-					"Comma-separated list of vendor names to process (if not specified, all vendors are processed)",
+					"Comma-separated list of distro names to process (if not specified, all distros are processed)",
 			split = ",")
-	private List<String> vendorNames;
+	private List<String> distroNames;
 
 	@Option(
 			names = {"-t", "--threads"},
@@ -107,27 +107,27 @@ public class DownloadCommand implements Callable<Integer> {
 		logger.info("Checksum directory: {}", checksumDir.toAbsolutePath());
 		logger.info("");
 
-		Path vendorDir = metadataDir.resolve("vendor");
-		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
-			logger.error("Error: Vendor directory not found: {}", vendorDir.toAbsolutePath());
+		Path distroDir = metadataDir;
+		if (!Files.exists(distroDir) || !Files.isDirectory(distroDir)) {
+			logger.error("Error: Distro directory not found: {}", distroDir.toAbsolutePath());
 			return 1;
 		}
 
-		// Determine which vendors to process
-		List<String> vendorsToProcess;
-		if (vendorNames == null || vendorNames.isEmpty()) {
-			// Process all vendors
-			try (Stream<Path> paths = Files.list(vendorDir)) {
-				vendorsToProcess = paths.filter(Files::isDirectory)
+		// Determine which distros to process
+		List<String> distrosToProcess;
+		if (distroNames == null || distroNames.isEmpty()) {
+			// Process all distros
+			try (Stream<Path> paths = Files.list(distroDir)) {
+				distrosToProcess = paths.filter(Files::isDirectory)
 						.map(Path::getFileName)
 						.map(Path::toString)
 						.sorted()
 						.toList();
 			}
-			logger.info("Processing all vendors...");
+			logger.info("Processing all distros...");
 		} else {
-			vendorsToProcess = vendorNames;
-			logger.info("Processing specified vendors: {}", String.join(", ", vendorNames));
+			distrosToProcess = distroNames;
+			logger.info("Processing specified distros: {}", String.join(", ", distroNames));
 		}
 		logger.info("");
 
@@ -141,11 +141,11 @@ public class DownloadCommand implements Callable<Integer> {
 			logger.info("File type filter enabled: {}", fileTypeFilter);
 		}
 
-		List<JdkMetadata> metadataList = MetadataUtils.collectAllMetadata(vendorDir, 2, false, true).stream()
+		List<JdkMetadata> metadataList = MetadataUtils.collectAllMetadata(distroDir, 2, false, true).stream()
 				// Don't try to download macOS PKG files if the only thing we need is
 				// the release info, since we won't be able to extract it on non-macOS
 				// platforms anyway!
-				.filter(m -> !"macosx".equals(m.os())
+				.filter(m -> !"macosx".equals(m.getOs())
 						|| !MetadataUtils.MACOS_FILE_TYPES.contains(m.fileTypeEnum())
 						|| MetadataUtils.hasMissingChecksums(m)
 						|| !MetadataUtils.hasMissingReleaseInfo(m)
@@ -153,8 +153,8 @@ public class DownloadCommand implements Callable<Integer> {
 				// The same goes for Windows EXE files - but in this case we always
 				// ignore missing release info since we can't extract it from them
 				// on any platform!
-				.filter(m -> !"windows".equals(m.os())
-						|| !"exe".equals(m.fileType())
+				.filter(m -> !"windows".equals(m.getOs())
+						|| !"exe".equals(m.getFileType())
 						|| MetadataUtils.hasMissingChecksums(m)
 						|| !MetadataUtils.hasMissingReleaseInfo(m))
 				.sorted((m1, m2) -> {
@@ -176,26 +176,26 @@ public class DownloadCommand implements Callable<Integer> {
 			logger.info("Randomized download order");
 		}
 
-		Map<String, Integer> vendorMissingCounts = new HashMap<>();
+		Map<String, Integer> distroMissingCounts = new HashMap<>();
 		for (JdkMetadata metadata : metadataList) {
 			try {
-				String vendorName = metadata.vendor();
-				if (!vendorsToProcess.contains(vendorName)) {
-					continue; // Skip vendors not in the specified list
+				String distroName = metadata.getDistro();
+				if (!distrosToProcess.contains(distroName)) {
+					continue; // Skip distros not in the specified list
 				}
-				Logger dl = LoggerFactory.getLogger("vendors." + vendorName);
-				downloadManager.submit(metadata, vendorName, dl);
-				vendorMissingCounts.put(vendorName, vendorMissingCounts.getOrDefault(vendorName, 0) + 1);
-				int vendorMissing = vendorMissingCounts.get(vendorName);
-				if (limitProgress > 0 && vendorMissing >= limitProgress) {
+				Logger dl = LoggerFactory.getLogger("distros." + distroName);
+				downloadManager.submit(metadata, distroName, dl);
+				distroMissingCounts.put(distroName, distroMissingCounts.getOrDefault(distroName, 0) + 1);
+				int distroMissing = distroMissingCounts.get(distroName);
+				if (limitProgress > 0 && distroMissing >= limitProgress) {
 					dl.info(
-							"Reached progress limit of {} items for vendor {}, skipping remaining files for this vendor",
+							"Reached progress limit of {} items for distro {}, skipping remaining files for this distro",
 							limitProgress,
-							vendorName);
+							distroName);
 					logger.info(
-							"Reached progress limit of {} items for vendor {}, skipping remaining files for this vendor",
+							"Reached progress limit of {} items for distro {}, skipping remaining files for this distro",
 							limitProgress,
-							vendorName);
+							distroName);
 					break;
 				}
 			} catch (InterruptedProgressException e) {
@@ -204,7 +204,7 @@ public class DownloadCommand implements Callable<Integer> {
 			} catch (Exception e) {
 				logger.error(
 						"Failed to read metadata file: {} - {}",
-						Path.of(metadata.filename()).getFileName(),
+						Path.of(metadata.getFilename()).getFileName(),
 						e.getMessage());
 			}
 		}
@@ -230,16 +230,16 @@ public class DownloadCommand implements Callable<Integer> {
 		logger.info("=======");
 		logger.info("Files with missing data: {}", filesWithMissingData);
 		if (filesWithMissingData > 0) {
-			// Per-vendor breakdown
-			Map<String, DownloadManager.VendorStats> vendorStats = downloadManager.getVendorStats();
-			if (!vendorStats.isEmpty()) {
-				logger.info("Per-Vendor Breakdown");
+			// Per-distro breakdown
+			Map<String, DownloadManager.DistroStats> distroStats = downloadManager.getDistroStats();
+			if (!distroStats.isEmpty()) {
+				logger.info("Per-Distro Breakdown");
 				logger.info("====================");
-				vendorStats.entrySet().stream()
+				distroStats.entrySet().stream()
 						.sorted(Map.Entry.comparingByKey())
 						.forEach(entry -> {
-							DownloadManager.VendorStats stats = entry.getValue();
-							logger.info("  {}:", stats.vendor());
+							DownloadManager.DistroStats stats = entry.getValue();
+							logger.info("  {}:", stats.distro());
 							logger.info("    Submitted:  {}", stats.submitted());
 							logger.info("    Completed:  {}", stats.completed());
 							logger.info("    Failed:     {}", stats.failed());

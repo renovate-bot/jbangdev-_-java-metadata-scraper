@@ -14,10 +14,10 @@ public interface DownloadManager {
 	 * Submit a metadata item for download.
 	 *
 	 * @param metadata The JDK metadata containing the URL to download
-	 * @param vendor   The vendor name
+	 * @param distro   The distro name
 	 * @param logger   The logger to use for logging download progress and errors
 	 */
-	void submit(JdkMetadata metadata, String vendor, Logger logger);
+	void submit(JdkMetadata metadata, String distro, Logger logger);
 
 	/**
 	 * Start the download manager. Should be called once after construction.
@@ -54,20 +54,20 @@ public interface DownloadManager {
 	int getFailedCount();
 
 	/**
-	 * Get per-vendor download statistics.
+	 * Get per-distro download statistics.
 	 *
-	 * @return Map of vendor name to statistics
+	 * @return Map of distro name to statistics
 	 */
-	Map<String, VendorStats> getVendorStats();
+	Map<String, DistroStats> getDistroStats();
 
 	/**
-	 * Statistics for a single vendor's downloads.
+	 * Statistics for a single distro's downloads.
 	 */
-	public record VendorStats(String vendor, int submitted, int completed, int failed) {
+	public record DistroStats(String distro, int submitted, int completed, int failed) {
 		/**
 		 * Get the number of downloads that were submitted.
 		 *
-		 * @return Number of downloads submitted for this vendor
+		 * @return Number of downloads submitted for this distro
 		 */
 		public int submitted() {
 			return submitted;
@@ -76,7 +76,7 @@ public interface DownloadManager {
 		/**
 		 * Get the number of downloads that completed successfully.
 		 *
-		 * @return Number of successful downloads for this vendor
+		 * @return Number of successful downloads for this distro
 		 */
 		public int completed() {
 			return completed;
@@ -85,7 +85,7 @@ public interface DownloadManager {
 		/**
 		 * Get the number of downloads that failed.
 		 *
-		 * @return Number of failed downloads for this vendor
+		 * @return Number of failed downloads for this distro
 		 */
 		public int failed() {
 			return failed;
@@ -95,7 +95,7 @@ public interface DownloadManager {
 		 * Get the number of downloads still pending (submitted but not completed or
 		 * failed).
 		 *
-		 * @return Number of pending downloads for this vendor
+		 * @return Number of pending downloads for this distro
 		 */
 		public int pending() {
 			return submitted - completed - failed;

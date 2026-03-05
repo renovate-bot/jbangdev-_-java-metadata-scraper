@@ -33,14 +33,14 @@ public class CleanCommand implements Callable<Integer> {
 
 	@Option(
 			names = {"-m", "--metadata-dir"},
-			description = "Directory containing metadata files (default: docs/metadata)",
-			defaultValue = "docs/metadata")
+			description = "Directory containing metadata files (default: db/metadata)",
+			defaultValue = "db/metadata")
 	private Path metadataDir;
 
 	@Option(
 			names = {"-c", "--checksum-dir"},
-			description = "Directory containing checksum files (default: docs/checksums)",
-			defaultValue = "docs/checksums")
+			description = "Directory containing checksum files (default: db/checksums)",
+			defaultValue = "db/checksums")
 	private Path checksumDir;
 
 	@Option(
@@ -99,9 +99,9 @@ public class CleanCommand implements Callable<Integer> {
 		logger.info("  Dry run: {}", dryRun);
 		logger.info("");
 
-		Path vendorDir = metadataDir.resolve("vendor");
-		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
-			logger.error("Error: Vendor directory not found: {}", vendorDir.toAbsolutePath());
+		Path distroDir = metadataDir;
+		if (!Files.exists(distroDir) || !Files.isDirectory(distroDir)) {
+			logger.error("Error: Distro directory not found: {}", distroDir.toAbsolutePath());
 			return 1;
 		}
 
@@ -124,7 +124,7 @@ public class CleanCommand implements Callable<Integer> {
 		final List<Path> filesToDelete = new ArrayList<>();
 		final Instant finalPruneThreshold = pruneThreshold;
 
-		List<JdkMetadata> metadataList = MetadataUtils.collectAllMetadata(vendorDir, 2, true, true);
+		List<JdkMetadata> metadataList = MetadataUtils.collectAllMetadata(distroDir, 2, true, true);
 		for (JdkMetadata metadata : metadataList) {
 			try {
 				processMetadataFile(metadata, stats, filesToDelete, finalPruneThreshold);
@@ -138,7 +138,7 @@ public class CleanCommand implements Callable<Integer> {
 		if (pruneChecksums) {
 			logger.info("Pruning orphaned checksum files...");
 			logger.info("");
-			pruneOrphanedChecksums(vendorDir, stats, filesToDelete);
+			pruneOrphanedChecksums(distroDir, stats, filesToDelete);
 		}
 
 		// Print summary
@@ -214,11 +214,11 @@ public class CleanCommand implements Callable<Integer> {
 
 		// Check for incomplete metadata
 		if (removeIncomplete != null && !shouldDelete) {
-			boolean missingChecksums = metadata.md5() == null
-					|| metadata.sha1() == null
-					|| metadata.sha256() == null
-					|| metadata.sha512() == null;
-			boolean missingReleaseInfo = metadata.releaseInfo() == null;
+			boolean missingChecksums = metadata.getMd5() == null
+					|| metadata.getSha1() == null
+					|| metadata.getSha256() == null
+					|| metadata.getSha512() == null;
+			boolean missingReleaseInfo = metadata.getReleaseInfo() == null;
 
 			boolean isIncomplete =
 					switch (removeIncomplete) {
@@ -245,7 +245,7 @@ public class CleanCommand implements Callable<Integer> {
 		}
 
 		// Check for old EA releases
-		if (pruneThreshold != null && "ea".equalsIgnoreCase(metadata.releaseType()) && !shouldDelete) {
+		if (pruneThreshold != null && "ea".equalsIgnoreCase(metadata.getReleaseType()) && !shouldDelete) {
 			FileTime lastModified = Files.getLastModifiedTime(metadataFile);
 			if (lastModified.toInstant().isBefore(pruneThreshold)) {
 				stats.oldEaReleases++;
@@ -264,29 +264,29 @@ public class CleanCommand implements Callable<Integer> {
 	 * Prune orphaned checksum files that don't have corresponding metadata files.
 	 * This is run after metadata cleanup to remove checksums for deleted metadata.
 	 */
-	private void pruneOrphanedChecksums(Path metadataVendorDir, CleanStats stats, List<Path> filesToDelete) {
+	private void pruneOrphanedChecksums(Path metadataDistroDir, CleanStats stats, List<Path> filesToDelete) {
 		if (!Files.exists(checksumDir) || !Files.isDirectory(checksumDir)) {
 			logger.warn("Checksum directory not found: {}", checksumDir.toAbsolutePath());
 			return;
 		}
 
 		try {
-			// Get list of all vendor directories from checksums
-			List<Path> vendorDirs =
+			// Get list of all distro directories from checksums
+			List<Path> distroDirs =
 					Files.list(checksumDir).filter(Files::isDirectory).toList();
 
-			for (Path vendorChecksumDir : vendorDirs) {
-				String vendorName = vendorChecksumDir.getFileName().toString();
-				Path vendorMetadataDir = metadataVendorDir.resolve(vendorName);
+			for (Path distroChecksumDir : distroDirs) {
+				String distroName = distroChecksumDir.getFileName().toString();
+				Path distroMetadataDir = metadataDistroDir.resolve(distroName);
 
-				// Skip if no metadata directory for this vendor
-				if (!Files.exists(vendorMetadataDir) || !Files.isDirectory(vendorMetadataDir)) {
-					logger.debug("No metadata directory for vendor: {}", vendorName);
+				// Skip if no metadata directory for this distro
+				if (!Files.exists(distroMetadataDir) || !Files.isDirectory(distroMetadataDir)) {
+					logger.debug("No metadata directory for distro: {}", distroName);
 					continue;
 				}
 
-				// List all checksum files for this vendor
-				List<Path> checksumFiles = Files.list(vendorChecksumDir)
+				// List all checksum files for this distro
+				List<Path> checksumFiles = Files.list(distroChecksumDir)
 						.filter(Files::isRegularFile)
 						.filter(p -> {
 							String name = p.getFileName().toString();
@@ -316,7 +316,7 @@ public class CleanCommand implements Callable<Integer> {
 						}
 
 						// Check if corresponding metadata file exists
-						Path metadataFile = vendorMetadataDir.resolve(baseFileName + ".json");
+						Path metadataFile = distroMetadataDir.resolve(baseFileName + ".json");
 
 						if (!Files.exists(metadataFile)) {
 							// Metadata file doesn't exist, mark checksum for deletion

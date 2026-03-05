@@ -22,7 +22,7 @@ components:
         - "sha1"
         - "sha256"
         - "sha512"
-    vendors:
+    distros:
       type: string
       enum:
         - "adoptopenjdk"
@@ -89,8 +89,8 @@ components:
     metadata:
       type: "object"
       properties:
-        vendor:
-          $ref: '#/components/schemas/vendors'
+        distro:
+          $ref: '#/components/schemas/distros'
         filename:
           type: string
         file_type:
@@ -141,7 +141,7 @@ components:
           format: int32
       example:
         {
-          "vendor": "adoptopenjdk",
+          "distro": "adoptopenjdk",
           "filename": "OpenJDK14U-jdk_x64_linux_hotspot_14_36.tar.gz",
           "release_type": "ga",
           "version": "14.0.0+36.1",
@@ -170,7 +170,7 @@ components:
       example:
         [
           {
-            "vendor": "adoptopenjdk",
+            "distro": "adoptopenjdk",
             "filename": "OpenJDK14U-jdk_x64_linux_hotspot_14_36.tar.gz",
             "release_type": "ga",
             "version": "14.0.0+36.1",
@@ -194,19 +194,19 @@ components:
           }
         ]
 paths:
-  "/checksums/{vendor}/{artifact_name}.{hash_algorithm}":
+  "/checksums/{distro}/{artifact_name}.{hash_algorithm}":
     get:
       description: "Get the checksum file for a download artifact"
       tags:
       - "checksum"
       operationId: "getChecksum"
       parameters:
-        - name: "vendor"
+        - name: "distro"
           in: path
-          description: "The JDK/JRE vendor"
+          description: "The JDK/JRE distro"
           required: true
           schema:
-            $ref: '#/components/schemas/vendors'
+            $ref: '#/components/schemas/distros'
         - name: "artifact_name"
           in: path
           description: "The (file) name of the download artifact"
@@ -243,19 +243,19 @@ paths:
             "application/json":
               schema:
                 $ref: '#/components/schemas/response'
-  "/metadata/vendor/{vendor}/{artifact_name}.json":
+  "/metadata/{distro}/{artifact_name}.json":
     get:
-      description: "List of information about the given Java distribution by the given vendor"
+      description: "List of information about the given Java distribution by the given distro"
       tags:
       - "metadata"
-      operationId: "findByVendorArtifact"
+      operationId: "findByDistroArtifact"
       parameters:
-        - name: "vendor"
+        - name: "distro"
           in: path
-          description: "The JDK/JRE vendor"
+          description: "The JDK/JRE distro"
           required: true
           schema:
-            $ref: '#/components/schemas/vendors'
+            $ref: '#/components/schemas/distros'
         - name: artifact_name
           in: path
           description: "The (file) name of the download artifact"
@@ -271,19 +271,19 @@ paths:
                 $ref: '#/components/schemas/metadata'
         404:
           description: "Invalid input"
-  "/metadata/vendor/{vendor}/all.json":
+  "/metadata/{distro}/all.json":
     get:
-      description: "List of information about Java distributions by the given vendor"
+      description: "List of information about Java distributions by the given distro"
       tags:
       - "metadata"
-      operationId: "findByVendor"
+      operationId: "findByDistro"
       parameters:
-        - name: "vendor"
+        - name: "distro"
           in: path
-          description: "The JVM vendor"
+          description: "The JVM distro"
           required: true
           schema:
-            $ref: '#/components/schemas/vendors'
+            $ref: '#/components/schemas/distros'
       responses:
         200:
           description: "Meta data about download artifact"
@@ -293,12 +293,12 @@ paths:
                 $ref: '#/components/schemas/response'
         404:
           description: "Invalid input"
-  "/metadata/{release_type}/{os}/{arch}/{image_type}/{jvm_impl}/{vendor}.json":
+  "/metadata/{release_type}/{os}/{arch}/{image_type}/{jvm_impl}/{distro}.json":
     get:
       description: "List of information about Java distributions that match the current query"
       tags:
       - "metadata"
-      operationId: "findByReleaseTypeOsArchVariantJvmImpl/Vendor"
+      operationId: "findByReleaseTypeOsArchVariantJvmImpl/Distro"
       parameters:
         - name: "release_type"
           in: path
@@ -330,12 +330,12 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/jvmImpls'
-        - name: "vendor"
+        - name: "distro"
           in: path
-          description: "The JVM vendor"
+          description: "The JVM distro"
           required: true
           schema:
-            $ref: '#/components/schemas/vendors'
+            $ref: '#/components/schemas/distros'
       responses:
         200:
           description: "Meta data about download artifact"

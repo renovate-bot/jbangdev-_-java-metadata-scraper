@@ -27,24 +27,24 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-/** Update command to scrape JDK metadata from various vendors */
+/** Update command to scrape JDK metadata from various distros */
 @Command(
 		name = "update",
-		description = "Scrape JDK metadata from various vendors and update metadata files",
+		description = "Scrape JDK metadata from various distros and update metadata files",
 		mixinStandardHelpOptions = true)
 public class UpdateCommand implements Callable<Integer> {
 	private static final Logger logger = LoggerFactory.getLogger("command");
 
 	@Option(
 			names = {"-m", "--metadata-dir"},
-			description = "Directory to store metadata files (default: docs/metadata)",
-			defaultValue = "docs/metadata")
+			description = "Directory to store metadata files (default: db/metadata)",
+			defaultValue = "db/metadata")
 	private Path metadataDir;
 
 	@Option(
 			names = {"-c", "--checksum-dir"},
-			description = "Directory to store checksum files (default: docs/checksums)",
-			defaultValue = "docs/checksums")
+			description = "Directory to store checksum files (default: db/checksums)",
+			defaultValue = "db/checksums")
 	private Path checksumDir;
 
 	@Option(
@@ -175,7 +175,7 @@ public class UpdateCommand implements Callable<Integer> {
 			scraperIds = new ArrayList<>(allDiscoveries.keySet());
 		}
 		var scrapers = new HashMap<String, Scraper>();
-		var affectedVendors = new HashSet<String>();
+		var affectedDistros = new HashSet<String>();
 		for (var scraperId : scraperIds) {
 			var discovery = allDiscoveries.get(scraperId);
 			if (discovery == null) {
@@ -190,8 +190,8 @@ public class UpdateCommand implements Callable<Integer> {
 			}
 
 			scrapers.put(scraperId, fact.createScraper(scraperId));
-			// Track which vendor this scraper affects
-			affectedVendors.add(discovery.vendor());
+			// Track which distro this scraper affects
+			affectedDistros.add(discovery.distro());
 		}
 		if (scrapers.isEmpty()) {
 			logger.info("No scrapers scheduled to run.");
@@ -249,11 +249,11 @@ public class UpdateCommand implements Callable<Integer> {
 			}
 
 			if (!noIndex) {
-				// Generate all.json files for affected vendor directories only
+				// Generate all.json files for affected distro directories only
 				logger.info("");
-				logger.info("Generating all.json files for affected vendor directories...");
+				logger.info("Generating all.json files for affected distro directories...");
 				try {
-					IndexCommand.generateIndices(metadataDir, new ArrayList<>(affectedVendors), noDownload);
+					IndexCommand.generateIndices(metadataDir, new ArrayList<>(affectedDistros), noDownload);
 					logger.info("Successfully generated all.json files");
 				} catch (Exception e) {
 					logger.error("Failed to generate all.json files: {}", e.getMessage(), e);
@@ -331,7 +331,7 @@ public class UpdateCommand implements Callable<Integer> {
 
 	/**
 	 * Check if a scraper should run based on its scheduling configuration and the last update time
-	 * of the vendor's all.json file.
+	 * of the distro's all.json file.
 	 *
 	 * @param discovery The scraper discovery with scheduling information
 	 * @param metadataDir The metadata directory
@@ -351,10 +351,9 @@ public class UpdateCommand implements Callable<Integer> {
 		}
 
 		// For other schedules, check the last update time
-		Path vendorAllJson =
-				metadataDir.resolve("vendor").resolve(discovery.vendor()).resolve("all.json");
+		Path distroAllJson = metadataDir.resolve(discovery.distro()).resolve("all.json");
 
-		Instant lastUpdate = getLastModifiedTime(vendorAllJson);
+		Instant lastUpdate = getLastModifiedTime(distroAllJson);
 		if (lastUpdate == null) {
 			// No all.json exists, so we should run the scraper
 			return true;

@@ -10,9 +10,15 @@ import picocli.CommandLine.Command;
 @Command(
 		name = "jdkdb-scraper",
 		versionProvider = VersionProvider.class,
-		description = "Scrapes JDK metadata from various vendors and generates index files",
+		description = "Scrapes JDK metadata from various distros and generates index files",
 		mixinStandardHelpOptions = true,
-		subcommands = {UpdateCommand.class, IndexCommand.class, DownloadCommand.class, CleanCommand.class})
+		subcommands = {
+			UpdateCommand.class,
+			IndexCommand.class,
+			DownloadCommand.class,
+			CleanCommand.class,
+			ConvertCommand.class
+		})
 public class MainCommand {
 	public static final Logger logger = LoggerFactory.getLogger("command");
 	public static final String GITHUB_TOKEN_ENV = "GITHUB_TOKEN";
