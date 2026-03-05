@@ -1,7 +1,7 @@
 # JDK Metadata DB Scraper - AI Coding Guide
 
 ## Project Overview
-A parallel Java application that scrapes JDK metadata from 35+ vendors (Temurin, Zulu, Liberica, Corretto, etc.) via vendor APIs and GitHub releases. Outputs structured JSON metadata files with checksums for each JDK distribution.
+A parallel Java application that scrapes JDK metadata from 35+ distros (Temurin, Zulu, Liberica, Corretto, etc.) via distro APIs and GitHub releases. Outputs structured JSON metadata files with checksums for each JDK distribution.
 
 ## Architecture
 
@@ -9,22 +9,22 @@ A parallel Java application that scrapes JDK metadata from 35+ vendors (Temurin,
 1. **Main** (`Main.java`) - CLI entry via Picocli, manages ExecutorService for parallel scraping
 2. **ScraperFactory** - Uses Java ServiceLoader to discover scrapers via `META-INF/services/dev.jbang.jdkdb.scraper.Scraper$Discovery`
 3. **ProgressReporter** - Dedicated thread receives events from all scrapers via `BlockingQueue<ProgressEvent>`
-4. **Scrapers** - Each vendor scraper implements `Callable<ScraperResult>` for concurrent execution
+4. **Scrapers** - Each distro scraper implements `Callable<ScraperResult>` for concurrent execution
 
 ### Base Class Hierarchy
 - **BaseScraper** - Common functionality: HTTP downloads, hash computation, metadata persistence, progress tracking
 - **GitHubReleaseScraper** extends BaseScraper - GitHub API integration with pagination and rate limiting
 - **AdoptiumMarketplaceScraper** extends BaseScraper - Adoptium Marketplace API patterns
-- Vendor scrapers (e.g., `Temurin`, `Microsoft`, `SemeruBaseScraper`) - Specific API implementations
+- Distro scrapers (e.g., `Temurin`, `Microsoft`, `SemeruBaseScraper`) - Specific API implementations
 
 ### Service Provider Interface (SPI)
 All scrapers register via nested `Discovery` class implementing `Scraper.Discovery`:
 ```java
 public static class Discovery implements Scraper.Discovery {
-    public String name() { return "vendor-id"; }
-    public String vendor() { return "vendor-name"; }
+    public String name() { return "distro-id"; }
+    public String distro() { return "distro-name"; }
     public When when() { return When.ALWAYS; }
-    public Scraper create(ScraperConfig config) { return new VendorScraper(config); }
+    public Scraper create(ScraperConfig config) { return new DistroScraper(config); }
 }
 ```
 Registration: Add fully qualified class name to `src/main/resources/META-INF/services/dev.jbang.jdkdb.scraper.Scraper$Discovery`
@@ -41,13 +41,13 @@ Registration: Add fully qualified class name to `src/main/resources/META-INF/ser
 ### Running Scrapers
 ```bash
 java -jar build/libs/jdkdb-scraper-*-standalone.jar --list              # List all scrapers
-java -jar build/libs/jdkdb-scraper-*-standalone.jar --scrapers temurin  # Run specific vendor
+java -jar build/libs/jdkdb-scraper-*-standalone.jar --scrapers temurin  # Run specific distro
 java -jar build/libs/jdkdb-scraper-*-standalone.jar --from-start        # Ignore existing metadata
 java -jar build/libs/jdkdb-scraper-*-standalone.jar --limit-progress 3  # Limit to 3 items for testing
 ```
 
 ### GitHub Token for Rate Limiting
-Set `GITHUB_TOKEN` environment variable to avoid GitHub API rate limits when scraping GitHub-based vendors.
+Set `GITHUB_TOKEN` environment variable to avoid GitHub API rate limits when scraping GitHub-based distros.
 
 ## Project-Specific Conventions
 
@@ -87,16 +87,16 @@ Use inherited normalization methods from BaseScraper:
 ## Data Model
 
 ### JdkMetadata Fields (snake_case in JSON)
-Required: `vendor`, `filename`, `version`, `java_version`, `os`, `architecture`, `file_type`, `image_type`, `url`
+Required: `distro`, `filename`, `version`, `java_version`, `os`, `architecture`, `file_type`, `image_type`, `url`
 Checksums: `md5`, `sha1`, `sha256`, `sha512` + corresponding `*_file` fields for external checksum URLs
 Features: Array of strings (e.g., `["openj9"]`, `["lts"]`, `["musl"]`)
 This class follow the API defined in `./openapi.yaml` and can't be changed!
 
 ### Output Structure
 ```
-docs/
-├── metadata/vendor/{vendor-name}/*.json  # Individual release metadata
-└── checksums/vendor/{vendor-name}/*      # Hash files
+/
+├── metadata/{distro-name}/*.json  # Individual release metadata
+└── checksums/{distro-name}/*      # Hash files
 ```
 
 ## Testing
@@ -134,11 +134,11 @@ Override `getApiBase()`, `getAvailableReleasesPath()`, `getAssetsPathTemplate()`
 ## Dependencies
 - Jackson 2.16.1 for JSON (use `readJson(string)` helper in BaseScraper)
 - Java 21+ HttpClient (`java.net.http`) - configured in `HttpUtils` with 30s timeout, auto-redirect
-- SLF4J/Logback - Logger per scraper: `LoggerFactory.getLogger("vendors." + name)`
+- SLF4J/Logback - Logger per scraper: `LoggerFactory.getLogger("distros." + name)`
 - Picocli 4.7.5 - CLI in Main.java only
 
 ## Key Files to Reference
-- [BaseScraper.java](src/main/java/dev/jbang/jdkdb/scraper/BaseScraper.java) - All helper methods and patterns
-- [Temurin.java](src/main/java/dev/jbang/jdkdb/scraper/vendors/Temurin.java) - Adoptium Marketplace example
-- [SemeruBaseScraper.java](src/main/java/dev/jbang/jdkdb/scraper/vendors/SemeruBaseScraper.java) - GitHub Release + repo discovery
-- [BaseScraperTest.java](src/test/java/dev/jbang/jdkdb/scraper/BaseScraperTest.java) - OS/arch normalization reference
+- [BaseScraper.java](../src/main/java/dev/jbang/jdkdb/scraper/BaseScraper.java) - All helper methods and patterns
+- [Temurin.java](../src/main/java/dev/jbang/jdkdb/scraper/distros/Temurin.java) - Adoptium Marketplace example
+- [SemeruBaseScraper.java](../src/main/java/dev/jbang/jdkdb/scraper/distros/SemeruBaseScraper.java) - GitHub Release + repo discovery
+- [BaseScraperTest.java](../src/test/java/dev/jbang/jdkdb/scraper/BaseScraperTest.java) - OS/arch normalization reference

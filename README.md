@@ -1,16 +1,16 @@
 # jdkdb-scraper - JDK Metadata DB Scraper
 
-A Java-based application for scraping JDK metadata from various vendors. This project replaces the original bash scripts with a robust, parallel Java implementation.
+A Java-based application for scraping JDK metadata from various distros. This project replaces the original bash scripts with a robust, parallel Java implementation.
 
 This project is based on [Joschi's Java Metadata project](https://github.com/joschi/java-metadata) and incorporates ideas from the [Foojay's Disco API project](https://github.com/foojayio/discoapi).
 
 ## Features
 
-- **Parallel Execution**: Run multiple vendor scrapers concurrently for improved performance
-- **Selective Scraping**: Run all scrapers or select specific vendors
+- **Parallel Execution**: Run multiple distro scrapers concurrently for improved performance
+- **Selective Scraping**: Run all scrapers or select specific distros
 - **Central Reporting**: Thread-safe progress reporting with real-time status updates
-- **Extensible Architecture**: Easy to add new vendor scrapers
-- **Generic Base Classes**: Reduces code duplication for similar vendors (e.g., Semeru versions, Trava versions)
+- **Extensible Architecture**: Easy to add new distro scrapers
+- **Generic Base Classes**: Reduces code duplication for similar distros (e.g., Semeru versions, Trava versions)
 - **Comprehensive Logging**: SLF4J/Logback integration with both console and file output
 - **Multi-command CLI**: Separate commands for updating metadata, generating indexes, downloading checksums, and cleaning up old releases
 - **Archive Extraction**: Automatically extracts release information from JDK archives
@@ -50,17 +50,17 @@ jbang scraper@jbangdev/jdkdb-scraper update --include tar_gz,zip
 # Update: Exclude specific file types
 jbang scraper@jbangdev/jdkdb-scraper update --exclude msi,exe
 
-# Index: Generate all.json files for all vendors
+# Index: Generate all.json files for all distros
 jbang scraper@jbangdev/jdkdb-scraper index
 
-# Index: Regenerate all.json for specific vendors
-jbang scraper@jbangdev/jdkdb-scraper index --vendors temurin,zulu
+# Index: Regenerate all.json for specific distros
+jbang scraper@jbangdev/jdkdb-scraper index --distros temurin,zulu
 
-# Download: Download and compute missing checksums for all vendors
+# Download: Download and compute missing checksums for all distros
 jbang scraper@jbangdev/jdkdb-scraper download
 
-# Download: Process specific vendors
-jbang scraper@jbangdev/jdkdb-scraper download --vendors microsoft
+# Download: Process specific distros
+jbang scraper@jbangdev/jdkdb-scraper download --distros microsoft
 
 # Download: Randomize download order
 jbang scraper@jbangdev/jdkdb-scraper download --randomize
@@ -88,8 +88,8 @@ jbang scraper@jbangdev/jdkdb-scraper clean --prune-checksums
 
 The application provides four main commands:
 
-- **`update`** - Scrape JDK metadata from various vendors and update metadata files
-- **`index`** - Generate aggregated all.json files for vendor directories
+- **`update`** - Scrape JDK metadata from various distros and update metadata files
+- **`index`** - Generate aggregated all.json files for distro directories
 - **`download`** - Download and compute checksums for metadata files with missing checksums
 - **`clean`** - Clean up metadata by removing incomplete files and pruning old EA releases
 
@@ -114,7 +114,7 @@ The application checks for tokens in this order: environment variable first, the
 
 ### Typical usage
 
-- You can simply run `update` in the root of the data repository (where the `docs/` folder is located) and let it do its work. It will scrape all the vendor sites, obtain the latest metadata, download the jdk distributions, calculate checksums and update all the indices. Nothing else to be done. But this can take some time.
+- You can simply run `update` in the root of the data repository (where the `metadata/` folder is located) and let it do its work. It will scrape all the distro sites, obtain the latest metadata, download the jdk distributions, calculate checksums and update all the indices. Nothing else to be done. But this can take some time.
 - You can split the work into two steps:
 
 1. You run `update --no-download` which will do the scraping and will make sure that we have all the latest distributions cataloged. It will write all the metadata but with _missing_ checksums (and release info).
@@ -130,12 +130,12 @@ And finally the `clean` command can be used to get rid of any invalid or orphane
 
 ```bash
 Usage: jdkdb-scraper [-hV] [COMMAND]
-Scrapes JDK metadata from various vendors and generates index files
+Scrapes JDK metadata from various distros and generates index files
 -h, --help      Show this help message and exit.
 -V, --version   Print version information and exit.
 Commands:
-update    Scrape JDK metadata from various vendors and update metadata files
-index     Generate all.json files for vendor directories by aggregating
+update    Scrape JDK metadata from various distros and update metadata files
+index     Generate all.json files for distro directories by aggregating
 			individual metadata files
 download  Download and compute checksums for metadata files that have missing
 			checksum values
@@ -156,11 +156,11 @@ Usage: jdkdb-scraper update [-hlV] [--from-start] [--no-download] [--no-index]
 							[--skip-ea=<skipEa>] [-t=<maxThreads>]
 							[-s=<scraperIds>[,<scraperIds>...]]...
 
-Scrape JDK metadata from various vendors and update metadata files
+Scrape JDK metadata from various distros and update metadata files
 
 Options:
 -c, --checksum-dir=<checksumDir>
-					Directory to store checksum files (default: docs/checksums)
+					Directory to store checksum files (default: db/checksums)
 	--exclude=<excludeFileTypes>[,<excludeFileTypes>...]
 					Exclude these file types (e.g., msi,exe). These types will
 					not be downloaded.
@@ -178,7 +178,7 @@ Options:
 					Maximum total number of downloads to accept before
 					stopping (default: unlimited)
 -m, --metadata-dir=<metadataDir>
-					Directory to store metadata files (default: docs/metadata)
+					Directory to store metadata files (default: db/metadata)
 	--max-failures=<maxFailures>
 					Maximum number of allowed failures per scraper before
 					aborting that scraper (default: 10)
@@ -202,9 +202,9 @@ Options:
 
 ```bash
 Usage: jdkdb-scraper index [-hV] [--allow-incomplete] [-m=<metadataDir>]
-						[-v=<vendorNames>[,<vendorNames>...]]...
+						[-v=<distroNames>[,<distroNames>...]]...
 
-Generate all.json files for vendor directories by aggregating individual
+Generate all.json files for distro directories by aggregating individual
 metadata files
 
 Options:
@@ -214,10 +214,10 @@ Options:
 -h, --help         Show this help message and exit.
 -m, --metadata-dir=<metadataDir>
 					Directory containing metadata files (default:
-					docs/metadata)
--v, --vendors=<vendorNames>[,<vendorNames>...]
-					Comma-separated list of vendor names to regenerate
-					all.json for (if not specified, all vendors are
+					db/metadata)
+-v, --distros=<distroNames>[,<distroNames>...]
+					Comma-separated list of distro names to regenerate
+					all.json for (if not specified, all distros are
 					processed)
 -V, --version      Print version information and exit.
 ```
@@ -232,14 +232,14 @@ Usage: jdkdb-scraper download [-hV] [--randomize] [--stats-only]
 							[--limit-progress=<limitProgress>]
 							[--limit-total=<limitTotal>]
 							[-m=<metadataDir>] [-t=<maxThreads>]
-							[-v=<vendorNames>[,<vendorNames>...]]...
+							[-v=<distroNames>[,<distroNames>...]]...
 
 Download and compute checksums for metadata files that have missing checksum
 values
 
 Options:
 -c, --checksum-dir=<checksumDir>
-					Directory to store checksum files (default: docs/checksums)
+					Directory to store checksum files (default: db/checksums)
 	--exclude=<excludeFileTypes>[,<excludeFileTypes>...]
 					Exclude these file types (e.g., msi,exe). These types will
 					not be downloaded.
@@ -255,7 +255,7 @@ Options:
 					stopping (default: unlimited)
 -m, --metadata-dir=<metadataDir>
 					Directory containing metadata files (default:
-					docs/metadata)
+					db/metadata)
 	--randomize    Randomize the order of downloads instead of processing
 					files in order
 	--stats-only   Skip downloading files and only show statistics (for
@@ -263,9 +263,9 @@ Options:
 -t, --threads=<maxThreads>
 					Maximum number of parallel download threads (default:
 					number of processors)
--v, --vendors=<vendorNames>[,<vendorNames>...]
-					Comma-separated list of vendor names to process (if not
-					specified, all vendors are processed)
+-v, --distros=<distroNames>[,<distroNames>...]
+					Comma-separated list of distro names to process (if not
+					specified, all distros are processed)
 -V, --version      Print version information and exit.
 ```
 
@@ -282,12 +282,12 @@ Clean up metadata by removing incomplete files and pruning old EA releases
 Options:
 -c, --checksum-dir=<checksumDir>
 					Directory containing checksum files (default:
-					docs/checksums)
+					db/checksums)
 	--dry-run      Show statistics without actually deleting files
 -h, --help         Show this help message and exit.
 -m, --metadata-dir=<metadataDir>
 					Directory containing metadata files (default:
-					docs/metadata)
+					db/metadata)
 	--prune-checksums
 					Remove orphaned checksum files that don't have a matching
 					metadata file
@@ -339,7 +339,7 @@ java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar update
 ### Core Components
 
 - **Main**: Entry point with Picocli command dispatcher
-- **UpdateCommand**: Scrapes JDK metadata from vendors and updates files
+- **UpdateCommand**: Scrapes JDK metadata from distros and updates files
 - **IndexCommand**: Aggregates individual metadata files into all.json files
 - **DownloadCommand**: Downloads JDK files to compute missing checksums
 - **CleanCommand**: Cleans up incomplete metadata and prunes old EA releases
@@ -353,13 +353,13 @@ java -jar build/libs/jdkdb-scraper-1.0.0-SNAPSHOT-standalone.jar update
 - **Scraper.Discovery**: Service provider interface for scraper registration via Java ServiceLoader
 - **DownloadManager**: Interface for downloading JDK files (with default and no-op implementations)
 
-### Vendor Scrapers
+### Distro Scrapers
 
-The project includes **35 vendor scrapers**, supporting all major JDK distributions:
+The project includes **35 distro scrapers**, supporting all major JDK distributions:
 
-#### Scraper IDs and Vendors
+#### Scraper IDs and Distros
 
-| Scraper ID | Vendor | Notes |
+| Scraper ID | Distro | Notes |
 |------------|--------|-------|
 | `adoptopenjdk` | AdoptOpenJDK | Legacy |
 | `bisheng` | Bisheng | Huawei |
@@ -413,8 +413,8 @@ Example:
 ```java
 package dev.jbang.jdkdb.scraper.impl;
 
-public class NewVendor extends BaseScraper {
-	public NewVendor(ScraperConfig config) {
+public class NewDistro extends BaseScraper {
+	public NewDistro(ScraperConfig config) {
 		super(config);
 	}
 
@@ -458,17 +458,17 @@ public class NewVendor extends BaseScraper {
 	public static class Discovery implements Scraper.Discovery {
 		@Override
 		public String name() {
-			return "new-vendor";
+			return "new-distro";
 		}
 
 		@Override
-		public String vendor() {
-			return "New Vendor";
+		public String distro() {
+			return "New Distro";
 		}
 
 		@Override
 		public Scraper create(ScraperConfig config) {
-			return new NewVendor(config);
+			return new NewDistro(config);
 		}
 	}
 }
@@ -508,7 +508,7 @@ src/
 │   │       │   ├── PaginatedIterator.java        # GitHub pagination helper
 │   │       │   ├── InterruptedProgressException.java # Exception types
 │   │       │   ├── TooManyFailuresException.java
-│   │       │   └── impl/                         # Vendor scraper implementations
+│   │       │   └── impl/                         # Distro scraper implementations
 │   │       │       ├── Temurin.java
 │   │       │       ├── Zulu.java
 │   │       │       ├── ZuluPrime.java
@@ -553,7 +553,7 @@ src/
 │   │           ├── HtmlUtils.java                # HTML parsing utilities
 │   │           ├── HttpUtils.java                # HTTP operations
 │   │           ├── MetadataUtils.java            # Metadata validation/utilities
-│   │           ├── VendorLoggerDiscriminator.java # Logging configuration
+│   │           ├── DistroLoggerDiscriminator.java # Logging configuration
 │   │           └── VersionComparator.java        # Version comparison
 │   └── resources/
 │       ├── logback.xml                           # Logging configuration
@@ -585,25 +585,25 @@ src/
 
 ## Output
 
-The scrapers generate structured output in the `docs/` directory:
+The scrapers generate structured output in the `metadata/` directory:
 
-### Metadata Files (`docs/metadata/`)
+### Metadata Files (`db/metadata`)
 
 1. **Top-level aggregated indexes**:
-- `all.json` - All JDK releases across all vendors
+- `all.json` - All JDK releases across all distros
 - `ga.json` - General Availability (stable) releases only
 - `ea.json` - Early Access releases only
-- `latest.json` - Latest releases per vendor
+- `latest.json` - Latest releases per distro
 2. **Organized by release type** (`all/`, `ea/`, `ga/`):
 - OS-specific files: `linux.json`, `macosx.json`, `windows.json`, `aix.json`, `solaris.json`
 - Architecture-specific subdirectories with further breakdowns
-3. **Vendor-specific metadata** (`vendor/<vendor-name>/`):
+3. **Distro-specific metadata** (`<distro-name>/`):
 - Individual `.json` files for each JDK release
-- `all.json` file combining all releases for that vendor
+- `all.json` file combining all releases for that distro
 
-### Checksum Files (`docs/checksums/`)
+### Checksum Files (`db/checksums/`)
 
-- Stored in vendor-specific directories: `docs/checksums/<vendor-name>/`
+- Stored in distro-specific directories: `db/checksums/<distro-name>/`
 - Contains MD5, SHA1, SHA256, and SHA512 checksum files
 - Organized to match the corresponding metadata files
 

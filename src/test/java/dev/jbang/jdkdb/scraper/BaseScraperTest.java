@@ -221,7 +221,7 @@ class BaseScraperTest {
 				10,
 				0,
 				Duration.ofDays(180),
-				md -> downloadManager.submit(md, "test-vendor", dl));
+				md -> downloadManager.submit(md, "test-distro", dl));
 		return new DummyScraper(config);
 	}
 }

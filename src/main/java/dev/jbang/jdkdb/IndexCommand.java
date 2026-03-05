@@ -11,26 +11,26 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-/** Index command to generate all.json files for vendor directories */
+/** Index command to generate all.json files for distro directories */
 @Command(
 		name = "index",
-		description = "Generate all.json files for vendor directories by aggregating individual metadata files",
+		description = "Generate all.json files for distro directories by aggregating individual metadata files",
 		mixinStandardHelpOptions = true)
 public class IndexCommand implements Callable<Integer> {
 	private static final Logger logger = LoggerFactory.getLogger("command");
 
 	@Option(
 			names = {"-m", "--metadata-dir"},
-			description = "Directory containing metadata files (default: docs/metadata)",
-			defaultValue = "docs/metadata")
+			description = "Directory containing metadata files (default: db/metadata)",
+			defaultValue = "db/metadata")
 	private Path metadataDir;
 
 	@Option(
-			names = {"-v", "--vendors"},
+			names = {"-v", "--distros"},
 			description =
-					"Comma-separated list of vendor names to regenerate all.json for (if not specified, all vendors are processed)",
+					"Comma-separated list of distro names to regenerate all.json for (if not specified, all distros are processed)",
 			split = ",")
-	private List<String> vendorNames;
+	private List<String> distroNames;
 
 	@Option(
 			names = {"--allow-incomplete"},
@@ -44,59 +44,59 @@ public class IndexCommand implements Callable<Integer> {
 		logger.info("Metadata directory: {}", metadataDir.toAbsolutePath());
 		logger.info("");
 
-		Path vendorDir = metadataDir.resolve("vendor");
-		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
-			logger.error("Error: Vendor directory not found: {}", vendorDir.toAbsolutePath());
+		Path distroDir = metadataDir;
+		if (!Files.exists(distroDir) || !Files.isDirectory(distroDir)) {
+			logger.error("Error: Distro directory not found: {}", distroDir.toAbsolutePath());
 			return 1;
 		}
 
-		// Determine which vendors to process
-		List<String> vendorsToProcess;
-		if (vendorNames == null || vendorNames.isEmpty()) {
-			// Process all vendors
-			try (Stream<Path> paths = Files.list(vendorDir)) {
-				vendorsToProcess = paths.filter(Files::isDirectory)
+		// Determine which distros to process
+		List<String> distrosToProcess;
+		if (distroNames == null || distroNames.isEmpty()) {
+			// Process all distros
+			try (Stream<Path> paths = Files.list(distroDir)) {
+				distrosToProcess = paths.filter(Files::isDirectory)
 						.map(Path::getFileName)
 						.map(Path::toString)
 						.sorted()
 						.toList();
 			}
-			logger.info("Processing all vendors...");
+			logger.info("Processing all distros...");
 		} else {
-			vendorsToProcess = vendorNames;
-			logger.info("Processing specified vendors: {}", String.join(", ", vendorNames));
+			distrosToProcess = distroNames;
+			logger.info("Processing specified distros: {}", String.join(", ", distroNames));
 		}
 		logger.info("");
 
-		int result = generateIndices(metadataDir, vendorsToProcess, allowIncomplete);
+		int result = generateIndices(metadataDir, distrosToProcess, allowIncomplete);
 
 		return result;
 	}
 
-	public static Integer generateIndices(Path metadataDir, List<String> vendorsToProcess, boolean allowIncomplete) {
+	public static Integer generateIndices(Path metadataDir, List<String> distrosToProcess, boolean allowIncomplete) {
 		int successful = 0;
 		int failed = 0;
 		int indexFilesCreated = 0;
 
-		Path vendorDir = metadataDir.resolve("vendor");
-		if (!Files.exists(vendorDir) || !Files.isDirectory(vendorDir)) {
-			logger.error("Error: Vendor directory not found: {}", vendorDir.toAbsolutePath());
+		Path distroDir = metadataDir;
+		if (!Files.exists(distroDir) || !Files.isDirectory(distroDir)) {
+			logger.error("Error: Distro directory not found: {}", distroDir.toAbsolutePath());
 			return 1;
 		}
 
-		for (String vendorName : vendorsToProcess) {
-			Path vendorPath = vendorDir.resolve(vendorName);
-			if (!Files.exists(vendorPath) || !Files.isDirectory(vendorPath)) {
-				logger.warn("Warning: Vendor directory not found: {}", vendorName);
+		for (String distroName : distrosToProcess) {
+			Path distroPath = distroDir.resolve(distroName);
+			if (!Files.exists(distroPath) || !Files.isDirectory(distroPath)) {
+				logger.warn("Warning: Distro directory not found: {}", distroName);
 				failed++;
 				continue;
 			}
 
 			try {
-				MetadataUtils.generateAllJsonFromDirectory(vendorPath, allowIncomplete);
+				MetadataUtils.generateAllJsonFromDirectory(distroPath, allowIncomplete);
 				successful++;
 			} catch (Exception e) {
-				logger.error("Failed for vendor {}: {}", vendorName, e.getMessage(), e);
+				logger.error("Failed for distro {}: {}", distroName, e.getMessage(), e);
 				failed++;
 			}
 		}
@@ -112,7 +112,7 @@ public class IndexCommand implements Callable<Integer> {
 		logger.info("Index Generation Summary");
 		logger.info("========================");
 		logger.info("Index files created: {}", indexFilesCreated);
-		logger.info("Total vendors: {}", vendorsToProcess.size());
+		logger.info("Total distros: {}", distrosToProcess.size());
 		logger.info("Successful: {}", successful);
 		logger.info("Failed: {}", failed);
 

@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 
-/** Base class for all vendor scrapers */
+/** Base class for all distro scrapers */
 public abstract class BaseScraper implements Scraper {
 	protected final Path metadataDir;
 	protected final Path checksumDir;
@@ -113,20 +113,20 @@ public abstract class BaseScraper implements Scraper {
 
 	protected void downloadAndProcess(JdkMetadata metadata) {
 		// Skip if this is a skipped placeholder (no filename set)
-		String filename = metadata.filename();
-		if (metadata.filename() == null || metadata.url() == null) {
+		String filename = metadata.getFilename();
+		if (metadata.getFilename() == null || metadata.getUrl() == null) {
 			skip(metadata.metadataFile());
 			return;
 		}
 
 		// Skip if already processed (has checksums)
-		if (metadata.md5() != null) {
+		if (metadata.getMd5() != null) {
 			return;
 		}
 
 		// Submit to download manager for parallel download
 		try {
-			String url = metadata.url();
+			String url = metadata.getUrl();
 			if (url != null) {
 				// We save the metadata file before downloading, meaning the checksums
 				// will be missing until the download completes!
@@ -167,7 +167,7 @@ public abstract class BaseScraper implements Scraper {
 	protected void saveMetadataFile(JdkMetadata metadata) throws IOException {
 		if (!MetadataUtils.isValidMetadata(metadata)) {
 			throw new IllegalStateException("Metadata is missing required fields or has invalid values for "
-					+ metadata.vendor() + " - " + metadata.filename());
+					+ metadata.getDistro() + " - " + metadata.getFilename());
 		}
 		Path metadataFile = metadataDir.resolve(metadata.metadataFile());
 		MetadataUtils.saveMetadataFile(metadataFile, metadata);

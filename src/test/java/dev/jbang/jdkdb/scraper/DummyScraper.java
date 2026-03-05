@@ -48,6 +48,11 @@ public class DummyScraper extends BaseScraper {
 		}
 
 		@Override
+		public String distro() {
+			return "test-distro";
+		}
+
+		@Override
 		public String vendor() {
 			return "test-vendor";
 		}

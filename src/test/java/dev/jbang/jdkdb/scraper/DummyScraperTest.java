@@ -40,7 +40,7 @@ class DummyScraperTest {
 				10, // maxFailureCount
 				0, // limitProgress (unlimited)
 				Duration.ofDays(180),
-				md -> downloadManager.submit(md, "test-vendor", dl));
+				md -> downloadManager.submit(md, "test-distro", dl));
 	}
 
 	@Test
@@ -64,16 +64,17 @@ class DummyScraperTest {
 		List<JdkMetadata> metadata = new ArrayList<>();
 		for (int i = 0; i < 3; i++) {
 			JdkMetadata meta = JdkMetadata.create()
-					.vendor("test-vendor")
-					.releaseType("ga")
-					.version("17.0." + i)
-					.javaVersion("17")
-					.os("linux")
-					.arch("x86_64")
-					.fileType("tar.gz")
-					.imageType("jdk")
-					.url("https://example.com/jdk-" + i + ".tar.gz")
-					.filename("test-jdk-" + i + ".tar.gz");
+					.setDistro("test-distro")
+					.setVendor("test-vendor")
+					.setReleaseType("ga")
+					.setVersion("17.0." + i)
+					.setJavaVersion("17")
+					.setOs("linux")
+					.setArchitecture("x86_64")
+					.setFileType("tar.gz")
+					.setImageType("jdk")
+					.setUrl("https://example.com/jdk-" + i + ".tar.gz")
+					.setFilename("test-jdk-" + i + ".tar.gz");
 			// Don't set download() - these should be submitted to download manager
 			metadata.add(meta);
 		}
@@ -87,8 +88,8 @@ class DummyScraperTest {
 		assertThat(downloadManager.getSubmittedCount()).isEqualTo(3);
 		assertThat(downloadManager.getSubmittedDownloads())
 				.hasSize(3)
-				.allMatch(d -> d.metadata().url() != null)
-				.allMatch(d -> d.metadata().filename() != null);
+				.allMatch(d -> d.metadata().getUrl() != null)
+				.allMatch(d -> d.metadata().getFilename() != null);
 	}
 
 	@Test
@@ -168,7 +169,7 @@ class DummyScraperTest {
 				10,
 				2, // limit to 2 items
 				Duration.ofDays(180),
-				md -> downloadManager.submit(md, "test-vendor", dl));
+				md -> downloadManager.submit(md, "test-distro", dl));
 		List<JdkMetadata> metadata = createTestMetadata(5);
 
 		// Create a scraper that tracks progress
@@ -195,7 +196,7 @@ class DummyScraperTest {
 				2, // max 2 failures
 				0,
 				Duration.ofDays(180),
-				md -> downloadManager.submit(md, "test-vendor", dl));
+				md -> downloadManager.submit(md, "test-distro", dl));
 
 		DummyScraper scraper = new DummyScraper(limitedConfig) {
 			@Override
@@ -236,7 +237,7 @@ class DummyScraperTest {
 				10,
 				0,
 				Duration.ofDays(180),
-				md -> downloadManager.submit(md, "test-vendor", dl));
+				md -> downloadManager.submit(md, "test-distro", dl));
 
 		DummyScraper scraper = new DummyScraper(configNoFromStart);
 
@@ -262,7 +263,7 @@ class DummyScraperTest {
 				10,
 				0,
 				Duration.ofDays(180),
-				md -> downloadManager.submit(md, "test-vendor", dl));
+				md -> downloadManager.submit(md, "test-distro", dl));
 
 		DummyScraper scraper = new DummyScraper(configFromStart);
 
@@ -280,16 +281,17 @@ class DummyScraperTest {
 			// DownloadResult download =
 			//		new DownloadResult("md5-" + i, "sha1-" + i, "sha256-" + i, "sha512-" + i, 100_000_000L + i);
 			JdkMetadata metadata = JdkMetadata.create()
-					.vendor("test-vendor")
-					.releaseType("ga")
-					.version("17.0." + i)
-					.javaVersion("17")
-					.os("linux")
-					.arch("x86_64")
-					.fileType("tar.gz")
-					.imageType("jdk")
-					.url("https://example.com/jdk-" + i + ".tar.gz")
-					.filename("test-jdk-" + i + ".tar.gz");
+					.setDistro("test-distro")
+					.setVendor("test-vendor")
+					.setReleaseType("ga")
+					.setVersion("17.0." + i)
+					.setJavaVersion("17")
+					.setOs("linux")
+					.setArchitecture("x86_64")
+					.setFileType("tar.gz")
+					.setImageType("jdk")
+					.setUrl("https://example.com/jdk-" + i + ".tar.gz")
+					.setFilename("test-jdk-" + i + ".tar.gz");
 			// .download(download);
 			result.add(metadata);
 		}

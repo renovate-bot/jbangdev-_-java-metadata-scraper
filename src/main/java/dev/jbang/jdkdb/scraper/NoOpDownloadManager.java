@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 public class NoOpDownloadManager implements DownloadManager {
 	private final AtomicInteger completedDownloads = new AtomicInteger(0);
 	private final Set<JdkMetadata.FileType> fileTypeFilter;
-	private final ConcurrentHashMap<String, AtomicInteger> submittedPerVendor = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, AtomicInteger> submittedPerDistro = new ConcurrentHashMap<>();
 
 	private static final Logger logger = LoggerFactory.getLogger(NoOpDownloadManager.class);
 
@@ -48,39 +48,39 @@ public class NoOpDownloadManager implements DownloadManager {
 	 * Submit a metadata item for download. This implementation logs and ignores the request.
 	 *
 	 * @param metadata The JDK metadata containing the URL to download
-	 * @param vendor The vendor name
+	 * @param distro The distro name
 	 * @param downloadLogger The logger for progress reporting
 	 */
 	@Override
-	public void submit(JdkMetadata metadata, String vendor, Logger downloadLogger) {
-		if (metadata.url() != null && metadata.filename() != null) {
+	public void submit(JdkMetadata metadata, String distro, Logger downloadLogger) {
+		if (metadata.getUrl() != null && metadata.getFilename() != null) {
 			// Check file type filter
-			if (fileTypeFilter != null && metadata.fileType() != null) {
+			if (fileTypeFilter != null && metadata.getFileType() != null) {
 				try {
 					if (!fileTypeFilter.contains(metadata.fileTypeEnum())) {
 						logger.debug(
 								"Ignoring download submission for {} [{}] - file type {} not in filter",
-								metadata.filename(),
-								vendor,
-								metadata.fileType());
+								metadata.getFilename(),
+								distro,
+								metadata.getFileType());
 						return;
 					}
 				} catch (IllegalArgumentException e) {
 					logger.debug(
 							"Ignoring download submission for {} [{}] - unknown file type: {}",
-							metadata.filename(),
-							vendor,
-							metadata.fileType());
+							metadata.getFilename(),
+							distro,
+							metadata.getFileType());
 					return;
 				}
 			}
 			completedDownloads.incrementAndGet();
-			submittedPerVendor
-					.computeIfAbsent(vendor, k -> new AtomicInteger(0))
+			submittedPerDistro
+					.computeIfAbsent(distro, k -> new AtomicInteger(0))
 					.incrementAndGet();
-			logger.debug("Ignoring download request for: {} (no-download option specified)", metadata.filename());
+			logger.debug("Ignoring download request for: {} (no-download option specified)", metadata.getFilename());
 			downloadLogger.debug(
-					"Ignoring download request for: {} (no-download option specified)", metadata.filename());
+					"Ignoring download request for: {} (no-download option specified)", metadata.getFilename());
 		}
 	}
 
@@ -139,18 +139,18 @@ public class NoOpDownloadManager implements DownloadManager {
 	}
 
 	/**
-	 * Get per-vendor download statistics.
+	 * Get per-distro download statistics.
 	 *
-	 * @return Map of vendor name to statistics
+	 * @return Map of distro name to statistics
 	 */
 	@Override
-	public Map<String, VendorStats> getVendorStats() {
-		Map<String, VendorStats> stats = new HashMap<>();
-		for (Map.Entry<String, AtomicInteger> entry : submittedPerVendor.entrySet()) {
-			String vendor = entry.getKey();
+	public Map<String, DistroStats> getDistroStats() {
+		Map<String, DistroStats> stats = new HashMap<>();
+		for (Map.Entry<String, AtomicInteger> entry : submittedPerDistro.entrySet()) {
+			String distro = entry.getKey();
 			int submitted = entry.getValue().get();
 			// In NoOp mode, all submitted items are considered "completed" (skipped)
-			stats.put(vendor, new VendorStats(vendor, submitted, submitted, 0));
+			stats.put(distro, new DistroStats(distro, submitted, submitted, 0));
 		}
 		return stats;
 	}

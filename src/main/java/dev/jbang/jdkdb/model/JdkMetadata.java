@@ -3,40 +3,20 @@ package dev.jbang.jdkdb.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import dev.jbang.jdkdb.scraper.DownloadResult;
+import dev.jbang.jdkdb.util.MetadataUtils;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Represents JDK metadata for a specific release */
-@JsonPropertyOrder({
-	"vendor",
-	"filename",
-	"release_type",
-	"version",
-	"java_version",
-	"jvm_impl",
-	"os",
-	"architecture",
-	"file_type",
-	"image_type",
-	"features",
-	"url",
-	"md5",
-	"md5_file",
-	"sha1",
-	"sha1_file",
-	"sha256",
-	"sha256_file",
-	"sha512",
-	"sha512_file",
-	"size",
-	"release_info"
-})
 public class JdkMetadata {
+	private static final Logger logger = LoggerFactory.getLogger(JdkMetadata.class);
+
 	public enum ReleaseType {
 		ga,
 		ea
@@ -93,29 +73,20 @@ public class JdkMetadata {
 		zip
 	}
 
-	@JsonProperty("vendor")
-	private String vendor;
+	public enum DistroChecksumType {
+		md5,
+		sha1,
+		sha256,
+		sha512
+	}
 
-	@JsonProperty("filename")
-	private String filename;
-
-	@JsonProperty("release_type")
-	private String releaseType;
-
-	@JsonProperty("version")
-	private String version;
-
-	@JsonProperty("java_version")
-	private String javaVersion;
-
-	@JsonProperty("jvm_impl")
-	private String jvmImpl;
-
-	@JsonProperty("os")
-	private String os;
-
-	@JsonProperty("architecture")
 	private String architecture;
+
+	private String distro;
+
+	private List<String> features;
+
+	private String filename;
 
 	@JsonProperty("file_type")
 	private String fileType;
@@ -123,38 +94,44 @@ public class JdkMetadata {
 	@JsonProperty("image_type")
 	private String imageType;
 
-	@JsonProperty("features")
-	private List<String> features;
+	@JsonProperty("java_version")
+	private String javaVersion;
 
-	@JsonProperty("url")
+	@JsonProperty("jvm_impl")
+	private String jvmImpl;
+
+	private String os;
+
+	@JsonProperty("release_type")
+	private String releaseType;
+
 	private String url;
 
-	@JsonProperty("md5")
+	private String vendor;
+
+	private String version;
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private String checksum;
+
+	@JsonProperty("checksum_type")
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private String checksumType;
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private String md5;
 
-	@JsonProperty("md5_file")
-	private String md5File;
-
-	@JsonProperty("sha1")
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private String sha1;
 
-	@JsonProperty("sha1_file")
-	private String sha1File;
-
-	@JsonProperty("sha256")
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private String sha256;
 
-	@JsonProperty("sha256_file")
-	private String sha256File;
-
-	@JsonProperty("sha512")
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private String sha512;
 
-	@JsonProperty("sha512_file")
-	private String sha512File;
-
-	@JsonProperty("size")
-	private long size;
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private Long size;
 
 	@JsonProperty("release_info")
 	@JsonInclude(JsonInclude.Include.NON_NULL)
@@ -171,26 +148,34 @@ public class JdkMetadata {
 		features = new ArrayList<>();
 	}
 
-	// Getters and Setters
-	public String vendor() {
+	public String getVendor() {
 		return vendor;
 	}
 
-	public JdkMetadata vendor(String vendor) {
+	public JdkMetadata setVendor(String vendor) {
 		this.vendor = vendor;
 		return this;
 	}
 
-	public String filename() {
+	public String getDistro() {
+		return distro;
+	}
+
+	public JdkMetadata setDistro(String distro) {
+		this.distro = distro;
+		return this;
+	}
+
+	public String getFilename() {
 		return filename;
 	}
 
-	public JdkMetadata filename(String filename) {
+	public JdkMetadata setFilename(String filename) {
 		this.filename = filename;
 		return this;
 	}
 
-	public String releaseType() {
+	public String getReleaseType() {
 		return releaseType;
 	}
 
@@ -198,30 +183,30 @@ public class JdkMetadata {
 		return ReleaseType.valueOf(releaseType);
 	}
 
-	public JdkMetadata releaseType(String releaseType) {
+	public JdkMetadata setReleaseType(String releaseType) {
 		this.releaseType = releaseType;
 		return this;
 	}
 
-	public String version() {
+	public String getVersion() {
 		return version;
 	}
 
-	public JdkMetadata version(String version) {
+	public JdkMetadata setVersion(String version) {
 		this.version = version;
 		return this;
 	}
 
-	public String javaVersion() {
+	public String getJavaVersion() {
 		return javaVersion;
 	}
 
-	public JdkMetadata javaVersion(String javaVersion) {
+	public JdkMetadata setJavaVersion(String javaVersion) {
 		this.javaVersion = javaVersion;
 		return this;
 	}
 
-	public String jvmImpl() {
+	public String getJvmImpl() {
 		return jvmImpl;
 	}
 
@@ -229,12 +214,12 @@ public class JdkMetadata {
 		return JdkMetadata.JvmImpl.valueOf(jvmImpl);
 	}
 
-	public JdkMetadata jvmImpl(String jvmImpl) {
+	public JdkMetadata setJvmImpl(String jvmImpl) {
 		this.jvmImpl = jvmImpl;
 		return this;
 	}
 
-	public String os() {
+	public String getOs() {
 		return os;
 	}
 
@@ -242,12 +227,12 @@ public class JdkMetadata {
 		return JdkMetadata.Os.valueOf(os);
 	}
 
-	public JdkMetadata os(String os) {
+	public JdkMetadata setOs(String os) {
 		this.os = os;
 		return this;
 	}
 
-	public String arch() {
+	public String getArchitecture() {
 		return architecture;
 	}
 
@@ -255,12 +240,12 @@ public class JdkMetadata {
 		return JdkMetadata.Arch.valueOf(architecture.replace("-", "_"));
 	}
 
-	public JdkMetadata arch(String architecture) {
+	public JdkMetadata setArchitecture(String architecture) {
 		this.architecture = architecture;
 		return this;
 	}
 
-	public String fileType() {
+	public String getFileType() {
 		return fileType;
 	}
 
@@ -268,12 +253,12 @@ public class JdkMetadata {
 		return JdkMetadata.FileType.valueOf(fileType.replace(".", "_"));
 	}
 
-	public JdkMetadata fileType(String fileType) {
+	public JdkMetadata setFileType(String fileType) {
 		this.fileType = fileType;
 		return this;
 	}
 
-	public String imageType() {
+	public String getImageType() {
 		return imageType;
 	}
 
@@ -281,70 +266,87 @@ public class JdkMetadata {
 		return JdkMetadata.ImageType.valueOf(imageType);
 	}
 
-	public JdkMetadata imageType(String imageType) {
+	public JdkMetadata setImageType(String imageType) {
 		this.imageType = imageType;
 		return this;
 	}
 
-	public List<String> features() {
+	public List<String> getFeatures() {
 		return features;
 	}
 
-	public JdkMetadata features(List<String> features) {
+	public JdkMetadata setFeatures(List<String> features) {
 		this.features = features;
 		return this;
 	}
 
-	public String url() {
+	public String getUrl() {
 		return url;
 	}
 
-	public JdkMetadata url(String url) {
+	public JdkMetadata setUrl(String url) {
 		this.url = url;
 		return this;
 	}
 
-	public String md5() {
+	public String getChecksum() {
+		return checksum;
+	}
+
+	public String getChecksumType() {
+		return checksumType;
+	}
+
+	public String getMd5() {
 		return md5;
 	}
 
-	public String md5File() {
-		return md5File;
+	public JdkMetadata setMd5(String md5) {
+		this.md5 = md5;
+		return this;
 	}
 
-	public String sha1() {
+	public String getSha1() {
 		return sha1;
 	}
 
-	public String sha1File() {
-		return sha1File;
+	public JdkMetadata setSha1(String sha1) {
+		this.sha1 = sha1;
+		return this;
 	}
 
-	public String sha256() {
+	public String getSha256() {
 		return sha256;
 	}
 
-	public String sha256File() {
-		return sha256File;
+	public JdkMetadata setSha256(String sha256) {
+		this.sha256 = sha256;
+		return this;
 	}
 
-	public String sha512() {
+	public String getSha512() {
 		return sha512;
 	}
 
-	public String sha512File() {
-		return sha512File;
+	public JdkMetadata setSha512(String sha512) {
+		this.sha512 = sha512;
+		return this;
 	}
 
-	public long size() {
-		return size;
+	public long getSize() {
+		return size == null ? 0 : size;
 	}
 
-	public Map<String, String> releaseInfo() {
+	public JdkMetadata setSize(long size) {
+		this.size = size;
+		return this;
+	}
+
+	public Map<String, String> getReleaseInfo() {
 		return releaseInfo;
 	}
 
-	public JdkMetadata releaseInfo(Map<String, String> releaseInfo) {
+	public JdkMetadata setReleaseInfo(Map<String, String> releaseInfo) {
 		this.releaseInfo = releaseInfo;
 		return this;
 	}
@@ -363,15 +365,75 @@ public class JdkMetadata {
 
 	public JdkMetadata download(DownloadResult download) {
 		this.md5 = download.md5();
-		this.md5File = filename + ".md5";
 		this.sha1 = download.sha1();
-		this.sha1File = filename + ".sha1";
 		this.sha256 = download.sha256();
-		this.sha256File = filename + ".sha256";
 		this.sha512 = download.sha512();
-		this.sha512File = filename + ".sha512";
 		this.size = download.size();
 		return this;
+	}
+
+	/**
+	 * Validate metadata fields and return true if valid, false if invalid.
+	 * This checks that required fields are present and that enum values
+	 * are valid (or properly marked as unknown).
+	 */
+	@JsonIgnore
+	public boolean isValid() {
+		if (getFilename() == null) {
+			logger.warn("Missing 'filename'");
+			return false;
+		}
+		if (getUrl() == null) {
+			logger.warn("Missing 'url'");
+			return false;
+		}
+		if (getVersion() == null
+				|| getVersion().trim().isEmpty()
+				|| !getVersion().matches("^\\d.*")) {
+			logger.warn("Invalid 'version': {}, must start with a digit", getVersion());
+			return false;
+		}
+		if (getJavaVersion() == null
+				|| getJavaVersion().trim().isEmpty()
+				|| !getJavaVersion().matches("^\\d.*")) {
+			logger.warn("Invalid 'java_version': {}, must start with a digit", getJavaVersion());
+			return false;
+		}
+		if (getVendor() == null || !MetadataUtils.getAllVendors().contains(getVendor())) {
+			logger.warn("Invalid 'vendor': {}", getVendor());
+			return false;
+		}
+		if (getDistro() == null || !MetadataUtils.getAllDistros().contains(getDistro())) {
+			logger.warn("Invalid 'distro': {}", getDistro());
+			return false;
+		}
+		if (!MetadataUtils.isValidEnumOrUnknown(JdkMetadata.Os.class, getOs())) {
+			logger.warn("Invalid 'os': {}", getOs());
+			return false;
+		}
+		if (!MetadataUtils.isValidEnum(JdkMetadata.ImageType.class, getImageType())) {
+			logger.warn("Invalid 'image_type': {}", getImageType());
+			return false;
+		}
+		if (!MetadataUtils.isValidEnum(JdkMetadata.JvmImpl.class, getJvmImpl())) {
+			logger.warn("Invalid 'jvm_impl': {}", getJvmImpl());
+			return false;
+		}
+		if (!MetadataUtils.isValidEnum(JdkMetadata.ReleaseType.class, getReleaseType())) {
+			logger.warn("Invalid 'release_type': {}", getReleaseType());
+			return false;
+		}
+		if (!MetadataUtils.isValidEnumOrUnknown(
+				JdkMetadata.Arch.class, getArchitecture().replace("-", "_"))) {
+			logger.warn("Invalid 'architecture': {}", getArchitecture());
+			return false;
+		}
+		if (!MetadataUtils.isValidEnumOrUnknown(
+				JdkMetadata.FileType.class, getFileType().replace(".", "_"))) {
+			logger.warn("Invalid 'file_type': {}", getFileType());
+			return false;
+		}
+		return true;
 	}
 
 	@Override
@@ -379,14 +441,14 @@ public class JdkMetadata {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
 		JdkMetadata that = (JdkMetadata) o;
-		return Objects.equals(vendor, that.vendor)
+		return Objects.equals(distro, that.distro)
 				&& Objects.equals(filename, that.filename)
 				&& Objects.equals(version, that.version);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(vendor, filename, version);
+		return Objects.hash(distro, filename, version);
 	}
 
 	public static JdkMetadata create() {
